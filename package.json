@@ -1,0 +1,45 @@
+{
+  "name": "oracle-engine-graphql",
+  "version": "1.0.0",
+  "description": "GraphQL API for handling requests for the Oracle-Engine AI RPG Assistant.",
+  "main": "dist/index.js",
+  "scripts": {
+    "postinstall": "bun run codegen",
+    "codegen": "graphql-codegen --config codegen.ts",
+    "test": "test",
+    "dev": "bun --watch src/index.ts"
+  },
+  "keywords": [
+    "AI",
+    "LLM",
+    "RPG",
+    "Discord",
+    "OpenAI",
+    "Anthropic",
+    "Google",
+    "MongoDB",
+    "Prisma"
+  ],
+  "author": "AconyteDS",
+  "license": "ISC",
+  "dependencies": {
+    "@apollo/server": "^4.11.0",
+    "@graphql-tools/graphql-file-loader": "^8.0.1",
+    "@graphql-tools/load": "^8.0.2",
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "graphql": "^16.9.0",
+    "graphql-modules": "^2.3.0",
+    "graphql-ws": "^5.16.0"
+  },
+  "devDependencies": {
+    "@graphql-codegen/cli": "^5.0.2",
+    "@graphql-codegen/graphql-modules-preset": "^4.0.9",
+    "@graphql-codegen/typescript": "^4.0.9",
+    "@graphql-codegen/typescript-resolvers": "^4.2.1",
+    "@graphql-tools/load-files": "^7.0.0",
+    "@types/bun": "^1.1.6",
+    "@types/cors": "^2.8.17",
+    "typescript": "^5.5.4"
+  }
+}
