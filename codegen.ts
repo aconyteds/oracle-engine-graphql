@@ -2,6 +2,11 @@ import type { CodegenConfig } from "@graphql-codegen/cli";
 
 const config: CodegenConfig = {
   schema: "./src/modules/**/*.graphqls",
+  config: {
+    scalars: {
+      DateTime: "Date",
+    },
+  },
   generates: {
     "./src/modules/": {
       preset: "graphql-modules",
@@ -18,6 +23,11 @@ const config: CodegenConfig = {
         "typescript",
         "typescript-resolvers",
       ],
+      config: {
+        scalars: {
+          DateTime: "string",
+        },
+      },
     },
   },
 };

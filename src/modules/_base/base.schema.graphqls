@@ -1,3 +1,5 @@
+scalar DateTime
+
 extend type Query {
   healthCheck: Boolean!
 }

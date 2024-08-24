@@ -1,0 +1,40 @@
+extend type Query {
+  # returns all threads for the current user
+  threads: [Thread]
+  # returns a single thread
+  getThread(input: GetThreadInput!): GetThreadPayload
+  # returns the options for a single thread
+  threadOptions(input: ThreadOptionsInput!): ThreadOptionsPayload
+}
+
+input GetThreadInput {
+  threadId: ID!
+}
+
+input ThreadOptionsInput {
+  threadId: ID!
+}
+
+type GetThreadPayload {
+  thread: Thread
+}
+
+type ThreadOptionsPayload {
+  threadId: ID!
+  options: ThreadOptions
+}
+
+type Thread {
+  id: ID!
+  title: String!
+  lastUsed: DateTime!
+  messages: [Message]
+  threadOption: ThreadOptions
+}
+
+type ThreadOptions {
+  model: String!
+  temperature: Float!
+  useHistory: Boolean!
+  systemMessage: String!
+}
