@@ -11,7 +11,7 @@ import { GraphQLFormattedError } from "graphql";
 import { Context, getContext } from "./serverContext";
 
 const graphqlServer = async (path: string = "/graphql") => {
-  const port = parseInt(process.env.PORT || "4000", 10);
+  const isProd = process.env.NODE_ENV === "production";
   const app = express();
   app.use(cors());
   const httpServer = http.createServer(app);
@@ -56,7 +56,7 @@ const graphqlServer = async (path: string = "/graphql") => {
       console.log("ERROR -----> ", error);
       return formattedError;
     },
-    introspection: true,
+    introspection: !isProd,
   });
 
   await apolloServer.start();

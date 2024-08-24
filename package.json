@@ -8,7 +8,9 @@
     "codegen": "graphql-codegen --config codegen.ts",
     "test": "bun test -test-name-pattern Unit",
     "test:e2e": "bun test --test-name-pattern E2E",
-    "dev": "bun --watch src/index.ts"
+    "dev": "bun --watch ./src/index.ts",
+    "build": "bun build ./src/index.ts --outdir ./dist --target bun --minify",
+    "start": "bun run ./dist/index.js"
   },
   "keywords": [
     "AI",
