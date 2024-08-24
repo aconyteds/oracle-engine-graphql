@@ -1,0 +1,20 @@
+extend type Subscription {
+  generateMessage(input: GenerateMessageInput!): GenerateMessagePayload
+}
+
+input GenerateMessageInput {
+  threadId: ID!
+}
+
+enum ResponseType {
+  Content
+  Debug
+  Intermediate
+  Final
+}
+
+type GenerateMessagePayload {
+  responseType: ResponseType!
+  content: String
+  message: Message
+}

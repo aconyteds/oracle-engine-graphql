@@ -1,3 +1,4 @@
+import { DateTimeResolver } from "graphql-scalars";
 import { _BaseModule } from "./generated";
 
 const start = Date.now();
@@ -52,6 +53,7 @@ const BaseResolvers: _BaseModule.Resolvers = {
       },
     },
   },
+  DateTime: DateTimeResolver,
 };
 
 export default BaseResolvers;

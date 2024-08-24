@@ -1,0 +1,38 @@
+extend type Mutation {
+  createMessage(input: CreateMessageInput!): Message
+}
+
+extend type Subscription {
+  messageCreated(
+    input: MessageCreatedSubscriptionInput
+  ): MessageCreatedSubscriptionPayload
+}
+
+input MessageCreatedSubscriptionInput {
+  threadId: ID!
+}
+
+type MessageCreatedSubscriptionPayload {
+  message: Message
+}
+
+enum Role {
+  User
+  Assistant
+  System
+}
+
+input CreateMessageInput {
+  threadId: ID!
+  content: String!
+}
+
+type Message {
+  id: ID!
+  threadId: ID!
+  userId: ID!
+  content: String!
+  createdAt: DateTime!
+  role: Role!
+  tokenCount: Int!
+}
