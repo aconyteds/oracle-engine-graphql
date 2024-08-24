@@ -13,6 +13,8 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// System data
+
 model User {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
   email     String   @unique
@@ -49,6 +51,8 @@ model Message {
   updatedAt DateTime @updatedAt
 }
 
+// RPG data
+
 model Character {
   id          String              @id @default(auto()) @map("_id") @db.ObjectId
   name        String
@@ -59,11 +63,11 @@ model Character {
   secrets     String?
   stats       String?
   location    CharacterLocation[]
+  embeddings  Float[] // Embeddings for vector search
   createdAt   DateTime            @default(now())
   updatedAt   DateTime            @updatedAt
 }
 
-// This is a join table, this is where characters might be found, or who might be found at a location
 model CharacterLocation {
   id          String    @id @default(auto()) @map("_id") @db.ObjectId
   character   Character @relation(fields: [characterId], references: [id])
@@ -75,19 +79,24 @@ model CharacterLocation {
 }
 
 model Location {
-  id          String  @id @default(auto()) @map("_id") @db.ObjectId
+  id          String              @id @default(auto()) @map("_id") @db.ObjectId
   name        String
   description String
   type        String
   secrets     String?
-
-  // Parent-Child Relationship
-  parentId String? @db.ObjectId
-
-  // Inhabitants Relation
+  parentId    String?             @db.ObjectId
   inhabitants CharacterLocation[]
+  embeddings  Float[]
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+}
 
-  // Timestamps
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model Plot {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  description String
+  secrets     String?
+  embeddings  Float[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
