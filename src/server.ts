@@ -10,9 +10,8 @@ import { useServer } from "graphql-ws/lib/use/ws";
 import { GraphQLFormattedError } from "graphql";
 import { Context, getContext } from "./serverContext";
 
-const graphqlServer = async () => {
+const graphqlServer = async (path: string = "/graphql") => {
   const port = parseInt(process.env.PORT || "4000", 10);
-  const path = "/graphql";
   const app = express();
   app.use(cors());
   const httpServer = http.createServer(app);
@@ -69,9 +68,7 @@ const graphqlServer = async () => {
     expressMiddleware(apolloServer)
   );
 
-  await new Promise<void>((resolve) => httpServer.listen({ port }, resolve));
-
-  console.log(`🚀 Server is running on http://localhost:${port}${path}`);
+  return { app, httpServer, apolloServer };
 };
 
 export default graphqlServer;
