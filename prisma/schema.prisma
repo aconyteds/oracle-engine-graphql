@@ -1,0 +1,102 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+// System data
+
+model User {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  email     String   @unique
+  name      String?
+  threads   Thread[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+type ThreadOptions {
+  model         String
+  temperature   Float
+  useHistory    Boolean
+  systemMessage String
+}
+
+model Thread {
+  id            String        @id @default(auto()) @map("_id") @db.ObjectId
+  title         String
+  messages      Message[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  user          User?         @relation(fields: [userId], references: [id])
+  userId        String?       @db.ObjectId
+  threadOptions ThreadOptions
+}
+
+model Message {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  content   String
+  thread    Thread   @relation(fields: [threadId], references: [id])
+  threadId  String   @db.ObjectId
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// RPG data
+
+model Character {
+  id          String              @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  npc         Boolean
+  appearance  String?
+  motivations String?
+  mannerisms  String?
+  secrets     String?
+  stats       String?
+  location    CharacterLocation[]
+  embeddings  Float[] // Embeddings for vector search
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+}
+
+model CharacterLocation {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  character   Character @relation(fields: [characterId], references: [id])
+  characterId String    @db.ObjectId
+  location    Location  @relation(fields: [locationId], references: [id])
+  locationId  String    @db.ObjectId
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Location {
+  id          String              @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  description String
+  type        String
+  secrets     String?
+  parentId    String?             @db.ObjectId
+  inhabitants CharacterLocation[]
+  embeddings  Float[]
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+}
+
+model Plot {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  description String
+  secrets     String?
+  embeddings  Float[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

@@ -26,6 +26,7 @@
     "@apollo/server": "^4.11.0",
     "@graphql-tools/graphql-file-loader": "^8.0.1",
     "@graphql-tools/load": "^8.0.2",
+    "@prisma/client": "^5.18.0",
     "cors": "^2.8.5",
     "express": "^4.19.2",
     "graphql": "^16.9.0",
@@ -41,6 +42,7 @@
     "@graphql-tools/load-files": "^7.0.0",
     "@types/bun": "^1.1.6",
     "@types/cors": "^2.8.17",
+    "prisma": "^5.18.0",
     "typescript": "^5.5.4"
   }
 }
