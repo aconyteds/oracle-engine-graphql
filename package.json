@@ -6,8 +6,11 @@
   "scripts": {
     "postinstall": "bun run codegen",
     "codegen": "graphql-codegen --config codegen.ts",
-    "test": "test",
-    "dev": "bun --watch src/index.ts"
+    "test": "bun test -test-name-pattern Unit",
+    "test:e2e": "bun test --test-name-pattern E2E",
+    "dev": "bun --watch ./src/index.ts",
+    "build": "bun build ./src/index.ts --outdir ./dist --target bun --minify",
+    "start": "bun run ./dist/index.js"
   },
   "keywords": [
     "AI",
@@ -42,7 +45,9 @@
     "@graphql-tools/load-files": "^7.0.0",
     "@types/bun": "^1.1.6",
     "@types/cors": "^2.8.17",
+    "@types/supertest": "^6.0.2",
     "prisma": "^5.18.0",
+    "supertest": "^7.0.0",
     "typescript": "^5.5.4"
   }
 }

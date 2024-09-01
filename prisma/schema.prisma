@@ -54,18 +54,18 @@ model Message {
 // RPG data
 
 model Character {
-  id          String              @id @default(auto()) @map("_id") @db.ObjectId
-  name        String
-  npc         Boolean
-  appearance  String?
-  motivations String?
-  mannerisms  String?
-  secrets     String?
-  stats       String?
-  location    CharacterLocation[]
-  embeddings  Float[] // Embeddings for vector search
-  createdAt   DateTime            @default(now())
-  updatedAt   DateTime            @updatedAt
+  id               String              @id @default(auto()) @map("_id") @db.ObjectId
+  name             String
+  npc              Boolean
+  appearance       String?
+  motivations      String?
+  mannerisms       String?
+  secrets          String?
+  stats            String?
+  location         CharacterLocation[]
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  embeddingsItemId String? // The ID of the item in the embeddings table
 }
 
 model CharacterLocation {
@@ -79,24 +79,24 @@ model CharacterLocation {
 }
 
 model Location {
-  id          String              @id @default(auto()) @map("_id") @db.ObjectId
-  name        String
-  description String
-  type        String
-  secrets     String?
-  parentId    String?             @db.ObjectId
-  inhabitants CharacterLocation[]
-  embeddings  Float[]
-  createdAt   DateTime            @default(now())
-  updatedAt   DateTime            @updatedAt
+  id               String              @id @default(auto()) @map("_id") @db.ObjectId
+  name             String
+  description      String
+  type             String
+  secrets          String?
+  parentId         String?             @db.ObjectId
+  inhabitants      CharacterLocation[]
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  embeddingsItemId String?
 }
 
 model Plot {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  name        String
-  description String
-  secrets     String?
-  embeddings  Float[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id               String   @id @default(auto()) @map("_id") @db.ObjectId
+  name             String
+  description      String
+  secrets          String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  embeddingsItemId String?
 }
