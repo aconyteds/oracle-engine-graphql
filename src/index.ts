@@ -1,3 +1,12 @@
+declare module "bun" {
+  interface Env {
+    // The MongoDB connection string
+    DATABASE_URL: string;
+    // The OpenAI API Key
+    OPENAI_API_KEY: string;
+  }
+}
+
 import GraphQLServer from "./server";
 
 const startServer = async () => {
