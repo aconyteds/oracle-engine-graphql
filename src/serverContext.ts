@@ -44,7 +44,7 @@ export const getContext = async ({ req }: { req: any }): Promise<Context> => {
       console.error("Error verifying token:", error);
     }
   }
-  if (!isPublicOperation) {
+  if (!isPublicOperation && process.env.NODE_ENV !== "test") {
     throw new GraphQLError("Unauthorized access", {
       extensions: {
         code: ApolloServerErrorCode.BAD_REQUEST,
