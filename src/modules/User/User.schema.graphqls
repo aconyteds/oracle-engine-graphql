@@ -3,7 +3,7 @@ extend type Query {
 }
 
 extend type Mutation {
-  login(input: LoginInput!): LoginPayload
+  login(input: LoginInput): LoginPayload
 }
 
 input LoginInput {
@@ -18,7 +18,7 @@ type LoginPayload {
 
 type User {
   id: ID!
-  name: String!
-  email: String!
+  email: String
+  name: String
   threads: [Thread]
 }

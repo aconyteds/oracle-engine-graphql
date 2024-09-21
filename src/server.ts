@@ -65,7 +65,9 @@ const graphqlServer = async (path: string = "/graphql") => {
     path,
     cors<cors.CorsRequest>(),
     json(),
-    expressMiddleware(apolloServer)
+    expressMiddleware(apolloServer, {
+      context: getContext,
+    })
   );
 
   return { app, httpServer, apolloServer };

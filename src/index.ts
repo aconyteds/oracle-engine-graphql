@@ -4,6 +4,12 @@ declare module "bun" {
     DATABASE_URL: string;
     // The OpenAI API Key
     OPENAI_API_KEY: string;
+    // The Firebase Admin SDK service account key file path
+    GOOGLE_APPLICATION_CREDENTIALS?: string;
+    // The Firebase Admin SDK service account key file as a base64 encoded string
+    FIREBASE_CONFIG_BASE64?: string;
+    // the WEBAPIKEY for Firebase
+    FIREBASE_WEB_API_KEY: string;
   }
 }
 
