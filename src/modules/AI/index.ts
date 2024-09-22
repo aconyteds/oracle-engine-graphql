@@ -3,7 +3,7 @@ import { loadFilesSync } from "@graphql-tools/load-files";
 import AIResolvers from "./AI.resolver";
 
 // Load the schema as a string using @graphql-tools/load-files
-const typeDefs = loadFilesSync(`${__dirname}./AI.schema.graphqls`, {
+const typeDefs = loadFilesSync(`${__dirname}/AI.schema.graphqls`, {
   extensions: ["graphqls"],
 });
 
