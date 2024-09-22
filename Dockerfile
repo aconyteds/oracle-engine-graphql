@@ -29,9 +29,12 @@ COPY --from=build /src/dist ./dist
 COPY --from=build /src/src ./src
 
 ENV PORT 3000
+# Set the environment to production
+ENV NODE_ENV=production
 
 # Expose the port the app runs on
 EXPOSE 3000
+
 
 # Command to run the app
 CMD ["bun", "dist/index.js"]

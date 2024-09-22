@@ -15,7 +15,6 @@ export const verifyUser = async (
     return null;
   }
   const decodedToken = await getAuth().verifyIdToken(idToken);
-  lookupUser(db, decodedToken.uid, decodedToken.email);
   const userCredential = await lookupUser(
     db,
     decodedToken.uid,
