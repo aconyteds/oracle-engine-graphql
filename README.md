@@ -17,7 +17,7 @@ FIREBASE_WEB_API_KEY=ASDFWER
 # The Credentials JSON file exported from Firebase
 GOOGLE_APPLICATION_CREDENTIALS="credentials.json"
 # The MongoDB Connection string to use for the app
-DATABASE_URL=<MongoDB Connection String>
+DATABASE_URL="mongodb://localhost:27017/OracleEngine?retryWrites=true&w=majority"
 ```
 
 This application uses many different APIs to operate. Firebase, OpenAI, MongoDB, etc... In order for this application to run, you will need to provide the proper credentials in the environment file.
