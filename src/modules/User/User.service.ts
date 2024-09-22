@@ -2,8 +2,6 @@ import { PrismaClient, User } from "@prisma/client";
 import { UserModule } from "./generated";
 import { GraphQLError } from "graphql";
 import { ApolloServerErrorCode } from "@apollo/server/errors";
-import { DecodedIdToken } from "firebase-admin/auth";
-import { InputMaybe } from "../../generated/graphql";
 import { loginWithEmailAndPassword } from "../../data/Firebase";
 import { lookupUser } from "../../data/MongoDB";
 

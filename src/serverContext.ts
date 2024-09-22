@@ -2,7 +2,6 @@ import { PrismaClient } from "@prisma/client";
 import { GraphQLError } from "graphql";
 import { ApolloServerErrorCode } from "@apollo/server/errors";
 import { initializeFirebase, verifyUser } from "./data/Firebase";
-import { DecodedIdToken } from "firebase-admin/auth";
 
 const PUBLIC_OPERATIONS = ["login", "healthCheck", "IntrospectionQuery"];
 
