@@ -6,11 +6,11 @@ import { initializeFirebase, verifyUser } from "./data/Firebase";
 const PUBLIC_OPERATIONS = ["login", "healthCheck", "IntrospectionQuery"];
 
 export interface Context {
-  // The MongoDB client
+  // The Prisma client instance for database operations.
   db: PrismaClient;
-  // The Firebase Auth token
+  // The Firebase Auth token, if available.
   token?: string;
-  // The ID of the currently logged in user (within the DB)
+  // The ID of the currently logged in user within the database, if available.
   userId?: string;
 }
 
@@ -19,6 +19,13 @@ initializeFirebase();
 
 const db = new PrismaClient();
 
+/**
+ * Generates the context for a GraphQL request.
+ * @param {Object} params - The parameters for the context function.
+ * @param {any} params.req - The HTTP request object.
+ * @returns {Promise<Context>} The context for the GraphQL operation.
+ * @throws {GraphQLError} Throws an error if the authorization token is invalid.
+ */
 export const getContext = async ({ req }: { req: any }): Promise<Context> => {
   const token = (req.headers.authorization || "").replace("Bearer ", "");
   const context: Context = { db, token };
