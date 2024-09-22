@@ -23,7 +23,9 @@ enum Role {
 }
 
 input CreateMessageInput {
-  threadId: ID!
+  # Provide the ID of the thread to which the message belongs, if not provided a new thread will be created
+  threadId: ID
+  # The content of the message, this will be used when generating a response
   content: String!
 }
 

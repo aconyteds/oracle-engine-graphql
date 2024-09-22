@@ -18,7 +18,7 @@ type LoginPayload {
 
 type User {
   id: ID!
-  name: String!
-  email: String!
+  email: String
+  name: String
   threads: [Thread]
 }
