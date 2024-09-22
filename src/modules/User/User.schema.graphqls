@@ -3,7 +3,7 @@ extend type Query {
 }
 
 extend type Mutation {
-  login(input: LoginInput): LoginPayload
+  login(input: LoginInput!): LoginPayload
 }
 
 input LoginInput {

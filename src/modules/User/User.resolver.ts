@@ -5,36 +5,40 @@ import { ApolloServerErrorCode } from "@apollo/server/errors";
 
 const UserResolvers: UserModule.Resolvers = {
   Query: {
-    currentUser: async (_, __, { userId, db }): Promise<UserModule.User> => {
-      if (!userId) {
-        throw new GraphQLError("Invalid authorization token", {
-          extensions: {
-            code: ApolloServerErrorCode.BAD_REQUEST,
-          },
-        });
-      }
-
-      const user = await db.user.findUnique({
-        where: {
-          id: userId,
-        },
-      });
-
-      return {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-      };
+    currentUser: async (
+      _,
+      __,
+      { userId, db }
+    ): Promise<UserModule.User | null> => {
+      const userService = new UserService(db);
+      return userService.getCurrentUser(userId);
     },
   },
   Mutation: {
     login: async (
       _,
       { input },
-      { user, token, db }
+      { userId, token, db }
     ): Promise<UserModule.LoginPayload | null> => {
+      if (!input) {
+        throw new GraphQLError("Invalid request input", {
+          extensions: {
+            code: ApolloServerErrorCode.BAD_USER_INPUT,
+          },
+        });
+      }
       const userService = new UserService(db);
-      return userService.login(input, token, user);
+      if (userId) {
+        const user = await userService.getCurrentUser(userId);
+        if (!user) {
+          return null;
+        }
+        return {
+          token,
+          user,
+        };
+      }
+      return userService.login(input);
     },
   },
 };

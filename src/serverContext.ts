@@ -11,8 +11,6 @@ export interface Context {
   db: PrismaClient;
   // The Firebase Auth token
   token?: string;
-  // The Decoded Firebase Auth token, used for login
-  user?: DecodedIdToken;
   // The ID of the currently logged in user (within the DB)
   userId?: string;
 }
@@ -30,6 +28,10 @@ export const getContext = async ({ req }: { req: any }): Promise<Context> => {
   // Check if the operation is public
   const isPublicOperation = PUBLIC_OPERATIONS.includes(operationName);
 
+  if (isPublicOperation) {
+    return context;
+  }
+
   if (token) {
     try {
       const user = await verifyUser(token, db);
@@ -37,18 +39,18 @@ export const getContext = async ({ req }: { req: any }): Promise<Context> => {
         throw new Error("Invalid token");
       }
 
-      return { ...context, user: user.token, userId: user.user?.id };
+      return { ...context, userId: user.user?.id };
     } catch (error) {
       // If the operation is not public, throw an error
       console.error("Error verifying token:", error);
+      if (process.env.NODE_ENV !== "test") {
+        throw new GraphQLError("Invalid authorization token", {
+          extensions: {
+            code: ApolloServerErrorCode.BAD_REQUEST,
+          },
+        });
+      }
     }
-  }
-  if (!isPublicOperation && process.env.NODE_ENV !== "test") {
-    throw new GraphQLError("Unauthorized access", {
-      extensions: {
-        code: ApolloServerErrorCode.BAD_REQUEST,
-      },
-    });
   }
 
   return context;
