@@ -1,6 +1,8 @@
 # Stage 1: Build Stage
 FROM oven/bun:latest AS build
 
+ENV HUSKY=0
+
 # Set working directory
 WORKDIR /src
 
@@ -16,6 +18,7 @@ RUN bun install
 
 # Build the application (if applicable, for TypeScript or other builds)
 RUN bun run build
+RUN bunx prisma generate
 
 # Stage 2: Production Stage
 FROM oven/bun:latest AS production
