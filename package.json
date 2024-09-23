@@ -31,7 +31,7 @@
     "@apollo/server": "^4.11.0",
     "@graphql-tools/graphql-file-loader": "^8.0.1",
     "@graphql-tools/load": "^8.0.2",
-    "@prisma/client": "^5.18.0",
+    "@prisma/client": "^5.19.1",
     "cors": "^2.8.5",
     "express": "^4.19.2",
     "firebase-admin": "^12.5.0",
@@ -52,7 +52,7 @@
     "husky": "^9.1.6",
     "lint-staged": "^15.2.10",
     "prettier": "^3.3.3",
-    "prisma": "^5.18.0",
+    "prisma": "^5.19.1",
     "supertest": "^7.0.0",
     "typescript": "^5.5.4"
   },

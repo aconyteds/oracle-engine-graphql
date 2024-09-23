@@ -52,8 +52,7 @@ const graphqlServer = async (path: string = "/graphql") => {
       },
     ],
     formatError: (formattedError: GraphQLFormattedError, error: any) => {
-      console.log("FORMATTED ERROR -----> ", formattedError);
-      console.log("ERROR -----> ", error);
+      console.error("FORMATTED ERROR -----> ", formattedError);
       return formattedError;
     },
     introspection: !isProd,
