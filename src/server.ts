@@ -9,6 +9,8 @@ import GraphQLApplication from "./modules";
 import { useServer } from "graphql-ws/lib/use/ws";
 import { GraphQLFormattedError } from "graphql";
 import { Context, getContext } from "./serverContext";
+import { applyMiddleware } from "graphql-middleware";
+import { permissions } from "./graphql-permissions";
 
 const graphqlServer = async (path: string = "/graphql") => {
   const isProd = process.env.NODE_ENV === "production";
@@ -23,8 +25,14 @@ const graphqlServer = async (path: string = "/graphql") => {
 
   const { schema, createApolloExecutor, createSubscription } =
     GraphQLApplication;
+  // Apply permissions to the schema
+  const schemaWithPermissions = applyMiddleware(schema, permissions);
   const serverCleanup = useServer(
-    { schema, context: getContext, subscribe: createSubscription() },
+    {
+      schema: schemaWithPermissions,
+      context: getContext,
+      subscribe: createSubscription(),
+    },
     wsServer
   );
 
@@ -34,7 +42,7 @@ const graphqlServer = async (path: string = "/graphql") => {
         return { executor: createApolloExecutor() };
       },
       onSchemaLoadOrUpdate(callback) {
-        callback({ apiSchema: schema } as any);
+        callback({ apiSchema: schemaWithPermissions } as any);
         return () => {};
       },
       async stop() {},
