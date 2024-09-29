@@ -5,7 +5,12 @@ import {
   Message as GraphQLMessage,
   Thread as GraphQLThread,
   ThreadOptions as GraphQLThreadOptions,
+  GenerateMessagePayload,
 } from "../generated/graphql";
+import {
+  AIMessageChunk,
+  MessageContentComplex,
+} from "@langchain/core/messages";
 
 export const TranslateRole = (role: MessageRoles): GraphQLRole => {
   switch (role) {
@@ -51,5 +56,30 @@ export const TranslateThreadOptions = (
     systemMessage: threadOptions.systemMessage,
     temperature: threadOptions.temperature,
     useHistory: threadOptions.useHistory,
+  };
+};
+
+export const TranslateAIChunk = (
+  chunk: AIMessageChunk
+): GenerateMessagePayload => {
+  let content = "";
+  if (typeof chunk.content === "string") {
+    content = chunk.content;
+  } else {
+    const combinedContent = chunk.content.map((c: MessageContentComplex) => {
+      if (c.type === "text") {
+        return c.text;
+      }
+      if (c.type === "image_url") {
+        return c.image_url;
+      }
+      return "";
+    });
+    content = combinedContent.join(" ");
+  }
+
+  return {
+    responseType: "Content",
+    content,
   };
 };

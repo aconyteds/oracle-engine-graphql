@@ -10,7 +10,7 @@ import { useServer } from "graphql-ws/lib/use/ws";
 import { GraphQLFormattedError } from "graphql";
 import { Context, getContext } from "./serverContext";
 import { applyMiddleware } from "graphql-middleware";
-import { permissions } from "./graphql-permissions";
+import { permissions } from "./graphql/permissions";
 
 const graphqlServer = async (path: string = "/graphql") => {
   const isProd = process.env.NODE_ENV === "production";
@@ -30,7 +30,11 @@ const graphqlServer = async (path: string = "/graphql") => {
   const serverCleanup = useServer(
     {
       schema: schemaWithPermissions,
-      context: getContext,
+      context: async (ctx) => {
+        return getContext({
+          connectionParams: ctx.connectionParams,
+        });
+      },
       subscribe: createSubscription(),
     },
     wsServer

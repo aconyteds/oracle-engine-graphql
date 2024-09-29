@@ -1,8 +1,13 @@
 import { Message, PrismaClient } from "@prisma/client";
 import { MessageModule } from "./generated";
-import { createMessage, createThread } from "../../data/MongoDB";
+import {
+  createMessage,
+  createThread,
+  verifyThreadOwnership,
+} from "../../data/MongoDB";
 import { GraphQLError } from "graphql";
 import { ApolloServerErrorCode } from "@apollo/server/errors";
+import { UnauthorizedError } from "../../graphql/errors";
 
 type CreateMessageResponse = {
   // The Message that was added to the DB
@@ -38,6 +43,13 @@ export class MessageService {
         message: input.content,
         userId,
       });
+    } else {
+      // Verify that the user has access to the thread
+      try {
+        await verifyThreadOwnership(this._db, threadId, userId);
+      } catch (error) {
+        throw UnauthorizedError();
+      }
     }
 
     const message = await createMessage({

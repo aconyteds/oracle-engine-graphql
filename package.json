@@ -32,16 +32,17 @@
     "@graphql-tools/graphql-file-loader": "^8.0.1",
     "@graphql-tools/load": "^8.0.2",
     "@langchain/core": "^0.3.3",
-    "@langchain/openai": "^0.3.0",
-    "@prisma/client": "^5.19.1",
+    "@langchain/openai": "^0.3.2",
+    "@prisma/client": "^5.20.0",
     "cors": "^2.8.5",
-    "express": "^4.19.2",
+    "express": "^4.21.0",
     "firebase-admin": "^12.5.0",
     "graphql": "^16.9.0",
     "graphql-modules": "^2.3.0",
     "graphql-scalars": "^1.23.0",
+    "graphql-subscriptions": "^2.0.0",
     "graphql-ws": "^5.16.0",
-    "openai": "^4.63.0",
+    "openai": "^4.65.0",
     "tiktoken": "^1.0.16"
   },
   "devDependencies": {
@@ -50,15 +51,15 @@
     "@graphql-codegen/typescript": "^4.0.9",
     "@graphql-codegen/typescript-resolvers": "^4.2.1",
     "@graphql-tools/load-files": "^7.0.0",
-    "@types/bun": "^1.1.6",
+    "@types/bun": "^1.1.10",
     "@types/cors": "^2.8.17",
     "@types/supertest": "^6.0.2",
     "husky": "^9.1.6",
     "lint-staged": "^15.2.10",
     "prettier": "^3.3.3",
-    "prisma": "^5.19.1",
+    "prisma": "^5.20.0",
     "supertest": "^7.0.0",
-    "typescript": "^5.5.4"
+    "typescript": "^5.6.2"
   },
   "lint-staged": {
     "*.{js,ts,jsx,tsx,json,md}": "prettier --write"
