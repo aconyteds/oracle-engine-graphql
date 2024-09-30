@@ -38,6 +38,7 @@
     "express": "^4.21.0",
     "firebase-admin": "^12.5.0",
     "graphql": "^16.9.0",
+    "graphql-middleware": "^6.1.35",
     "graphql-modules": "^2.3.0",
     "graphql-scalars": "^1.23.0",
     "graphql-subscriptions": "^2.0.0",
