@@ -2,6 +2,7 @@ import { GraphQLError } from "graphql";
 import { UserModule } from "./generated";
 import { UserService } from "./User.service";
 import { ApolloServerErrorCode } from "@apollo/server/errors";
+import { getUserThreads } from "../../data/MongoDB";
 
 const UserResolvers: UserModule.Resolvers = {
   Query: {
@@ -39,6 +40,17 @@ const UserResolvers: UserModule.Resolvers = {
         };
       }
       return userService.login(input);
+    },
+  },
+  User: {
+    threads: async (parent, _, { db }): Promise<UserModule.Thread[]> => {
+      const threads = await getUserThreads(db, parent.id);
+      return threads.map((thread) => ({
+        id: thread.id,
+        title: thread.title,
+        createdAt: thread.createdAt.toISOString(),
+        lastUsed: thread.updatedAt.toISOString(),
+      }));
     },
   },
 };
