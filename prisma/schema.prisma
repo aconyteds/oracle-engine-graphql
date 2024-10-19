@@ -45,12 +45,14 @@ model Thread {
 }
 
 model Message {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  content   String
-  thread    Thread   @relation(fields: [threadId], references: [id])
-  threadId  String   @db.ObjectId
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  role       String
+  tokenCount Int
+  content    String
+  thread     Thread   @relation(fields: [threadId], references: [id])
+  threadId   String   @db.ObjectId
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
 
 // RPG data

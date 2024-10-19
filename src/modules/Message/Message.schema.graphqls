@@ -1,10 +1,10 @@
 extend type Mutation {
-  createMessage(input: CreateMessageInput!): Message
+  createMessage(input: CreateMessageInput!): CreateMessagePayload
 }
 
 extend type Subscription {
   messageCreated(
-    input: MessageCreatedSubscriptionInput
+    input: MessageCreatedSubscriptionInput!
   ): MessageCreatedSubscriptionPayload
 }
 
@@ -29,10 +29,16 @@ input CreateMessageInput {
   content: String!
 }
 
+type CreateMessagePayload {
+  # The Thread ID that was passed in the input or created
+  threadId: ID!
+  # The message that was created
+  message: Message!
+}
+
 type Message {
   id: ID!
   threadId: ID!
-  userId: ID!
   content: String!
   createdAt: DateTime!
   role: Role!

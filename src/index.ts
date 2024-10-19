@@ -26,3 +26,8 @@ const startServer = async () => {
 };
 
 startServer();
+
+process.on("SIGINT", () => {
+  console.log("🚀 Server is shutting down...");
+  process.exit(0);
+});
