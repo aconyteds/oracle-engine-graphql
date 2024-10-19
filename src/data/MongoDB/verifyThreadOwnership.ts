@@ -1,16 +1,21 @@
 import { PrismaClient } from "@prisma/client";
+import { UnauthorizedError } from "../../graphql/errors";
 
 export const verifyThreadOwnership = async (
   client: PrismaClient,
   threadId: string,
   userId: string
 ): Promise<true> => {
-  await client.thread.findUniqueOrThrow({
-    where: {
-      id: threadId,
-      userId,
-    },
-  });
+  try {
+    await client.thread.findUniqueOrThrow({
+      where: {
+        id: threadId,
+        userId,
+      },
+    });
 
-  return true;
+    return true;
+  } catch (error) {
+    throw UnauthorizedError();
+  }
 };

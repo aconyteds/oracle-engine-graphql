@@ -16,11 +16,7 @@ const AIResolvers: AiModule.Resolvers = {
         if (!userId) {
           throw UnauthorizedError();
         }
-        try {
-          await verifyThreadOwnership(db, input.threadId, userId);
-        } catch (error) {
-          throw UnauthorizedError();
-        }
+        await verifyThreadOwnership(db, input.threadId, userId);
         const aiService = new AIService(db);
 
         // Use for-await to iterate over the generator and yield each chunk

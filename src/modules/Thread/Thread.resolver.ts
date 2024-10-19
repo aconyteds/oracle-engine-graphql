@@ -1,3 +1,4 @@
+import { verifyThreadOwnership } from "../../data/MongoDB";
 import {
   TranslateMessage,
   TranslateThread,
@@ -16,8 +17,9 @@ const ThreadResolvers: ThreadModule.Resolvers = {
     getThread: async (
       _,
       { input: { threadId } },
-      { db }
+      { db, userId }
     ): Promise<ThreadModule.GetThreadPayload | null> => {
+      await verifyThreadOwnership(db, threadId, userId);
       const threadService = new ThreadService(db);
       const thread = await threadService.getThread(threadId);
       return {
@@ -27,8 +29,9 @@ const ThreadResolvers: ThreadModule.Resolvers = {
     threadOptions: async (
       _,
       { input: { threadId } },
-      { db }
+      { db, userId }
     ): Promise<ThreadModule.ThreadOptionsPayload | null> => {
+      await verifyThreadOwnership(db, threadId, userId);
       const threadService = new ThreadService(db);
       const threadOption = await threadService.getThreadOptions(threadId);
       return {
@@ -38,9 +41,15 @@ const ThreadResolvers: ThreadModule.Resolvers = {
     },
   },
   Thread: {
-    messages: async (parent, _, { db }): Promise<ThreadModule.Message[]> => {
+    messages: async (
+      parent,
+      _,
+      { db, userId }
+    ): Promise<ThreadModule.Message[]> => {
+      const threadId = parent.id;
+      await verifyThreadOwnership(db, threadId, userId);
       const threadService = new ThreadService(db);
-      const messages = await threadService.getThreadMessages(parent.id);
+      const messages = await threadService.getThreadMessages(threadId);
       return messages.map(TranslateMessage);
     },
     threadOption: async (
@@ -48,8 +57,10 @@ const ThreadResolvers: ThreadModule.Resolvers = {
       _,
       { db, userId }
     ): Promise<ThreadModule.ThreadOptions | null> => {
+      const threadId = parent.id;
+      await verifyThreadOwnership(db, threadId, userId);
       const threadService = new ThreadService(db);
-      const threadOption = await threadService.getThreadOptions(parent.id);
+      const threadOption = await threadService.getThreadOptions(threadId);
       return threadOption ? TranslateThreadOptions(threadOption) : null;
     },
   },

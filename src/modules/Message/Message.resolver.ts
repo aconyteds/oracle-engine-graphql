@@ -46,11 +46,7 @@ const MessageResolvers: MessageModule.Resolvers = {
           throw UnauthorizedError();
         }
         const { threadId } = input;
-        try {
-          await verifyThreadOwnership(db, threadId, userId);
-        } catch (error) {
-          throw UnauthorizedError();
-        }
+        await verifyThreadOwnership(db, threadId, userId);
 
         const asyncIterator = pubsub.asyncIterator("messageCreated");
 

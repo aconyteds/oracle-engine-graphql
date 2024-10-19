@@ -45,11 +45,7 @@ export class MessageService {
       });
     } else {
       // Verify that the user has access to the thread
-      try {
-        await verifyThreadOwnership(this._db, threadId, userId);
-      } catch (error) {
-        throw UnauthorizedError();
-      }
+      await verifyThreadOwnership(this._db, threadId, userId);
     }
 
     const message = await createMessage({
