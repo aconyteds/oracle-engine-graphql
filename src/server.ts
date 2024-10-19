@@ -31,9 +31,11 @@ const graphqlServer = async (path: string = "/graphql") => {
     {
       schema: schemaWithPermissions,
       context: async (ctx) => {
-        return getContext({
+        const currContext = await getContext({
           connectionParams: ctx.connectionParams,
+          req: ctx.extra.request,
         });
+        return currContext;
       },
       subscribe: createSubscription(),
     },
