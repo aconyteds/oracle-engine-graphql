@@ -1,7 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { ServerError } from "../../graphql/errors";
 import {
-  calculateTokenCount,
   DEFAULT_OPENAI_MODEL,
   truncateMessageHistory,
   TrustedModelName,
