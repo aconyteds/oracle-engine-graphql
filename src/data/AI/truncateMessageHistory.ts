@@ -1,12 +1,14 @@
+import type { BaseMessage } from "@langchain/core/messages";
 import {
-  BaseMessage,
   SystemMessage,
   HumanMessage,
   AIMessage,
 } from "@langchain/core/messages";
-import { TRUSTED_MODELS, TrustedModelName } from "./modelList";
+
+import type { TrustedModelName } from "./modelList";
+import { TRUSTED_MODELS } from "./modelList";
 import { calculateTokenCount } from "./calculateTokenCount";
-import { RoleTypes } from ".";
+import type { RoleTypes } from ".";
 
 export type MessageItem = {
   content: string;

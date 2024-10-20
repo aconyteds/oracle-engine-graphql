@@ -1,6 +1,7 @@
-import { FirebaseAuthResponse } from "./models";
 import { GraphQLError } from "graphql";
 import { ApolloServerErrorCode } from "@apollo/server/errors";
+
+import type { FirebaseAuthResponse } from "./models";
 
 const FIREBASE_WEB_API_KEY = process.env.FIREBASE_WEB_API_KEY;
 

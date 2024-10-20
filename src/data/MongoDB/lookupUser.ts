@@ -1,4 +1,4 @@
-import { PrismaClient, User } from "@prisma/client";
+import type { PrismaClient, User } from "@prisma/client";
 
 /**
  * Looks up a user in the database by their Firebase Auth Account ID (googleAccountId).

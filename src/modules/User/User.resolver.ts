@@ -1,7 +1,8 @@
 import { GraphQLError } from "graphql";
-import { UserModule } from "./generated";
-import { UserService } from "./User.service";
 import { ApolloServerErrorCode } from "@apollo/server/errors";
+
+import type { UserModule } from "./generated";
+import { UserService } from "./User.service";
 import { getUserThreads } from "../../data/MongoDB";
 
 const UserResolvers: UserModule.Resolvers = {

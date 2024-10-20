@@ -1,5 +1,7 @@
-import { PrismaClient, User } from "@prisma/client";
-import { DecodedIdToken, getAuth } from "firebase-admin/auth";
+import type { PrismaClient, User } from "@prisma/client";
+import type { DecodedIdToken } from "firebase-admin/auth";
+import { getAuth } from "firebase-admin/auth";
+
 import { lookupUser } from "../MongoDB";
 
 type VerifyUserResponse = {

@@ -3,6 +3,7 @@ import {
   resolvers as scalarResolvers,
   typeDefs as scalarTypeDefs,
 } from "graphql-scalars";
+
 import BaseModule from "./_base";
 import UserModule from "./User";
 import MessageModule from "./Message";

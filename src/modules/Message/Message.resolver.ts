@@ -1,11 +1,12 @@
+import { withFilter } from "graphql-subscriptions";
+
 import { verifyThreadOwnership } from "../../data/MongoDB";
 import { UnauthorizedError } from "../../graphql/errors";
-import { MessageCreatedPayload } from "../../graphql/topics";
-import { Context } from "../../serverContext";
+import type { MessageCreatedPayload } from "../../graphql/topics";
+import type { Context } from "../../serverContext";
 import { TranslateMessage } from "../utils";
-import { MessageModule } from "./generated";
+import type { MessageModule } from "./generated";
 import { MessageService } from "./Message.service";
-import { withFilter } from "graphql-subscriptions";
 
 const MessageResolvers: MessageModule.Resolvers = {
   Mutation: {

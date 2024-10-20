@@ -1,8 +1,8 @@
 import { verifyThreadOwnership } from "../../data/MongoDB";
 import { UnauthorizedError } from "../../graphql/errors";
-import { Context } from "../../serverContext";
+import type { Context } from "../../serverContext";
 import { AIService } from "./AI.service";
-import { AiModule } from "./generated";
+import type { AiModule } from "./generated";
 
 const AIResolvers: AiModule.Resolvers = {
   Subscription: {

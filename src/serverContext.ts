@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+
 import { initializeFirebase, verifyUser } from "./data/Firebase";
 import PubSub from "./graphql/topics";
 

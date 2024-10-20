@@ -1,7 +1,8 @@
 import { PrismaClient } from "@prisma/client";
-import { UserModule } from "./generated";
 import { GraphQLError } from "graphql";
 import { ApolloServerErrorCode } from "@apollo/server/errors";
+
+import type { UserModule } from "./generated";
 import { loginWithEmailAndPassword } from "../../data/Firebase";
 import { lookupUser } from "../../data/MongoDB";
 

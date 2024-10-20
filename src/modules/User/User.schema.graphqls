@@ -20,5 +20,5 @@ type User {
   id: ID!
   email: String
   name: String
-  threads: [Thread]
+  threads: [Thread!]
 }

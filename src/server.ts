@@ -5,11 +5,13 @@ import express, { json } from "express";
 import http from "http";
 import cors from "cors";
 import { WebSocketServer } from "ws";
-import GraphQLApplication from "./modules";
 import { useServer } from "graphql-ws/lib/use/ws";
-import { GraphQLFormattedError } from "graphql";
-import { Context, getContext } from "./serverContext";
+import type { GraphQLFormattedError } from "graphql";
 import { applyMiddleware } from "graphql-middleware";
+
+import type { Context } from "./serverContext";
+import { getContext } from "./serverContext";
+import GraphQLApplication from "./modules";
 import { permissions } from "./graphql/permissions";
 
 const graphqlServer = async (path: string = "/graphql") => {

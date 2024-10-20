@@ -1,6 +1,6 @@
 extend type Query {
   # returns all threads for the current user
-  threads: [Thread]
+  threads: [Thread!]
   # returns a single thread
   getThread(input: GetThreadInput!): GetThreadPayload
   # returns the options for a single thread
@@ -28,7 +28,7 @@ type Thread {
   id: ID!
   title: String!
   lastUsed: DateTime!
-  messages: [Message]
+  messages: [Message!]
   threadOption: ThreadOptions
 }
 

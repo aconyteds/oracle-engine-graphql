@@ -4,7 +4,7 @@ import {
   TranslateThread,
   TranslateThreadOptions,
 } from "../utils";
-import { ThreadModule } from "./generated";
+import type { ThreadModule } from "./generated";
 import { ThreadService } from "./Thread.service";
 
 const ThreadResolvers: ThreadModule.Resolvers = {

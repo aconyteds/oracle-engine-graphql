@@ -1,4 +1,5 @@
-import { PrismaClient, ThreadOptions } from "@prisma/client";
+import type { PrismaClient, ThreadOptions } from "@prisma/client";
+
 import { createTitle } from "../AI";
 
 type CreateThreadInput = {

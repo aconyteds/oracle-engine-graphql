@@ -1,12 +1,10 @@
-import { PrismaClient } from "@prisma/client";
+import type { PrismaClient } from "@prisma/client";
+
 import { ServerError } from "../../graphql/errors";
-import {
-  DEFAULT_OPENAI_MODEL,
-  truncateMessageHistory,
-  TrustedModelName,
-} from "../../data/AI";
-import { MessageItem, RoleTypes } from "../../data/AI";
-import { GenerateMessagePayload } from "../../generated/graphql";
+import type { TrustedModelName } from "../../data/AI";
+import { DEFAULT_OPENAI_MODEL, truncateMessageHistory } from "../../data/AI";
+import type { MessageItem, RoleTypes } from "../../data/AI";
+import type { GenerateMessagePayload } from "../../generated/graphql";
 import { TranslateAIChunk, TranslateMessage } from "../utils";
 import { createMessage } from "../../data/MongoDB";
 

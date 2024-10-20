@@ -1,12 +1,13 @@
-import { Message, PrismaClient } from "@prisma/client";
-import { MessageModule } from "./generated";
+import type { Message, PrismaClient } from "@prisma/client";
+import { GraphQLError } from "graphql";
+import { ApolloServerErrorCode } from "@apollo/server/errors";
+
+import type { MessageModule } from "./generated";
 import {
   createMessage,
   createThread,
   verifyThreadOwnership,
 } from "../../data/MongoDB";
-import { GraphQLError } from "graphql";
-import { ApolloServerErrorCode } from "@apollo/server/errors";
 import { UnauthorizedError } from "../../graphql/errors";
 
 type CreateMessageResponse = {

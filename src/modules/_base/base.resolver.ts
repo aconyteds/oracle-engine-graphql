@@ -1,5 +1,6 @@
 import { DateTimeResolver } from "graphql-scalars";
-import { _BaseModule } from "./generated";
+
+import type { _BaseModule } from "./generated";
 
 const start = Date.now();
 
