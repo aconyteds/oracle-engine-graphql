@@ -8,7 +8,7 @@ const isAuthenticated = rule({ cache: "contextual" })(async (
   args,
   context: Context
 ) => {
-  return !!context.userId;
+  return !!context.user;
 });
 
 export const permissions = shield(

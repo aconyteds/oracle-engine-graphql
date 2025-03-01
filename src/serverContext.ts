@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, User } from "@prisma/client";
 
 import { initializeFirebase, verifyUser } from "./data/Firebase";
 import PubSub from "./graphql/topics";
@@ -8,8 +8,8 @@ export interface Context {
   db: PrismaClient;
   // The Firebase Auth token, if available.
   token?: string;
-  // The ID of the currently logged in user within the database, if available.
-  userId?: string;
+  // The Currently logged in user
+  user?: User;
   // The PubSub instance for publishing and subscribing to events.
   pubsub: typeof PubSub;
 }
@@ -33,7 +33,9 @@ export const getContext = async ({
     if (headers.authorization) {
       token = headers.authorization.replace("Bearer ", "");
     }
-  } else if (connectionParams) {
+  }
+
+  if (connectionParams && !token) {
     const params = normalizeKeys(connectionParams);
     if (params.authorization) {
       token = (params.authorization as string).replace("Bearer ", "");
@@ -46,7 +48,7 @@ export const getContext = async ({
     try {
       const user = await verifyUser(token, db);
       if (user && user.user) {
-        context.userId = user.user.id;
+        context.user = user.user;
       }
     } catch (error) {
       console.error("Error verifying token:", error);
@@ -58,7 +60,7 @@ export const getContext = async ({
 };
 
 // Helper function to normalize object keys to lowercase
-const normalizeKeys = (obj: Record<string, any>): Record<string, any> => {
+function normalizeKeys(obj: Record<string, any>): Record<string, any> {
   return Object.keys(obj).reduce(
     (acc, key) => {
       acc[key.toLowerCase()] = obj[key];
@@ -66,4 +68,4 @@ const normalizeKeys = (obj: Record<string, any>): Record<string, any> => {
     },
     {} as Record<string, any>
   );
-};
+}

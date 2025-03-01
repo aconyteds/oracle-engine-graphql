@@ -1,5 +1,5 @@
 import { verifyThreadOwnership } from "../../data/MongoDB";
-import { UnauthorizedError } from "../../graphql/errors";
+import { InactiveAccountError, UnauthorizedError } from "../../graphql/errors";
 import type { Context } from "../../serverContext";
 import { AIService } from "./AI.service";
 import type { AiModule } from "./generated";
@@ -7,16 +7,16 @@ import type { AiModule } from "./generated";
 const AIResolvers: AiModule.Resolvers = {
   Subscription: {
     generateMessage: {
-      subscribe: async function* (
-        _,
-        { input },
-        { pubsub, db, userId }: Context
-      ) {
+      subscribe: async function* (_, { input }, { pubsub, db, user }: Context) {
         const { threadId } = input;
-        if (!userId) {
+        if (!user) {
           throw UnauthorizedError();
         }
-        await verifyThreadOwnership(db, input.threadId, userId);
+        if (!user.active) {
+          // An account must be tagged as active in the DB to use any LLM features
+          throw InactiveAccountError();
+        }
+        await verifyThreadOwnership(db, input.threadId, user.id);
         const aiService = new AIService(db);
 
         // Use for-await to iterate over the generator and yield each chunk

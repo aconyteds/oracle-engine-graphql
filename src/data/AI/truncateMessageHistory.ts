@@ -5,8 +5,7 @@ import {
   AIMessage,
 } from "@langchain/core/messages";
 
-import type { TrustedModelName } from "./modelList";
-import { TRUSTED_MODELS } from "./modelList";
+import type { TrustedModel } from "./modelList";
 import { calculateTokenCount } from "./calculateTokenCount";
 import type { RoleTypes } from ".";
 
@@ -20,7 +19,7 @@ type TruncationStrategy = "alternate" | "latest";
 
 type TruncateMessageHistoryInput = {
   messageList: MessageItem[];
-  modelName: TrustedModelName;
+  model: TrustedModel;
   truncationStrategy?: TruncationStrategy;
   maxContextPercentage?: number;
 };
@@ -35,7 +34,7 @@ type MessagePair = [MessageItem | undefined, MessageItem | undefined];
  */
 export const truncateMessageHistory = ({
   messageList,
-  modelName,
+  model,
   truncationStrategy = "alternate",
   maxContextPercentage = 0.75,
 }: TruncateMessageHistoryInput): BaseMessage[] => {
@@ -43,12 +42,7 @@ export const truncateMessageHistory = ({
     return [];
   }
 
-  const model = TRUSTED_MODELS.get(modelName);
   const truncatedMessageList: BaseMessage[] = [];
-
-  if (!model) {
-    throw new Error(`Model ${modelName} not found`);
-  }
 
   const maxTokens = Math.floor(model.contextWindow * maxContextPercentage);
 

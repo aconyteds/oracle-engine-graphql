@@ -2,18 +2,15 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "type": "node",
+      "type": "bun",
       "request": "launch",
       "name": "Launch GraphQL Server",
-      "runtimeExecutable": "bun",
-      "runtimeArgs": ["run", "dev"],
+      "program": "${workspaceFolder}/src/index.ts",
       "cwd": "${workspaceFolder}",
-      "console": "integratedTerminal",
-      "internalConsoleOptions": "neverOpen",
       "env": {
         "NODE_ENV": "development"
       },
-      "skipFiles": ["<node_internals>/**"]
+      "watchMode": true
     }
   ]
 }

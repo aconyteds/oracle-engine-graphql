@@ -29,17 +29,4 @@ export class ThreadService {
       },
     });
   }
-
-  public async getThreadOptions(threadId: string) {
-    const thread = await this._db.thread.findUnique({
-      where: {
-        id: threadId,
-      },
-      select: {
-        threadOptions: true,
-      },
-    });
-
-    return thread?.threadOptions;
-  }
 }

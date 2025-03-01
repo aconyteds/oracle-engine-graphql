@@ -10,17 +10,17 @@ const UserResolvers: UserModule.Resolvers = {
     currentUser: async (
       _,
       __,
-      { userId, db }
+      { user, db }
     ): Promise<UserModule.User | null> => {
       const userService = new UserService(db);
-      return userService.getCurrentUser(userId);
+      return userService.getCurrentUser(user.id);
     },
   },
   Mutation: {
     login: async (
       _,
       { input },
-      { userId, token, db }
+      { user, token, db }
     ): Promise<UserModule.LoginPayload | null> => {
       if (!input) {
         throw new GraphQLError("Invalid request input", {
@@ -30,14 +30,14 @@ const UserResolvers: UserModule.Resolvers = {
         });
       }
       const userService = new UserService(db);
-      if (userId) {
-        const user = await userService.getCurrentUser(userId);
-        if (!user) {
+      if (user) {
+        const currentUser = await userService.getCurrentUser(user.id);
+        if (!currentUser) {
           return null;
         }
         return {
           token,
-          user,
+          user: currentUser,
         };
       }
       return userService.login(input);

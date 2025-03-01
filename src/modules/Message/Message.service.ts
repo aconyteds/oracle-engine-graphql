@@ -8,7 +8,6 @@ import {
   createThread,
   verifyThreadOwnership,
 } from "../../data/MongoDB";
-import { UnauthorizedError } from "../../graphql/errors";
 
 type CreateMessageResponse = {
   // The Message that was added to the DB
