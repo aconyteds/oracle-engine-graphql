@@ -27,6 +27,9 @@ export class ThreadService {
       where: {
         userId,
       },
+      orderBy: {
+        updatedAt: "desc",
+      },
     });
   }
 }
