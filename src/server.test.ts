@@ -1,4 +1,5 @@
 import { test, expect } from "bun:test";
+
 import graphqlServer from "./server";
 
 test("Unit -> server", async () => {

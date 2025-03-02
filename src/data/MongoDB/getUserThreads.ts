@@ -1,4 +1,4 @@
-import { PrismaClient, Thread } from "@prisma/client";
+import type { PrismaClient, Thread } from "@prisma/client";
 
 export const getUserThreads = async (
   db: PrismaClient,

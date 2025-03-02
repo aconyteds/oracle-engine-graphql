@@ -1,6 +1,7 @@
 import request from "supertest";
 import { test, expect, describe, beforeAll, afterAll } from "bun:test";
-import { Server } from "http";
+import type { Server } from "http";
+
 import { setupTestServer, teardownTestServer } from "./setup";
 
 describe("E2E -> GraphQL Health Check", () => {

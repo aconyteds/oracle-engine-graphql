@@ -1,16 +1,17 @@
-import { Message, Thread, ThreadOptions } from "@prisma/client";
-import { MessageRoles } from "../data/MongoDB";
-import {
+import type { Message, Thread, ThreadOptions } from "@prisma/client";
+import type {
+  AIMessageChunk,
+  MessageContentComplex,
+} from "@langchain/core/messages";
+
+import type { MessageRoles } from "../data/MongoDB";
+import type {
   Role as GraphQLRole,
   Message as GraphQLMessage,
   Thread as GraphQLThread,
   ThreadOptions as GraphQLThreadOptions,
   GenerateMessagePayload,
 } from "../generated/graphql";
-import {
-  AIMessageChunk,
-  MessageContentComplex,
-} from "@langchain/core/messages";
 
 export const TranslateRole = (role: MessageRoles): GraphQLRole => {
   switch (role) {

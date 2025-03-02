@@ -1,4 +1,5 @@
-import { Message, PrismaClient } from "@prisma/client";
+import type { Message, PrismaClient } from "@prisma/client";
+
 import { calculateTokenCount } from "../AI";
 
 export type MessageRoles = "user" | "system" | "assistant" | "tool_calls";

@@ -1,27 +1,26 @@
 import { verifyThreadOwnership } from "../../data/MongoDB";
 import { UnauthorizedError } from "../../graphql/errors";
-import { MessageCreatedPayload } from "../../graphql/topics";
-import { Context } from "../../serverContext";
+import type { MessageCreatedPayload } from "../../graphql/topics";
+import type { Context } from "../../serverContext";
 import { TranslateMessage } from "../utils";
-import { MessageModule } from "./generated";
+import type { MessageModule } from "./generated";
 import { MessageService } from "./Message.service";
-import { withFilter } from "graphql-subscriptions";
 
 const MessageResolvers: MessageModule.Resolvers = {
   Mutation: {
     createMessage: async (
       _,
       { input },
-      { db, userId, pubsub }: Context
+      { db, user, pubsub }: Context
     ): Promise<MessageModule.CreateMessagePayload> => {
-      if (!userId) {
+      if (!user) {
         throw UnauthorizedError();
       }
 
       const messageService = new MessageService(db);
       const { message, threadId } = await messageService.createMessage(
         input,
-        userId
+        user.id
       );
 
       const translatedMessage = TranslateMessage(message);
@@ -41,12 +40,12 @@ const MessageResolvers: MessageModule.Resolvers = {
   Subscription: {
     messageCreated: {
       // @ts-ignore
-      subscribe: async (_, { input }, { db, userId, pubsub }: Context) => {
-        if (!userId) {
+      subscribe: async (_, { input }, { db, user, pubsub }: Context) => {
+        if (!user) {
           throw UnauthorizedError();
         }
         const { threadId } = input;
-        await verifyThreadOwnership(db, threadId, userId);
+        await verifyThreadOwnership(db, threadId, user.id);
 
         const asyncIterator = pubsub.asyncIterator("messageCreated");
 

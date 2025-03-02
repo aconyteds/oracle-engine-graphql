@@ -31,9 +31,18 @@ export const InvalidInput = (message: string) => {
 };
 
 export const UnauthorizedError = () => {
+  console.error("Unauthorized access attempt");
   return new GraphQLError("You are not authorized to view this resource.", {
     extensions: {
       code: ApolloServerErrorCode.BAD_REQUEST,
+    },
+  });
+};
+
+export const InactiveAccountError = () => {
+  return new GraphQLError("Your account is inactive.", {
+    extensions: {
+      code: "INACTIVE_USER",
     },
   });
 };

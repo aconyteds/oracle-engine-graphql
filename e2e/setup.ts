@@ -1,4 +1,5 @@
-import { Server } from "http";
+import type { Server } from "http";
+
 import GraphQLServer from "../src/server"; // Adjust the path as necessary
 
 export const setupTestServer = async (): Promise<Server> => {

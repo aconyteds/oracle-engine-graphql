@@ -1,14 +1,13 @@
-import { PrismaClient } from "@prisma/client";
+import type { PrismaClient } from "@prisma/client";
+
 import { ServerError } from "../../graphql/errors";
-import {
-  DEFAULT_OPENAI_MODEL,
-  truncateMessageHistory,
-  TrustedModelName,
-} from "../../data/AI";
-import { MessageItem, RoleTypes } from "../../data/AI";
-import { GenerateMessagePayload } from "../../generated/graphql";
+import { truncateMessageHistory } from "../../data/AI";
+import type { MessageItem, RoleTypes } from "../../data/AI";
+import type { GenerateMessagePayload } from "../../generated/graphql";
 import { TranslateAIChunk, TranslateMessage } from "../utils";
 import { createMessage } from "../../data/MongoDB";
+import { getAgentByName } from "src/data/AI/agentList";
+import { getModelDefinition } from "src/data/AI/getModelDefinition";
 
 export class AIService {
   private readonly _db: PrismaClient;
@@ -26,7 +25,7 @@ export class AIService {
       },
       select: {
         userId: true,
-        threadOptions: true,
+        selectedAgent: true,
         messages: {
           orderBy: {
             createdAt: "asc",
@@ -38,8 +37,15 @@ export class AIService {
     if (!thread) {
       throw ServerError("Thread not found");
     }
-
-    const { model, useHistory, systemMessage } = thread.threadOptions;
+    const currAgent = getAgentByName(thread.selectedAgent);
+    if (!currAgent) {
+      throw ServerError("Invalid agent selected.");
+    }
+    const { model, useHistory, systemMessage } = currAgent;
+    const AIModel = getModelDefinition(currAgent);
+    if (!AIModel) {
+      throw ServerError("Invalid agent Configuration detected.");
+    }
     const messageHistory: MessageItem[] = [];
     messageHistory.push({
       role: "system",
@@ -69,10 +75,10 @@ export class AIService {
 
     const truncatedMessageHistory = truncateMessageHistory({
       messageList: messageHistory,
-      modelName: model as TrustedModelName,
+      model,
     });
 
-    const stream = await DEFAULT_OPENAI_MODEL.stream(truncatedMessageHistory, {
+    const stream = await AIModel.stream(truncatedMessageHistory, {
       runId: threadId,
     });
 

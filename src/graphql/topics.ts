@@ -1,5 +1,7 @@
-import { Message } from "../generated/graphql";
-import { PubSub, PubSubEngine } from "graphql-subscriptions";
+import type { PubSubEngine } from "graphql-subscriptions";
+import { PubSub } from "graphql-subscriptions";
+
+import type { Message } from "../generated/graphql";
 
 export type MessageCreatedPayload = {
   threadId: string;

@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import type { PrismaClient } from "@prisma/client";
 
 export class ThreadService {
   private _db: PrismaClient;
@@ -27,19 +27,9 @@ export class ThreadService {
       where: {
         userId,
       },
-    });
-  }
-
-  public async getThreadOptions(threadId: string) {
-    const thread = await this._db.thread.findUnique({
-      where: {
-        id: threadId,
-      },
-      select: {
-        threadOptions: true,
+      orderBy: {
+        updatedAt: "desc",
       },
     });
-
-    return thread?.threadOptions;
   }
 }
