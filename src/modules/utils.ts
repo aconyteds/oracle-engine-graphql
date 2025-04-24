@@ -1,4 +1,4 @@
-import type { Message, Thread, ThreadOptions } from "@prisma/client";
+import type { Message, Thread } from "../data/MongoDB";
 import type {
   AIMessageChunk,
   MessageContentComplex,
@@ -9,7 +9,6 @@ import type {
   Role as GraphQLRole,
   Message as GraphQLMessage,
   Thread as GraphQLThread,
-  ThreadOptions as GraphQLThreadOptions,
   GenerateMessagePayload,
 } from "../generated/graphql";
 
@@ -43,20 +42,6 @@ export const TranslateThread = (thread: Thread): GraphQLThread => {
     title: thread.title,
     lastUsed: thread.updatedAt.toISOString(),
     messages: [],
-    threadOption: thread.threadOptions
-      ? TranslateThreadOptions(thread.threadOptions)
-      : null,
-  };
-};
-
-export const TranslateThreadOptions = (
-  threadOptions: ThreadOptions
-): GraphQLThreadOptions => {
-  return {
-    model: threadOptions.model,
-    systemMessage: threadOptions.systemMessage,
-    temperature: threadOptions.temperature,
-    useHistory: threadOptions.useHistory,
   };
 };
 

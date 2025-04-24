@@ -1,27 +1,30 @@
+import { streamManager } from "../../data/AI";
 import { verifyThreadOwnership } from "../../data/MongoDB";
-import { UnauthorizedError } from "../../graphql/errors";
-import type { MessageCreatedPayload } from "../../graphql/topics";
+import {
+  InactiveAccountError,
+  InvalidInput,
+  UnauthorizedError,
+} from "../../graphql/errors";
 import type { Context } from "../../serverContext";
 import { TranslateMessage } from "../utils";
 import type { MessageModule } from "./generated";
-import { MessageService } from "./Message.service";
+import { createMessage } from "./service";
 
 const MessageResolvers: MessageModule.Resolvers = {
   Mutation: {
     createMessage: async (
       _,
       { input },
-      { db, user, pubsub }: Context
+      { user, pubsub }: Context
     ): Promise<MessageModule.CreateMessagePayload> => {
       if (!user) {
         throw UnauthorizedError();
       }
-
-      const messageService = new MessageService(db);
-      const { message, threadId } = await messageService.createMessage(
-        input,
-        user.id
-      );
+      if (input.threadId) {
+        // Verify that the user has access to the thread
+        await verifyThreadOwnership(input.threadId, user.id);
+      }
+      const { message, threadId } = await createMessage(input, user.id);
 
       const translatedMessage = TranslateMessage(message);
 
@@ -36,49 +39,30 @@ const MessageResolvers: MessageModule.Resolvers = {
         message: translatedMessage,
       };
     },
-  },
-  Subscription: {
-    messageCreated: {
-      // @ts-ignore
-      subscribe: async (_, { input }, { db, user, pubsub }: Context) => {
-        if (!user) {
-          throw UnauthorizedError();
-        }
-        const { threadId } = input;
-        await verifyThreadOwnership(db, threadId, user.id);
+    generateThread: async (
+      _,
+      { input: { threadId } },
+      { user }: Context
+    ): Promise<MessageModule.GenerateThreadPayload> => {
+      if (!user) {
+        throw UnauthorizedError();
+      }
+      if (!user.active) {
+        throw InactiveAccountError();
+      }
+      if (!threadId) {
+        throw InvalidInput("Thread ID is required");
+      }
 
-        const asyncIterator = pubsub.asyncIterator("messageCreated");
+      await verifyThreadOwnership(threadId, user.id);
+      const streamUrl = `/sse/threads/${threadId}`;
+      const existingStream = streamManager.getStream(threadId);
 
-        const filteredAsyncIterator = {
-          async next() {
-            while (true) {
-              const result = await asyncIterator.next();
-              if (result.done) {
-                return result;
-              }
-              // Apply your filter here
-              if (result.value.threadId === threadId) {
-                return result;
-              }
-            }
-          },
-          return() {
-            return asyncIterator.return?.();
-          },
-          throw(error: any) {
-            return asyncIterator.throw?.(error);
-          },
-          [Symbol.asyncIterator]() {
-            return this;
-          },
-        };
-
-        return filteredAsyncIterator;
-      },
-      resolve: (payload: MessageCreatedPayload) => {
-        // Return the message to the client
-        return { message: payload.message };
-      },
+      return {
+        alreadyInitiated: !!existingStream,
+        threadId,
+        url: streamUrl,
+      };
     },
   },
 };

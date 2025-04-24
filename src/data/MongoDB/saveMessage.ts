@@ -1,12 +1,9 @@
-import type { Message, PrismaClient } from "@prisma/client";
-
 import { calculateTokenCount } from "../AI";
+import { DBClient, Message } from "./client";
 
 export type MessageRoles = "user" | "system" | "assistant" | "tool_calls";
 
-type CreateMessageInput = {
-  // The DB Client
-  client: PrismaClient;
+type SaveMessageInput = {
   // The ThreadID that the message was added to
   threadId: string;
   // The message being used to create the thread
@@ -15,17 +12,16 @@ type CreateMessageInput = {
   role: MessageRoles;
 };
 
-export const createMessage = async ({
-  client,
+export const saveMessage = async ({
   threadId,
   content,
   role,
-}: CreateMessageInput): Promise<Message> => {
+}: SaveMessageInput): Promise<Message> => {
   // Calculate the token Count
   const tokenCount = calculateTokenCount(content);
 
   // Create a new message in the DB
-  const newMessage = await client.message.create({
+  const newMessage = await DBClient.message.create({
     data: {
       content,
       threadId,
@@ -34,7 +30,7 @@ export const createMessage = async ({
     },
   });
 
-  await client.thread.update({
+  await DBClient.thread.update({
     where: {
       id: threadId,
     },
