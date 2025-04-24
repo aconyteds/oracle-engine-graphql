@@ -41,6 +41,5 @@ ENV NODE_ENV=production
 # Expose the port the app runs on
 EXPOSE 3000
 
-
 # Command to run the app
 CMD ["bun", "dist/index.js"]

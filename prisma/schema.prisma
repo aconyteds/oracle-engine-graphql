@@ -6,7 +6,7 @@
 
 generator client {
   provider      = "prisma-client-js"
-  binaryTargets = ["native", "debian-openssl-3.0.x", "debian-openssl-1.1.x"]
+  binaryTargets = ["native", "linux-arm64-openssl-1.1.x", "debian-openssl-3.0.x", "debian-openssl-1.1.x"]
 }
 
 datasource db {
@@ -17,15 +17,18 @@ datasource db {
 // System data
 
 model User {
-  id              String   @id @default(auto()) @map("_id") @db.ObjectId
-  googleAccountId String   @unique
-  email           String?  @unique
+  id              String     @id @default(auto()) @map("_id") @db.ObjectId
+  googleAccountId String     @unique
+  email           String?    @unique
   name            String?
   threads         Thread[]
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
   // This indicates that the user is authorized to use the tool
-  active          Boolean  @default(false)
+  active          Boolean    @default(false)
+  // The last campaign the user loaded
+  lastCampaignId  String?    @db.ObjectId // Stores the last loaded campaign
+  Campaign        Campaign[] // One-to-many relationship with Campaign
 }
 
 model Thread {
@@ -52,50 +55,147 @@ model Message {
 
 // RPG data
 
-model Character {
-  id               String              @id @default(auto()) @map("_id") @db.ObjectId
-  name             String
-  npc              Boolean
-  appearance       String?
-  motivations      String?
-  mannerisms       String?
-  secrets          String?
-  stats            String?
-  location         CharacterLocation[]
-  createdAt        DateTime            @default(now())
-  updatedAt        DateTime            @updatedAt
-  embeddingsItemId String? // The ID of the item in the embeddings table
+model Campaign {
+  id            String          @id @default(auto()) @map("_id") @db.ObjectId
+  ownerId       String          @db.ObjectId
+  name          String
+  setting       String
+  tone          String
+  ruleset       String
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  CampaignAsset CampaignAsset[]
+  SessionEvent  SessionEvent[]
+  user          User            @relation(fields: [ownerId], references: [id])
+
+  @@index([ownerId])
 }
 
-model CharacterLocation {
-  id          String    @id @default(auto()) @map("_id") @db.ObjectId
-  character   Character @relation(fields: [characterId], references: [id])
-  characterId String    @db.ObjectId
-  location    Location  @relation(fields: [locationId], references: [id])
-  locationId  String    @db.ObjectId
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+enum RecordType {
+  NPC
+  Location
+  Plot
+  SessionEvent
 }
 
-model Location {
-  id               String              @id @default(auto()) @map("_id") @db.ObjectId
-  name             String
-  description      String
-  type             String
-  secrets          String?
-  parentId         String?             @db.ObjectId
-  inhabitants      CharacterLocation[]
-  createdAt        DateTime            @default(now())
-  updatedAt        DateTime            @updatedAt
-  embeddingsItemId String?
+model CampaignAsset {
+  id             String        @id @default(auto()) @map("_id") @db.ObjectId
+  campaignId     String        @db.ObjectId
+  campaign       Campaign      @relation(fields: [campaignId], references: [id])
+  name           String
+  recordType     RecordType
+  summary        String? // Used for Quick linking to populate popover text for the Asset
+  playerSummary  String? // Used for player friendly quick linking to populate popover text using only player knowledge
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  Embeddings     Float[] // Used for Vector Search
+  locationData   LocationData?
+  plotData       Plot?
+  npcData        NPC?
+  SessionEvent   SessionEvent? @relation(fields: [sessionEventId], references: [id])
+  sessionEventId String?       @db.ObjectId
+
+  @@index([name])
+  @@index([campaignId, recordType])
 }
 
-model Plot {
-  id               String   @id @default(auto()) @map("_id") @db.ObjectId
-  name             String
-  description      String
-  secrets          String?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  embeddingsItemId String?
+type LocationData {
+  imageUrl          String
+  description       String
+  condition         String
+  pointsOfInterest  String
+  characters        String
+  dmNotes           String
+  sharedWithPlayers String
 }
+
+enum PlotStatus {
+  Unknown
+  Rumored
+  InProgress
+  WillNotDo
+  Closed
+}
+
+enum Urgency {
+  Ongoing
+  TimeSensitive
+  Critical
+  Resolved
+}
+
+type Plot {
+  summary          String
+  status           PlotStatus
+  urgency          Urgency
+  relatedAssetList String[]           @db.ObjectId
+  relatedAssets    PlotRelationship[]
+}
+
+type PlotRelationship {
+  relatedAssetId      String @db.ObjectId
+  relationshipSummary String
+}
+
+type NPC {
+  imageUrl            String
+  physicalDescription String
+  motivation          String
+  mannerisms          String
+  dmNotes             String
+  sharedWithPlayers   String
+}
+
+model SessionEvent {
+  id               String          @id @default(auto()) @map("_id") @db.ObjectId
+  campaignId       String          @db.ObjectId
+  campaign         Campaign        @relation(fields: [campaignId], references: [id])
+  summary          String
+  relatedAssetList String[]        @db.ObjectId
+  relatedAssets    CampaignAsset[]
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+}
+
+// Rule data - Post MVP
+
+// enum RuleType {
+//   Core
+//   Supplemental
+//   Homebrew
+// }
+
+// enum RuleCategory {
+//   CharacterCreation
+//   Combat
+//   Exploration
+//   Magic
+//   Social
+//   Crafting
+//   Downtime
+//   GMTools
+// }
+
+// enum GameSystem {
+//   DnD5e
+//   WorldOfDarkness
+// }
+
+// model Rule {
+//   id           String       @id @default(auto()) @map("_id") @db.ObjectId
+//   // The content chunk for this rule
+//   content      String
+//   createdAt    DateTime     @default(now())
+//   updatedAt    DateTime     @updatedAt
+//   ruleType     RuleType
+//   ruleCategory RuleCategory
+//   gameSystem   GameSystem
+//   // Includes details of where the rule is from, page it can be found on, etc.
+//   metadata     Json?
+//   embeddings   Float[] // Used for Vector Search
+
+//   // Used for filtering and searching
+//   @@index([ruleType])
+//   @@index([ruleCategory])
+//   @@index([gameSystem])
+// }
