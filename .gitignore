@@ -132,3 +132,4 @@ dist
 *generated*
 *.private*
 docker-compose.yml
+*.DS_Store*
