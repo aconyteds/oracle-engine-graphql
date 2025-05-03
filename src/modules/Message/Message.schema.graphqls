@@ -1,6 +1,5 @@
 extend type Mutation {
   createMessage(input: CreateMessageInput!): CreateMessagePayload
-  generateThread(input: GenerateThreadInput!): GenerateThreadPayload
 }
 
 enum Role {
@@ -21,20 +20,6 @@ type CreateMessagePayload {
   threadId: ID!
   # The message that was created
   message: Message!
-}
-
-input GenerateThreadInput {
-  # The ID of the thread to be initiated
-  threadId: ID!
-}
-
-type GenerateThreadPayload {
-  # The Thread ID that was passed in the input
-  threadId: ID!
-  # Whether or not the thread was already initiated
-  alreadyInitiated: Boolean!
-  # The URL to which the SSE connection should be made
-  url: String!
 }
 
 type Message {

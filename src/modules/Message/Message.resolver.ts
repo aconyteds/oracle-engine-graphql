@@ -1,10 +1,5 @@
-import { streamManager } from "../../data/AI";
 import { verifyThreadOwnership } from "../../data/MongoDB";
-import {
-  InactiveAccountError,
-  InvalidInput,
-  UnauthorizedError,
-} from "../../graphql/errors";
+import { UnauthorizedError } from "../../graphql/errors";
 import type { Context } from "../../serverContext";
 import { TranslateMessage } from "../utils";
 import type { MessageModule } from "./generated";
@@ -37,31 +32,6 @@ const MessageResolvers: MessageModule.Resolvers = {
       return {
         threadId,
         message: translatedMessage,
-      };
-    },
-    generateThread: async (
-      _,
-      { input: { threadId } },
-      { user }: Context
-    ): Promise<MessageModule.GenerateThreadPayload> => {
-      if (!user) {
-        throw UnauthorizedError();
-      }
-      if (!user.active) {
-        throw InactiveAccountError();
-      }
-      if (!threadId) {
-        throw InvalidInput("Thread ID is required");
-      }
-
-      await verifyThreadOwnership(threadId, user.id);
-      const streamUrl = `/sse/threads/${threadId}`;
-      const existingStream = streamManager.getStream(threadId);
-
-      return {
-        alreadyInitiated: !!existingStream,
-        threadId,
-        url: streamUrl,
       };
     },
   },

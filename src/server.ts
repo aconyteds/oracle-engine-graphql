@@ -13,7 +13,6 @@ import type { Context } from "./serverContext";
 import { getContext } from "./serverContext";
 import GraphQLApplication from "./modules";
 import { permissions } from "./graphql/permissions";
-import { generateThreadHandler } from "./controllers";
 
 const graphqlServer = async (path: string = "/graphql") => {
   const isProd = process.env.NODE_ENV === "production";
@@ -85,8 +84,6 @@ const graphqlServer = async (path: string = "/graphql") => {
       context: getContext,
     })
   );
-
-  app.get("/sse/threads/:threadId", generateThreadHandler);
 
   return { app, httpServer, apolloServer };
 };
