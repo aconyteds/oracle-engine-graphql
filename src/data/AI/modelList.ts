@@ -4,40 +4,32 @@ export type TrustedModel = {
   contextWindow: number;
 };
 
-export type TrustedModelName = "gpt-4o-mini" | "gpt-4o" | "gpt-4" | "latest";
+export type TrustedModelName = "gpt-4.1-mini" | "gpt-4.1" | "gpt-4.1-nano";
 export type AvailableProvider = "OpenAI";
 
 export const TRUSTED_MODELS = new Map<TrustedModelName, TrustedModel>([
   [
-    "gpt-4o-mini",
+    "gpt-4.1-mini",
     {
-      modelName: "gpt-4o-mini",
+      modelName: "gpt-4.1-mini",
       modelProvider: "OpenAI",
-      contextWindow: 128_000,
+      contextWindow: 1_047_576,
     },
   ],
   [
-    "gpt-4o",
+    "gpt-4.1",
     {
-      modelName: "gpt-4o",
+      modelName: "gpt-4.1",
       modelProvider: "OpenAI",
-      contextWindow: 128_000,
+      contextWindow: 1_047_576,
     },
   ],
   [
-    "gpt-4",
+    "gpt-4.1-nano",
     {
-      modelName: "gpt-4",
+      modelName: "gpt-4.1-nano",
       modelProvider: "OpenAI",
-      contextWindow: 8_192,
-    },
-  ],
-  [
-    "latest",
-    {
-      modelName: "chatgpt-4o-latest",
-      modelProvider: "OpenAI",
-      contextWindow: 128_000,
+      contextWindow: 1_047_576,
     },
   ],
 ]);

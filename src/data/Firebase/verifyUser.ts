@@ -1,7 +1,6 @@
-import type { PrismaClient, User } from "@prisma/client";
+import type { User } from "../MongoDB";
 import type { DecodedIdToken } from "firebase-admin/auth";
 import { getAuth } from "firebase-admin/auth";
-
 import { lookupUser } from "../MongoDB";
 
 type VerifyUserResponse = {
@@ -14,8 +13,7 @@ type VerifyUserResponse = {
 const userMap = new Map<string, VerifyUserResponse>();
 
 export const verifyUser = async (
-  idToken: string,
-  db: PrismaClient
+  idToken: string
 ): Promise<VerifyUserResponse | null> => {
   if (!idToken) {
     return null;
@@ -27,11 +25,7 @@ export const verifyUser = async (
   }
   // User is either not cached, or they have an expired token
   const decodedToken = await getAuth().verifyIdToken(idToken);
-  const userCredential = await lookupUser(
-    db,
-    decodedToken.uid,
-    decodedToken.email
-  );
+  const userCredential = await lookupUser(decodedToken.uid, decodedToken.email);
   if (!userCredential) {
     userMap.delete(idToken);
     return null;

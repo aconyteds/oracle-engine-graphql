@@ -1,10 +1,7 @@
-import type { PrismaClient, Thread } from "@prisma/client";
+import { DBClient, Thread } from "./client";
 
-export const getUserThreads = async (
-  db: PrismaClient,
-  userId: string
-): Promise<Thread[]> => {
-  const user = await db.user.findUnique({
+export const getUserThreads = async (userId: string): Promise<Thread[]> => {
+  const user = await DBClient.user.findUnique({
     where: {
       id: userId,
     },

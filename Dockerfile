@@ -2,6 +2,7 @@
 FROM oven/bun:latest AS build
 
 ENV HUSKY=0
+RUN apt-get update -y && apt-get install -y openssl
 
 # Set working directory
 WORKDIR /src
@@ -24,6 +25,8 @@ RUN bun run build
 
 # Stage 2: Production Stage
 FROM oven/bun:latest AS production
+
+RUN apt-get update -y && apt-get install -y openssl
 
 # Set working directory
 WORKDIR /src

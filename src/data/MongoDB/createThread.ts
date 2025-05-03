@@ -1,10 +1,7 @@
-import type { PrismaClient } from "@prisma/client";
-
 import { createTitle } from "../AI";
+import { DBClient } from "./client";
 
 type CreateThreadInput = {
-  // The DB Client
-  client: PrismaClient;
   // The message being used to create the thread
   message: string;
   // The user ID from the DB to tie the thread to
@@ -12,7 +9,6 @@ type CreateThreadInput = {
 };
 
 export const createThread = async ({
-  client,
   message,
   userId,
 }: CreateThreadInput): Promise<string> => {
@@ -20,7 +16,7 @@ export const createThread = async ({
   const title = await createTitle(message);
 
   // Create a new thread in the DB
-  const thread = await client.thread.create({
+  const thread = await DBClient.thread.create({
     data: {
       title,
       userId,

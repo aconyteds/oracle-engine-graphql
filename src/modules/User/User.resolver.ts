@@ -2,25 +2,20 @@ import { GraphQLError } from "graphql";
 import { ApolloServerErrorCode } from "@apollo/server/errors";
 
 import type { UserModule } from "./generated";
-import { UserService } from "./User.service";
 import { getUserThreads } from "../../data/MongoDB";
+import { getCurrentUser, login } from "./service";
 
 const UserResolvers: UserModule.Resolvers = {
   Query: {
-    currentUser: async (
-      _,
-      __,
-      { user, db }
-    ): Promise<UserModule.User | null> => {
-      const userService = new UserService(db);
-      return userService.getCurrentUser(user.id);
+    currentUser: async (_, __, { user }): Promise<UserModule.User | null> => {
+      return getCurrentUser(user.id);
     },
   },
   Mutation: {
     login: async (
       _,
       { input },
-      { user, token, db }
+      { user, token }
     ): Promise<UserModule.LoginPayload | null> => {
       if (!input) {
         throw new GraphQLError("Invalid request input", {
@@ -29,9 +24,8 @@ const UserResolvers: UserModule.Resolvers = {
           },
         });
       }
-      const userService = new UserService(db);
       if (user) {
-        const currentUser = await userService.getCurrentUser(user.id);
+        const currentUser = await getCurrentUser(user.id);
         if (!currentUser) {
           return null;
         }
@@ -40,12 +34,12 @@ const UserResolvers: UserModule.Resolvers = {
           user: currentUser,
         };
       }
-      return userService.login(input);
+      return login(input);
     },
   },
   User: {
-    threads: async (parent, _, { db }): Promise<UserModule.Thread[]> => {
-      const threads = await getUserThreads(db, parent.id);
+    threads: async (parent): Promise<UserModule.Thread[]> => {
+      const threads = await getUserThreads(parent.id);
       return threads.map((thread) => ({
         id: thread.id,
         title: thread.title,

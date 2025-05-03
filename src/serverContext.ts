@@ -1,11 +1,8 @@
-import { PrismaClient, User } from "@prisma/client";
-
+import { User } from "./data/MongoDB";
 import { initializeFirebase, verifyUser } from "./data/Firebase";
 import PubSub from "./graphql/topics";
 
 export interface Context {
-  // The Prisma client instance for database operations.
-  db: PrismaClient;
   // The Firebase Auth token, if available.
   token?: string;
   // The Currently logged in user
@@ -16,8 +13,6 @@ export interface Context {
 
 // Initialize Firebase Admin SDK
 initializeFirebase();
-
-const db = new PrismaClient();
 
 export const getContext = async ({
   req,
@@ -42,11 +37,11 @@ export const getContext = async ({
     }
   }
 
-  const context: Context = { db, token, pubsub: PubSub };
+  const context: Context = { token, pubsub: PubSub };
 
   if (token) {
     try {
-      const user = await verifyUser(token, db);
+      const user = await verifyUser(token);
       if (user && user.user) {
         context.user = user.user;
       }
