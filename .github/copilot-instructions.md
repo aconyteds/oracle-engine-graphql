@@ -7,7 +7,7 @@ You MUST use Bun for all TypeScript code execution.
 - `bun run <script>`: Run a script defined in package.json
 - `bun test`: Run tests
 - `bun build`: Build the project
-- `bun run dev`: Start the development server
+- `bun run lint`: Run the linter
 
 ## Code Structure
 
