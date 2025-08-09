@@ -19,3 +19,7 @@ type Thread {
   lastUsed: DateTime!
   messages: [Message!]
 }
+
+extend type User {
+  threads: [Thread!]
+}

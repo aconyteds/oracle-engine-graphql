@@ -6,7 +6,7 @@ export interface ServerContext {
   // The Firebase Auth token, if available.
   token?: string;
   // The Currently logged in user
-  user?: User;
+  user: User | null;
   // The PubSub instance for publishing and subscribing to events.
   pubsub: typeof PubSub;
 }
@@ -37,7 +37,7 @@ export const getContext = async ({
     }
   }
 
-  const context: ServerContext = { token, pubsub: PubSub };
+  const context: ServerContext = { token, pubsub: PubSub, user: null };
 
   if (token) {
     try {

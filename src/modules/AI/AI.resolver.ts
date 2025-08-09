@@ -1,17 +1,12 @@
 import { verifyThreadOwnership } from "../../data/MongoDB";
 import { InactiveAccountError, UnauthorizedError } from "../../graphql/errors";
-import type { ServerContext } from "../../serverContext";
 import type { AiModule } from "./generated";
 import { generateMessage } from "./service";
 
 const AIResolvers: AiModule.Resolvers = {
   Subscription: {
     generateMessage: {
-      subscribe: async function* (
-        _,
-        { input },
-        { pubsub, user }: ServerContext
-      ) {
+      subscribe: async function* (_, { input }, { pubsub, user }) {
         const { threadId } = input;
         if (!user) {
           throw UnauthorizedError();

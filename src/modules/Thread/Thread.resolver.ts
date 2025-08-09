@@ -39,6 +39,20 @@ const ThreadResolvers: ThreadModule.Resolvers = {
       return messages.map(TranslateMessage);
     },
   },
+  User: {
+    threads: async (parent): Promise<ThreadModule.Thread[]> => {
+      if (!parent) {
+        throw InvalidUserCredentials;
+      }
+      const threads = await getUserThreads(parent.id);
+      return threads.map((thread) => ({
+        id: thread.id,
+        title: thread.title,
+        createdAt: thread.createdAt.toISOString(),
+        lastUsed: thread.updatedAt.toISOString(),
+      }));
+    },
+  },
 };
 
 export default ThreadResolvers;

@@ -8,22 +8,13 @@ const config: CodegenConfig = {
       presetConfig: {
         baseTypesPath: "../generated/graphql.ts",
         filename: "generated.ts",
-        contextType: "./src/serverContext#GraphQLServerContext",
       },
-      plugins: [
-        {
-          add: {
-            content: "/* eslint-disable */",
-          },
-        },
-        "typescript",
-        "typescript-resolvers",
-      ],
+      plugins: ["typescript", "typescript-resolvers"],
       config: {
         scalars: {
           DateTime: "string",
         },
-        contextType: "src/serverContext#GraphQLServerContext",
+        contextType: "../serverContext#ServerContext",
       },
     },
   },
