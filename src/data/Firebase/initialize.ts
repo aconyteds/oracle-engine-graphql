@@ -8,7 +8,7 @@ export const initializeFirebase = () => {
       Buffer.from(process.env.FIREBASE_CONFIG_BASE64, "base64").toString(
         "ascii"
       )
-    );
+    ) as Record<string, unknown>;
     initializeApp({
       credential: cert(firebaseConfig),
     });

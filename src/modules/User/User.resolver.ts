@@ -2,12 +2,14 @@ import { GraphQLError } from "graphql";
 import { ApolloServerErrorCode } from "@apollo/server/errors";
 
 import type { UserModule } from "./generated";
-import { getUserThreads } from "../../data/MongoDB";
 import { getCurrentUser, login } from "./service";
 
 const UserResolvers: UserModule.Resolvers = {
   Query: {
     currentUser: async (_, __, { user }): Promise<UserModule.User | null> => {
+      if (!user) {
+        return null;
+      }
       return getCurrentUser(user.id);
     },
   },
@@ -24,7 +26,7 @@ const UserResolvers: UserModule.Resolvers = {
           },
         });
       }
-      if (user) {
+      if (user && token) {
         const currentUser = await getCurrentUser(user.id);
         if (!currentUser) {
           return null;
@@ -35,17 +37,6 @@ const UserResolvers: UserModule.Resolvers = {
         };
       }
       return login(input);
-    },
-  },
-  User: {
-    threads: async (parent): Promise<UserModule.Thread[]> => {
-      const threads = await getUserThreads(parent.id);
-      return threads.map((thread) => ({
-        id: thread.id,
-        title: thread.title,
-        createdAt: thread.createdAt.toISOString(),
-        lastUsed: thread.updatedAt.toISOString(),
-      }));
     },
   },
 };

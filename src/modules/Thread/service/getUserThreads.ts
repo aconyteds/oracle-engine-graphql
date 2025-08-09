@@ -1,4 +1,5 @@
-import { DBClient, Thread } from "../../../data/MongoDB";
+import type { Thread } from "../../../data/MongoDB";
+import { DBClient } from "../../../data/MongoDB";
 
 export const getUserThreads = async (userId: string): Promise<Thread[]> => {
   const threads = await DBClient.thread.findMany({

@@ -14,7 +14,7 @@ export const verifyThreadOwnership = async (
     });
 
     return true;
-  } catch (error) {
+  } catch {
     throw UnauthorizedError();
   }
 };

@@ -1,7 +1,7 @@
-import type { Message } from "../../../data/MongoDB";
 import { GraphQLError } from "graphql";
 import { ApolloServerErrorCode } from "@apollo/server/errors";
 
+import type { Message } from "../../../data/MongoDB";
 import type { MessageModule } from "../generated";
 import {
   saveMessage,

@@ -42,15 +42,29 @@ model Thread {
   selectedAgent String
 }
 
+// This is a type to manage all of the events that the AI took when generating a message.
+// This will keep track of reasoning, chain of though, tool calls, and tool results
+type MessageWorkspace {
+  // The type of event that occurred
+  messageType String
+  // The data associated with the event
+  content     String
+  // The timestamp when the event occurred
+  timestamp   DateTime @default(now())
+  // The elapsed time, if available
+  elapsedTime Float?
+}
+
 model Message {
-  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  id         String             @id @default(auto()) @map("_id") @db.ObjectId
   role       String
   tokenCount Int
   content    String
-  thread     Thread   @relation(fields: [threadId], references: [id])
-  threadId   String   @db.ObjectId
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  workspace  MessageWorkspace[]
+  thread     Thread             @relation(fields: [threadId], references: [id])
+  threadId   String             @db.ObjectId
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
 }
 
 // RPG data

@@ -1,5 +1,6 @@
 import { ChatOpenAI } from "@langchain/openai";
-import { AIAgentDefinition } from "./agentList";
+
+import type { AIAgentDefinition } from "./types";
 
 type AvailableModelTypes = ChatOpenAI;
 

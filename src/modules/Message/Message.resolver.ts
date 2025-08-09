@@ -1,6 +1,5 @@
 import { verifyThreadOwnership } from "../../data/MongoDB";
 import { UnauthorizedError } from "../../graphql/errors";
-import type { Context } from "../../serverContext";
 import { TranslateMessage } from "../utils";
 import type { MessageModule } from "./generated";
 import { createMessage } from "./service";
@@ -10,7 +9,7 @@ const MessageResolvers: MessageModule.Resolvers = {
     createMessage: async (
       _,
       { input },
-      { user, pubsub }: Context
+      { user, pubsub }
     ): Promise<MessageModule.CreateMessagePayload> => {
       if (!user) {
         throw UnauthorizedError();

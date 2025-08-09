@@ -13,7 +13,7 @@ type PubSubTypeMap = {
   messageCreated: MessageCreatedPayload;
 };
 
-class TypedPubSub<T extends Record<string, any>> implements PubSubEngine {
+class TypedPubSub<T extends Record<string, unknown>> implements PubSubEngine {
   private pubsub: PubSub;
 
   constructor() {
@@ -38,8 +38,10 @@ class TypedPubSub<T extends Record<string, any>> implements PubSubEngine {
     this.pubsub.unsubscribe(subId);
   }
 
-  asyncIterator<K extends keyof T>(triggers: K | K[]): AsyncIterator<T[K]> {
-    return this.pubsub.asyncIterator(triggers as string | string[]);
+  asyncIterator<K extends keyof T>(triggers: K | K[]): AsyncIterator<any> {
+    return this.pubsub.asyncIterator(
+      triggers as string | string[]
+    ) as AsyncIterator<any>;
   }
 }
 

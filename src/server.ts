@@ -9,7 +9,7 @@ import { useServer } from "graphql-ws/lib/use/ws";
 import type { GraphQLFormattedError } from "graphql";
 import { applyMiddleware } from "graphql-middleware";
 
-import type { Context } from "./serverContext";
+import type { ServerContext } from "./serverContext";
 import { getContext } from "./serverContext";
 import GraphQLApplication from "./modules";
 import { permissions } from "./graphql/permissions";
@@ -44,13 +44,13 @@ const graphqlServer = async (path: string = "/graphql") => {
     wsServer
   );
 
-  const apolloServer = new ApolloServer<Context>({
+  const apolloServer = new ApolloServer<ServerContext>({
     gateway: {
       async load() {
         return { executor: createApolloExecutor() };
       },
       onSchemaLoadOrUpdate(callback) {
-        callback({ apiSchema: schemaWithPermissions } as any);
+        callback({ apiSchema: schemaWithPermissions, coreSupergraphSdl: "" });
         return () => {};
       },
       async stop() {},
@@ -67,7 +67,7 @@ const graphqlServer = async (path: string = "/graphql") => {
         },
       },
     ],
-    formatError: (formattedError: GraphQLFormattedError, error: any) => {
+    formatError: (formattedError: GraphQLFormattedError, _error: unknown) => {
       console.error("FORMATTED ERROR -----> ", formattedError);
       return formattedError;
     },

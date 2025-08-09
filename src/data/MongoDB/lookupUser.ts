@@ -1,4 +1,5 @@
-import { DBClient, User } from "../MongoDB";
+import type { User } from "../MongoDB";
+import { DBClient } from "../MongoDB";
 
 /**
  * Looks up a user in the database by their Firebase Auth Account ID (googleAccountId).

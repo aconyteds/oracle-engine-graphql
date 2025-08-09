@@ -1,6 +1,7 @@
-import { DBClient } from "../../../data/MongoDB";
 import { GraphQLError } from "graphql";
 import { ApolloServerErrorCode } from "@apollo/server/errors";
+
+import { DBClient } from "../../../data/MongoDB";
 import type { UserModule } from "../generated";
 
 export const getCurrentUser = async (

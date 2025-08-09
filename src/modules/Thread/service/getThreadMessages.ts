@@ -1,4 +1,5 @@
-import { DBClient, Message } from "../../../data/MongoDB";
+import type { Message } from "../../../data/MongoDB";
+import { DBClient } from "../../../data/MongoDB";
 
 export const getThreadMessages = async (
   threadId: string
