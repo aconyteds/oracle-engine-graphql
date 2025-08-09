@@ -1,5 +1,14 @@
 This is a TypeScript GraphQL server which uses Apollo Server and Prisma. It is designed to be run in a Docker container. The server connects to a MongoDB Atlas database using Prisma. It uses Bun for all TypeScript code execution and unit tests. The team uses Github Actions for CI/CD, and the server is deployed to a Railway container.
 
+You MUST use Bun for all TypeScript code execution.
+
+### Common Commands
+
+- `bun run <script>`: Run a script defined in package.json
+- `bun test`: Run tests
+- `bun build`: Build the project
+- `bun run dev`: Start the development server
+
 ## Code Structure
 
 - `src/`: Contains the source code for the server.

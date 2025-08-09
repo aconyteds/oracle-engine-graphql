@@ -1,8 +1,8 @@
-import { User } from "./data/MongoDB";
+import type { User } from "./data/MongoDB";
 import { initializeFirebase, verifyUser } from "./data/Firebase";
 import PubSub from "./graphql/topics";
 
-export interface Context {
+export interface ServerContext {
   // The Firebase Auth token, if available.
   token?: string;
   // The Currently logged in user
@@ -18,15 +18,15 @@ export const getContext = async ({
   req,
   connectionParams,
 }: {
-  req?: any;
-  connectionParams?: any;
-}): Promise<Context> => {
+  req?: { headers?: Record<string, unknown> };
+  connectionParams?: Record<string, unknown>;
+}): Promise<ServerContext> => {
   let token = "";
 
   if (req && req.headers) {
     const headers = normalizeKeys(req.headers);
     if (headers.authorization) {
-      token = headers.authorization.replace("Bearer ", "");
+      token = (headers.authorization as string).replace("Bearer ", "");
     }
   }
 
@@ -37,13 +37,13 @@ export const getContext = async ({
     }
   }
 
-  const context: Context = { token, pubsub: PubSub };
+  const context: ServerContext = { token, pubsub: PubSub };
 
   if (token) {
     try {
       const user = await verifyUser(token);
       if (user && user.user) {
-        context.user = user.user;
+        context.user = user.user as User;
       }
     } catch (error) {
       console.error("Error verifying token:", error);
@@ -55,12 +55,12 @@ export const getContext = async ({
 };
 
 // Helper function to normalize object keys to lowercase
-function normalizeKeys(obj: Record<string, any>): Record<string, any> {
+function normalizeKeys(obj: Record<string, unknown>): Record<string, unknown> {
   return Object.keys(obj).reduce(
     (acc, key) => {
-      acc[key.toLowerCase()] = obj[key];
+      acc[key.toLowerCase()] = obj[key] as unknown;
       return acc;
     },
-    {} as Record<string, any>
+    {} as Record<string, unknown>
   );
 }

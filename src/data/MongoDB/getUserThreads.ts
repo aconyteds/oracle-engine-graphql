@@ -1,4 +1,5 @@
-import { DBClient, Thread } from "./client";
+import type { Thread } from "./client";
+import { DBClient } from "./client";
 
 export const getUserThreads = async (userId: string): Promise<Thread[]> => {
   const user = await DBClient.user.findUnique({

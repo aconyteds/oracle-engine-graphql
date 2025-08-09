@@ -5,6 +5,6 @@ export * from "./truncateMessageHistory";
 export * from "./modelList";
 export * from "./getModelDefinition";
 export * from "./agentList";
-export * from "./generateMessage";
+export * from "./Workflows";
 
 export type RoleTypes = "user" | "assistant" | "system";

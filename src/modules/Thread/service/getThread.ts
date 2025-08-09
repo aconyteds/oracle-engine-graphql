@@ -1,4 +1,5 @@
-import { DBClient, Thread } from "../../../data/MongoDB";
+import type { Thread } from "../../../data/MongoDB";
+import { DBClient } from "../../../data/MongoDB";
 
 export const getThread = async (threadId: string): Promise<Thread | null> => {
   const thread = await DBClient.thread.findUnique({

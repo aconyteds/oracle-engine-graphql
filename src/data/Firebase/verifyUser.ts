@@ -1,6 +1,7 @@
-import type { User } from "../MongoDB";
 import type { DecodedIdToken } from "firebase-admin/auth";
 import { getAuth } from "firebase-admin/auth";
+
+import type { User } from "../MongoDB";
 import { lookupUser } from "../MongoDB";
 
 type VerifyUserResponse = {

@@ -1,7 +1,7 @@
-import { lookupUser } from "../../../data/MongoDB";
 import { GraphQLError } from "graphql";
 import { ApolloServerErrorCode } from "@apollo/server/errors";
 
+import { lookupUser } from "../../../data/MongoDB";
 import type { UserModule } from "../generated";
 import { loginWithEmailAndPassword } from "../../../data/Firebase";
 

@@ -22,6 +22,13 @@ type CreateMessagePayload {
   message: Message!
 }
 
+type MessageWorkspace {
+  messageType: String!
+  content: String!
+  timestamp: DateTime!
+  elapsedTime: Float
+}
+
 type Message {
   id: ID!
   threadId: ID!
@@ -29,4 +36,5 @@ type Message {
   createdAt: DateTime!
   role: Role!
   tokenCount: Int!
+  workspace: [MessageWorkspace!]!
 }

@@ -26,7 +26,11 @@ describe("E2E -> GraphQL Health Check", () => {
       })
       .expect(200);
 
-    expect(response.body.errors).toBeUndefined();
-    expect(response.body.data.healthCheck).toBe(true);
+    const body = response.body as {
+      errors?: unknown;
+      data: { healthCheck: boolean };
+    };
+    expect(body.errors).toBeUndefined();
+    expect(body.data.healthCheck).toBe(true);
   });
 });

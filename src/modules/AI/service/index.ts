@@ -1,1 +1,1 @@
-export * from "../../../data/AI";
+export * from "./generateMessage";

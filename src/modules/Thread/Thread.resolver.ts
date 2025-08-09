@@ -1,4 +1,5 @@
 import { verifyThreadOwnership } from "../../data/MongoDB";
+import { InvalidUserCredentials } from "../../graphql/errors";
 import { TranslateMessage, TranslateThread } from "../utils";
 import type { ThreadModule } from "./generated";
 import { getThread, getThreadMessages, getUserThreads } from "./service";
@@ -6,6 +7,9 @@ import { getThread, getThreadMessages, getUserThreads } from "./service";
 const ThreadResolvers: ThreadModule.Resolvers = {
   Query: {
     threads: async (_, __, { user }): Promise<ThreadModule.Thread[]> => {
+      if (!user) {
+        throw InvalidUserCredentials;
+      }
       const threads = await getUserThreads(user.id);
       return threads.map(TranslateThread);
     },
@@ -14,6 +18,9 @@ const ThreadResolvers: ThreadModule.Resolvers = {
       { input: { threadId } },
       { user }
     ): Promise<ThreadModule.GetThreadPayload | null> => {
+      if (!user) {
+        throw InvalidUserCredentials;
+      }
       await verifyThreadOwnership(threadId, user.id);
       const thread = await getThread(threadId);
       return {
@@ -23,6 +30,9 @@ const ThreadResolvers: ThreadModule.Resolvers = {
   },
   Thread: {
     messages: async (parent, _, { user }): Promise<ThreadModule.Message[]> => {
+      if (!user) {
+        throw InvalidUserCredentials;
+      }
       const threadId = parent.id;
       await verifyThreadOwnership(threadId, user.id);
       const messages = await getThreadMessages(threadId);

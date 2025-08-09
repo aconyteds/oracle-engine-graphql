@@ -1,9 +1,9 @@
-import type { Message, Thread } from "../data/MongoDB";
 import type {
   AIMessageChunk,
   MessageContentComplex,
 } from "@langchain/core/messages";
 
+import type { Message, Thread } from "../data/MongoDB";
 import type { MessageRoles } from "../data/MongoDB";
 import type {
   Role as GraphQLRole,
@@ -19,7 +19,6 @@ export const TranslateRole = (role: MessageRoles): GraphQLRole => {
     case "system":
       return "System";
     case "assistant":
-    case "tool_calls":
     default:
       return "Assistant";
   }
@@ -33,6 +32,12 @@ export const TranslateMessage = (message: Message): GraphQLMessage => {
     threadId: message.threadId,
     role: TranslateRole(message.role as MessageRoles),
     tokenCount: message.tokenCount,
+    workspace: message.workspace.map((entry) => ({
+      messageType: entry.messageType,
+      content: entry.content,
+      timestamp: entry.timestamp.toISOString(),
+      elapsedTime: entry.elapsedTime ?? null,
+    })),
   };
 };
 
@@ -54,10 +59,10 @@ export const TranslateAIChunk = (
   } else {
     const combinedContent = chunk.content.map((c: MessageContentComplex) => {
       if (c.type === "text") {
-        return c.text;
+        return c.text as string;
       }
       if (c.type === "image_url") {
-        return c.image_url;
+        return (c.image_url as { url?: string })?.url ?? "";
       }
       return "";
     });

@@ -24,7 +24,9 @@ export const loginWithEmailAndPassword = async (
   });
 
   if (!response.ok) {
-    const errorData = await response.json();
+    const errorData = (await response.json()) as {
+      error?: { message?: string };
+    };
     console.error("Error logging in:", JSON.stringify(errorData, null, 2));
     throw new GraphQLError("Invalid email or password", {
       extensions: {
@@ -33,5 +35,5 @@ export const loginWithEmailAndPassword = async (
     });
   }
 
-  return response.json();
+  return response.json() as Promise<FirebaseAuthResponse>;
 };
