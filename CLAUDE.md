@@ -121,30 +121,85 @@ The system uses LangGraph for structured AI workflows:
 - Set return values with `mockFunction.mockReturnValue()` or `mockFunction.mockResolvedValue()`
 - Verify calls with `expect(mockFunction).toHaveBeenCalledWith(expectedArgs)`
 
+**Test Structure Best Practices:**
+
+- **DRY Principle:** Create default mock objects and reuse them across tests
+- **Default Mock Data:** Define `defaultThread`, `defaultAgent`, `defaultMessage`, etc. at file level
+- **Centralized Setup:** Configure default mock behavior in `beforeEach()` block
+- **Spread Operator:** Use `{...defaultObject, specificOverride: "value"}` pattern
+- **Test Focus:** Each test should only override what makes it unique
+- **Console Mocking:** Mock `console.error` in error tests to suppress output and verify logging
+
 **Example Test Structure:**
 
 ```typescript
 import { test, expect, beforeEach, mock } from "bun:test";
 import type { TypeFromClient } from "./client";
 
+// Mock functions
 const mockFunction = mock();
+const mockDBClient = { operation: { method: mock() } };
+
 mock.module("./dependency", () => ({
   functionName: mockFunction,
+  DBClient: mockDBClient,
 }));
 
 import { functionUnderTest } from "./sourceFile";
 
+// Default mock data - reusable across tests
+const defaultUser = {
+  id: "user-1",
+  name: "Test User",
+  email: "test@example.com",
+};
+
+const defaultResult = {
+  success: true,
+  data: "expected data",
+};
+
 beforeEach(() => {
+  // Clear all mocks
   mockFunction.mockClear();
+  mockDBClient.operation.method.mockClear();
+
+  // Set up default mock behavior
+  mockFunction.mockResolvedValue(defaultResult);
+  mockDBClient.operation.method.mockResolvedValue(defaultUser);
 });
 
 test("Unit -> functionUnderTest handles basic case", async () => {
-  mockFunction.mockResolvedValue(expectedResult);
+  const result = await functionUnderTest("input");
 
-  const result = await functionUnderTest(input);
+  expect(mockFunction).toHaveBeenCalledWith("input");
+  expect(result).toEqual(defaultResult);
+});
 
-  expect(mockFunction).toHaveBeenCalledWith(expectedArgs);
-  expect(result).toEqual(expectedResult);
+test("Unit -> functionUnderTest handles custom user", async () => {
+  const customUser = { ...defaultUser, name: "Custom User" };
+  mockDBClient.operation.method.mockResolvedValue(customUser);
+
+  const result = await functionUnderTest("input");
+
+  expect(result.user).toEqual(customUser);
+});
+
+test("Unit -> functionUnderTest handles errors with console mocking", async () => {
+  // Mock console.error to suppress output and verify logging
+  const originalConsoleError = console.error;
+  const mockConsoleError = mock();
+  console.error = mockConsoleError;
+
+  const testError = new Error("Test error");
+  mockFunction.mockRejectedValue(testError);
+
+  try {
+    await expect(functionUnderTest("input")).rejects.toThrow("Test error");
+    expect(mockConsoleError).toHaveBeenCalledWith("Error occurred:", testError);
+  } finally {
+    console.error = originalConsoleError;
+  }
 });
 ```
 
@@ -207,3 +262,16 @@ When creating or modifying code, you MUST:
 - Use TypeScript strict mode, avoid `any` types
 - Mock dependencies properly using Bun's `mock.module()` pattern
 - Test files should be comprehensive and cover edge cases
+
+## Test Organization Standards (MANDATORY)
+
+When writing tests, you MUST follow these patterns to maintain consistency and reduce maintenance:
+
+1. **Default Mock Objects:** Always create reusable default mock data at file level
+2. **Centralized Mock Setup:** Configure all default mock behavior in `beforeEach()`
+3. **Spread Pattern Usage:** Use `{...defaultObject, override: "value"}` instead of recreating objects
+4. **Focused Test Changes:** Each test should only override what makes it unique
+5. **Console Error Handling:** Mock `console.error` in error tests to suppress output and verify logging
+6. **DRY Principle:** Eliminate duplicate mock setup across tests - aim for 20%+ code reduction
+
+This approach ensures tests are maintainable, readable, and follow consistent patterns across the codebase.

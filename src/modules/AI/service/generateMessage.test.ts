@@ -54,7 +54,72 @@ mock.module("crypto", () => ({
 
 import { generateMessage } from "./generateMessage";
 
+// Default mock data
+const defaultThread: MockThread = {
+  id: "thread-id",
+  title: "Test Thread",
+  userId: "user-id",
+  selectedAgent: "test-agent",
+  messages: [],
+  createdAt: new Date(),
+  updatedAt: new Date(),
+};
+
+const defaultAgent = {
+  model: "gpt-4",
+  useHistory: true,
+  systemMessage: "You are a helpful assistant",
+  availableTools: [],
+};
+
+const defaultAIModel = { modelName: "gpt-4" };
+
+const defaultMessage: Message = {
+  id: "msg-1",
+  role: "user",
+  content: "Hello",
+  tokenCount: 10,
+  workspace: [],
+  threadId: "thread-id",
+  runId: null,
+  createdAt: new Date(),
+  updatedAt: new Date(),
+};
+
+const defaultWorkflowResult = {
+  currentResponse: "Generated response",
+  metadata: {
+    hasToolCalls: false,
+    toolExecutionResults: [],
+  },
+  toolCallsForDB: [],
+  toolResultsForDB: [],
+};
+
+const defaultSavedMessage: Message = {
+  id: "new-msg-id",
+  role: "assistant",
+  content: "Generated response",
+  tokenCount: 25,
+  workspace: [],
+  threadId: "thread-id",
+  runId: "test-run-id",
+  createdAt: new Date(),
+  updatedAt: new Date(),
+};
+
+const defaultTranslatedMessage = {
+  id: "new-msg-id",
+  content: "Generated response",
+  createdAt: new Date().toISOString(),
+  threadId: "thread-id",
+  role: "Assistant" as const,
+  tokenCount: 25,
+  workspace: [],
+};
+
 beforeEach(() => {
+  // Clear all mocks
   mockDBClient.thread.findUnique.mockClear();
   mockServerError.mockClear();
   mockTruncateMessageHistory.mockClear();
@@ -64,11 +129,23 @@ beforeEach(() => {
   mockSaveMessage.mockClear();
   mockTranslateMessage.mockClear();
   mockRandomUUID.mockClear();
+
+  // Set up default mock behavior
+  mockDBClient.thread.findUnique.mockResolvedValue(defaultThread);
+  mockGetAgentByName.mockReturnValue(defaultAgent);
+  mockGetModelDefinition.mockReturnValue(defaultAIModel);
+  mockTruncateMessageHistory.mockReturnValue([
+    { role: "system", content: defaultAgent.systemMessage },
+  ]);
+  mockRunToolEnabledWorkflow.mockResolvedValue(defaultWorkflowResult);
+  mockSaveMessage.mockResolvedValue(defaultSavedMessage);
+  mockTranslateMessage.mockReturnValue(defaultTranslatedMessage);
+  mockRandomUUID.mockReturnValue("test-run-id");
+  mockServerError.mockImplementation((msg: string) => new Error(msg));
 });
 
 test("Unit -> generateMessage throws error when thread not found", async () => {
   mockDBClient.thread.findUnique.mockResolvedValue(null);
-  mockServerError.mockImplementation((msg: string) => new Error(msg));
 
   const generator = generateMessage("non-existent-thread-id");
 
@@ -92,18 +169,12 @@ test("Unit -> generateMessage throws error when thread not found", async () => {
 
 test("Unit -> generateMessage throws error when agent not found", async () => {
   const mockThread: MockThread = {
-    id: "thread-id",
-    title: "Test Thread",
-    userId: "user-id",
+    ...defaultThread,
     selectedAgent: "invalid-agent",
-    messages: [],
-    createdAt: new Date(),
-    updatedAt: new Date(),
   };
 
   mockDBClient.thread.findUnique.mockResolvedValue(mockThread);
   mockGetAgentByName.mockReturnValue(null);
-  mockServerError.mockImplementation((msg: string) => new Error(msg));
 
   const generator = generateMessage("thread-id");
 
@@ -115,27 +186,7 @@ test("Unit -> generateMessage throws error when agent not found", async () => {
 });
 
 test("Unit -> generateMessage throws error when model definition invalid", async () => {
-  const mockThread: MockThread = {
-    id: "thread-id",
-    title: "Test Thread",
-    userId: "user-id",
-    selectedAgent: "test-agent",
-    messages: [],
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
-
-  const mockAgent = {
-    model: "gpt-4",
-    useHistory: true,
-    systemMessage: "You are a helpful assistant",
-    availableTools: [],
-  };
-
-  mockDBClient.thread.findUnique.mockResolvedValue(mockThread);
-  mockGetAgentByName.mockReturnValue(mockAgent);
   mockGetModelDefinition.mockReturnValue(null);
-  mockServerError.mockImplementation((msg: string) => new Error(msg));
 
   const generator = generateMessage("thread-id");
 
@@ -143,97 +194,38 @@ test("Unit -> generateMessage throws error when model definition invalid", async
     await generator.next();
   }).toThrow("Invalid agent Configuration detected.");
 
-  expect(mockGetModelDefinition).toHaveBeenCalledWith(mockAgent);
+  expect(mockGetModelDefinition).toHaveBeenCalledWith(defaultAgent);
 });
 
 test("Unit -> generateMessage processes thread with history enabled", async () => {
   const mockMessages: Message[] = [
+    { ...defaultMessage, content: "Hello" },
     {
-      id: "msg-1",
-      role: "user",
-      content: "Hello",
-      tokenCount: 10,
-      workspace: [],
-      threadId: "thread-id",
-      runId: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    },
-    {
+      ...defaultMessage,
       id: "msg-2",
       role: "assistant",
       content: "Hi there!",
       tokenCount: 15,
-      workspace: [],
-      threadId: "thread-id",
-      runId: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
     },
   ];
 
   const mockThread: MockThread = {
-    id: "thread-id",
-    title: "Test Thread",
-    userId: "user-id",
-    selectedAgent: "test-agent",
+    ...defaultThread,
     messages: mockMessages,
-    createdAt: new Date(),
-    updatedAt: new Date(),
   };
 
   const mockAgent = {
-    model: "gpt-4",
-    useHistory: true,
-    systemMessage: "You are a helpful assistant",
+    ...defaultAgent,
     availableTools: [{ name: "calculator" }],
-  };
-
-  const mockAIModel = { modelName: "gpt-4" };
-  const mockWorkflowResult = {
-    currentResponse: "Generated response",
-    metadata: {
-      hasToolCalls: false,
-      toolExecutionResults: [],
-    },
-    toolCallsForDB: [],
-    toolResultsForDB: [],
-  };
-
-  const mockSavedMessage: Message = {
-    id: "new-msg-id",
-    role: "assistant",
-    content: "Generated response",
-    tokenCount: 25,
-    workspace: [],
-    threadId: "thread-id",
-    runId: "test-run-id",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
-
-  const mockTranslatedMessage = {
-    id: "new-msg-id",
-    content: "Generated response",
-    createdAt: new Date().toISOString(),
-    threadId: "thread-id",
-    role: "Assistant",
-    tokenCount: 25,
-    workspace: [],
   };
 
   mockDBClient.thread.findUnique.mockResolvedValue(mockThread);
   mockGetAgentByName.mockReturnValue(mockAgent);
-  mockGetModelDefinition.mockReturnValue(mockAIModel);
   mockTruncateMessageHistory.mockReturnValue([
     { role: "system", content: "You are a helpful assistant" },
     { role: "user", content: "Hello", tokenCount: 10 },
     { role: "assistant", content: "Hi there!", tokenCount: 15 },
   ]);
-  mockRunToolEnabledWorkflow.mockResolvedValue(mockWorkflowResult);
-  mockSaveMessage.mockResolvedValue(mockSavedMessage);
-  mockTranslateMessage.mockReturnValue(mockTranslatedMessage);
-  mockRandomUUID.mockReturnValue("test-run-id");
 
   const generator = generateMessage("thread-id");
   const results: GenerateMessagePayload[] = [];
@@ -251,14 +243,9 @@ test("Unit -> generateMessage processes thread with history enabled", async () =
     responseType: "Final",
     content: "Generated response",
     message: {
-      id: "new-msg-id",
-      content: "Generated response",
+      ...defaultTranslatedMessage,
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       createdAt: expect.any(String),
-      threadId: "thread-id",
-      role: "Assistant",
-      tokenCount: 25,
-      workspace: [],
     },
   });
 
@@ -291,80 +278,51 @@ test("Unit -> generateMessage processes thread with history enabled", async () =
 test("Unit -> generateMessage processes thread without history", async () => {
   const mockMessages: Message[] = [
     {
-      id: "msg-1",
-      role: "user",
+      ...defaultMessage,
       content: "What is 2+2?",
-      tokenCount: 10,
-      workspace: [],
-      threadId: "thread-id",
-      runId: null,
       createdAt: new Date("2023-01-01"),
-      updatedAt: new Date("2023-01-01"),
     },
     {
+      ...defaultMessage,
       id: "msg-2",
       role: "assistant",
       content: "4",
       tokenCount: 5,
-      workspace: [],
-      threadId: "thread-id",
-      runId: null,
       createdAt: new Date("2023-01-02"),
-      updatedAt: new Date("2023-01-02"),
     },
     {
+      ...defaultMessage,
       id: "msg-3",
-      role: "user",
       content: "What about 3+3?",
       tokenCount: 12,
-      workspace: [],
-      threadId: "thread-id",
-      runId: null,
       createdAt: new Date("2023-01-03"),
-      updatedAt: new Date("2023-01-03"),
     },
   ];
 
   const mockThread: MockThread = {
-    id: "thread-id",
-    title: "Test Thread",
-    userId: "user-id",
-    selectedAgent: "test-agent",
+    ...defaultThread,
     messages: mockMessages,
-    createdAt: new Date(),
-    updatedAt: new Date(),
   };
 
   const mockAgent = {
-    model: "gpt-4",
+    ...defaultAgent,
     useHistory: false,
     systemMessage: "You are a calculator",
-    availableTools: [],
   };
 
-  const mockAIModel = { modelName: "gpt-4" };
   const mockWorkflowResult = {
+    ...defaultWorkflowResult,
     currentResponse: "6",
-    metadata: {},
-    toolCallsForDB: [],
-    toolResultsForDB: [],
   };
 
   const mockSavedMessage: Message = {
-    id: "new-msg-id",
-    role: "assistant",
+    ...defaultSavedMessage,
     content: "6",
     tokenCount: 5,
-    workspace: [],
-    threadId: "thread-id",
-    runId: "test-run-id",
-    createdAt: new Date(),
-    updatedAt: new Date(),
   };
 
   mockDBClient.thread.findUnique.mockResolvedValue(mockThread);
   mockGetAgentByName.mockReturnValue(mockAgent);
-  mockGetModelDefinition.mockReturnValue(mockAIModel);
   mockTruncateMessageHistory.mockReturnValue([
     { role: "system", content: "You are a calculator" },
     { role: "user", content: "What about 3+3?", tokenCount: 12 },
@@ -372,15 +330,10 @@ test("Unit -> generateMessage processes thread without history", async () => {
   mockRunToolEnabledWorkflow.mockResolvedValue(mockWorkflowResult);
   mockSaveMessage.mockResolvedValue(mockSavedMessage);
   mockTranslateMessage.mockReturnValue({
-    id: "new-msg-id",
+    ...defaultTranslatedMessage,
     content: "6",
-    createdAt: new Date().toISOString(),
-    threadId: "thread-id",
-    role: "Assistant",
     tokenCount: 5,
-    workspace: [],
   });
-  mockRandomUUID.mockReturnValue("test-run-id");
 
   const generator = generateMessage("thread-id");
   const results: GenerateMessagePayload[] = [];
@@ -400,35 +353,19 @@ test("Unit -> generateMessage processes thread without history", async () => {
 
 test("Unit -> generateMessage handles tool calls and results", async () => {
   const mockThread: MockThread = {
-    id: "thread-id",
-    title: "Test Thread",
-    userId: "user-id",
+    ...defaultThread,
     selectedAgent: "tool-agent",
     messages: [
-      {
-        id: "msg-1",
-        role: "user",
-        content: "Calculate 15 * 8",
-        tokenCount: 15,
-        workspace: [],
-        threadId: "thread-id",
-        runId: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
+      { ...defaultMessage, content: "Calculate 15 * 8", tokenCount: 15 },
     ],
-    createdAt: new Date(),
-    updatedAt: new Date(),
   };
 
   const mockAgent = {
-    model: "gpt-4",
-    useHistory: true,
+    ...defaultAgent,
     systemMessage: "You are a helpful assistant with tools",
     availableTools: [{ name: "calculator" }, { name: "dice" }],
   };
 
-  const mockAIModel = { modelName: "gpt-4" };
   const mockWorkflowResult = {
     currentResponse: "The calculation result is 120.",
     metadata: {
@@ -452,20 +389,13 @@ test("Unit -> generateMessage handles tool calls and results", async () => {
   };
 
   const mockSavedMessage: Message = {
-    id: "new-msg-id",
-    role: "assistant",
+    ...defaultSavedMessage,
     content: "The calculation result is 120.",
     tokenCount: 30,
-    workspace: [],
-    threadId: "thread-id",
-    runId: "test-run-id",
-    createdAt: new Date(),
-    updatedAt: new Date(),
   };
 
   mockDBClient.thread.findUnique.mockResolvedValue(mockThread);
   mockGetAgentByName.mockReturnValue(mockAgent);
-  mockGetModelDefinition.mockReturnValue(mockAIModel);
   mockTruncateMessageHistory.mockReturnValue([
     { role: "system", content: "You are a helpful assistant with tools" },
     { role: "user", content: "Calculate 15 * 8", tokenCount: 15 },
@@ -473,15 +403,10 @@ test("Unit -> generateMessage handles tool calls and results", async () => {
   mockRunToolEnabledWorkflow.mockResolvedValue(mockWorkflowResult);
   mockSaveMessage.mockResolvedValue(mockSavedMessage);
   mockTranslateMessage.mockReturnValue({
-    id: "new-msg-id",
+    ...defaultTranslatedMessage,
     content: "The calculation result is 120.",
-    createdAt: new Date().toISOString(),
-    threadId: "thread-id",
-    role: "Assistant",
     tokenCount: 30,
-    workspace: [],
   });
-  mockRandomUUID.mockReturnValue("test-run-id");
 
   const generator = generateMessage("thread-id");
   const results: GenerateMessagePayload[] = [];
@@ -537,40 +462,13 @@ test("Unit -> generateMessage handles tool calls and results", async () => {
 });
 
 test("Unit -> generateMessage handles workflow error", async () => {
-  const mockThread: MockThread = {
-    id: "thread-id",
-    title: "Test Thread",
-    userId: "user-id",
-    selectedAgent: "test-agent",
-    messages: [],
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
-
-  const mockAgent = {
-    model: "gpt-4",
-    useHistory: true,
-    systemMessage: "You are a helpful assistant",
-    availableTools: [],
-  };
-
-  const mockAIModel = { modelName: "gpt-4" };
-
   // Mock console.error to suppress output and verify it's called
   const originalConsoleError = console.error;
   const mockConsoleError = mock();
   console.error = mockConsoleError;
 
-  mockDBClient.thread.findUnique.mockResolvedValue(mockThread);
-  mockGetAgentByName.mockReturnValue(mockAgent);
-  mockGetModelDefinition.mockReturnValue(mockAIModel);
-  mockTruncateMessageHistory.mockReturnValue([
-    { role: "system", content: "You are a helpful assistant" },
-  ]);
   const mockError = new Error("Workflow failed");
   mockRunToolEnabledWorkflow.mockRejectedValue(mockError);
-  mockServerError.mockImplementation((msg: string) => new Error(msg));
-  mockRandomUUID.mockReturnValue("test-run-id");
 
   try {
     const generator = generateMessage("thread-id");
@@ -599,46 +497,23 @@ test("Unit -> generateMessage handles workflow error", async () => {
 });
 
 test("Unit -> generateMessage handles empty thread messages", async () => {
-  const mockThread: MockThread = {
-    id: "thread-id",
-    title: "Test Thread",
-    userId: "user-id",
-    selectedAgent: "test-agent",
-    messages: [],
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
-
   const mockAgent = {
-    model: "gpt-4",
+    ...defaultAgent,
     useHistory: false,
-    systemMessage: "You are a helpful assistant",
-    availableTools: [],
   };
 
-  const mockAIModel = { modelName: "gpt-4" };
   const mockWorkflowResult = {
+    ...defaultWorkflowResult,
     currentResponse: "Hello! How can I help you?",
-    metadata: {},
-    toolCallsForDB: [],
-    toolResultsForDB: [],
   };
 
   const mockSavedMessage: Message = {
-    id: "new-msg-id",
-    role: "assistant",
+    ...defaultSavedMessage,
     content: "Hello! How can I help you?",
     tokenCount: 20,
-    workspace: [],
-    threadId: "thread-id",
-    runId: "test-run-id",
-    createdAt: new Date(),
-    updatedAt: new Date(),
   };
 
-  mockDBClient.thread.findUnique.mockResolvedValue(mockThread);
   mockGetAgentByName.mockReturnValue(mockAgent);
-  mockGetModelDefinition.mockReturnValue(mockAIModel);
   mockTruncateMessageHistory.mockReturnValue([
     { role: "system", content: "You are a helpful assistant" },
     { role: "user", content: "" },
@@ -646,15 +521,10 @@ test("Unit -> generateMessage handles empty thread messages", async () => {
   mockRunToolEnabledWorkflow.mockResolvedValue(mockWorkflowResult);
   mockSaveMessage.mockResolvedValue(mockSavedMessage);
   mockTranslateMessage.mockReturnValue({
-    id: "new-msg-id",
+    ...defaultTranslatedMessage,
     content: "Hello! How can I help you?",
-    createdAt: new Date().toISOString(),
-    threadId: "thread-id",
-    role: "Assistant",
     tokenCount: 20,
-    workspace: [],
   });
-  mockRandomUUID.mockReturnValue("test-run-id");
 
   const generator = generateMessage("thread-id");
   const results: GenerateMessagePayload[] = [];
