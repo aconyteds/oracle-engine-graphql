@@ -65,6 +65,7 @@ model Message {
   threadId   String             @db.ObjectId
   createdAt  DateTime           @default(now())
   updatedAt  DateTime           @updatedAt
+  runId      String? // UUID to trace the LLM call in LangSmith
 }
 
 // RPG data

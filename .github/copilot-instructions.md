@@ -73,3 +73,111 @@ export default UserModule;
 
 - Unit tests use Bun's built-in test runner
 - End-to-end tests use the `e2e` directory, but still use Bun's test runner.
+- ALL code changes MUST include comprehensive unit tests
+- Tests MUST pass before committing code (`bun test`)
+- Lint errors MUST be fixed before committing (`bun run lint`)
+
+### Test Requirements (MANDATORY)
+
+When creating or modifying code, you MUST:
+
+1. Write comprehensive unit tests for ALL functions
+2. Run `bun test` to verify tests pass
+3. Run `bun run lint` and fix ALL lint errors
+4. Use proper Bun testing patterns: `import { test, expect, beforeEach, mock } from "bun:test"`
+5. Mock external dependencies (database, API calls, etc.)
+6. Test both success and error cases
+7. Follow naming convention: `"Unit -> functionName description"`
+
+### Test Structure Standards (MANDATORY)
+
+Follow these patterns for consistent, maintainable tests:
+
+1. **Default Mock Objects:** Create reusable default mock data at file level
+2. **Centralized Mock Setup:** Configure all default mock behavior in `beforeEach()`
+3. **Spread Pattern Usage:** Use `{...defaultObject, override: "value"}` instead of recreating objects
+4. **Focused Test Changes:** Each test should only override what makes it unique
+5. **Console Error Handling:** Mock `console.error` in error tests to suppress output and verify logging
+6. **DRY Principle:** Eliminate duplicate mock setup across tests - aim for 20%+ code reduction
+
+### Mocking Guidelines
+
+- Use `mock.module()` to mock entire modules before importing the code under test
+- Create individual mock functions: `const mockFunction = mock()`
+- Mock database operations by mocking the Prisma client
+- Clear mocks in `beforeEach()` using `mockFunction.mockClear()`
+- Set return values with `mockFunction.mockReturnValue()` or `mockFunction.mockResolvedValue()`
+- Verify calls with `expect(mockFunction).toHaveBeenCalledWith(expectedArgs)`
+
+### Example Test Structure
+
+```typescript
+import { test, expect, beforeEach, mock } from "bun:test";
+import type { TypeFromClient } from "./client";
+
+// Mock functions
+const mockFunction = mock();
+const mockDBClient = { operation: { method: mock() } };
+
+mock.module("./dependency", () => ({
+  functionName: mockFunction,
+  DBClient: mockDBClient,
+}));
+
+import { functionUnderTest } from "./sourceFile";
+
+// Default mock data - reusable across tests
+const defaultUser = {
+  id: "user-1",
+  name: "Test User",
+  email: "test@example.com",
+};
+
+const defaultResult = {
+  success: true,
+  data: "expected data",
+};
+
+beforeEach(() => {
+  // Clear all mocks
+  mockFunction.mockClear();
+  mockDBClient.operation.method.mockClear();
+
+  // Set up default mock behavior
+  mockFunction.mockResolvedValue(defaultResult);
+  mockDBClient.operation.method.mockResolvedValue(defaultUser);
+});
+
+test("Unit -> functionUnderTest handles basic case", async () => {
+  const result = await functionUnderTest("input");
+
+  expect(mockFunction).toHaveBeenCalledWith("input");
+  expect(result).toEqual(defaultResult);
+});
+
+test("Unit -> functionUnderTest handles custom user", async () => {
+  const customUser = { ...defaultUser, name: "Custom User" };
+  mockDBClient.operation.method.mockResolvedValue(customUser);
+
+  const result = await functionUnderTest("input");
+
+  expect(result.user).toEqual(customUser);
+});
+
+test("Unit -> functionUnderTest handles errors with console mocking", async () => {
+  // Mock console.error to suppress output and verify logging
+  const originalConsoleError = console.error;
+  const mockConsoleError = mock();
+  console.error = mockConsoleError;
+
+  const testError = new Error("Test error");
+  mockFunction.mockRejectedValue(testError);
+
+  try {
+    await expect(functionUnderTest("input")).rejects.toThrow("Test error");
+    expect(mockConsoleError).toHaveBeenCalledWith("Error occurred:", testError);
+  } finally {
+    console.error = originalConsoleError;
+  }
+});
+```
