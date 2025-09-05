@@ -13,6 +13,7 @@ import type { GenerateMessagePayload } from "../../../generated/graphql";
 import { TranslateMessage } from "../../utils";
 import type { MessageWorkspace } from "../../../data/MongoDB";
 import { DBClient, saveMessage } from "../../../data/MongoDB";
+import { randomUUID } from "crypto";
 
 // Type definition for the workflow result
 interface WorkflowResult {
@@ -66,7 +67,7 @@ export async function* generateMessage(
   });
 
   if (useHistory) {
-    thread.messages.forEach((message) => {
+    (thread.messages ?? []).forEach((message) => {
       messageHistory.push({
         role: message.role as RoleTypes,
         content: message.content,
@@ -110,11 +111,13 @@ export async function* generateMessage(
     elapsedTime: null,
   });
 
+  const runId = randomUUID().toString(); // Unique ID for this workflow run
+
   try {
     // Use tool-enabled workflow
     const result = (await runToolEnabledWorkflow({
       messages: truncatedMessageHistory,
-      threadId,
+      threadId: runId,
       model: AIModel,
       tools: availableTools as DynamicTool[],
     })) as WorkflowResult;
@@ -168,6 +171,7 @@ export async function* generateMessage(
       content: finalResponse,
       role: "assistant",
       workspace: workspaceEntries,
+      runId,
     });
 
     // Yield a final payload to the client

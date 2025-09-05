@@ -13,6 +13,8 @@ type SaveMessageInput = {
   role: MessageRoles;
   // Optional workspace entries for this message, this represents the action that the LLM took when generating the response
   workspace?: MessageWorkspace[];
+  // Optional runId for LangSmith tracing
+  runId?: string;
 };
 
 export const saveMessage = async ({
@@ -20,6 +22,7 @@ export const saveMessage = async ({
   content,
   role,
   workspace = [],
+  runId,
 }: SaveMessageInput): Promise<Message> => {
   // Calculate the token Count
   const tokenCount = calculateTokenCount(content);
@@ -32,6 +35,7 @@ export const saveMessage = async ({
       role,
       tokenCount,
       workspace,
+      runId: runId ? String(runId) : null,
     },
   });
 
