@@ -15,6 +15,8 @@ type SaveMessageInput = {
   workspace?: MessageWorkspace[];
   // Optional runId for LangSmith tracing
   runId?: string;
+  // Optional routing metadata for router agents
+  routingMetadata?: Record<string, unknown>;
 };
 
 export const saveMessage = async ({
@@ -23,6 +25,7 @@ export const saveMessage = async ({
   role,
   workspace = [],
   runId,
+  routingMetadata,
 }: SaveMessageInput): Promise<Message> => {
   // Calculate the token Count
   const tokenCount = calculateTokenCount(content);
@@ -36,6 +39,7 @@ export const saveMessage = async ({
       tokenCount,
       workspace,
       runId: runId ? String(runId) : null,
+      routingMetadata: routingMetadata ? JSON.stringify(routingMetadata) : null,
     },
   });
 

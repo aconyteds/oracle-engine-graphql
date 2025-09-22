@@ -8,6 +8,10 @@ export async function generateFinalResponse(
 ): Promise<Partial<typeof ToolEnabledGraphState.State>> {
   const { messages, model, runId, metadata } = state;
 
+  if (messages.length === 0) {
+    throw new Error("No messages available for final response generation");
+  }
+
   try {
     const response = await model.invoke(messages, {
       runId,

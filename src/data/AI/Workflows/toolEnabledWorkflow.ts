@@ -9,13 +9,24 @@ import {
   executeTools,
   generateFinalResponse,
 } from "../Nodes";
-import type { ToolCall, ToolCallForDB, ToolResultForDB } from "../types";
+import type {
+  AIAgentDefinition,
+  ToolCall,
+  ToolCallForDB,
+  ToolResultForDB,
+} from "../types";
+import { cheapest } from "../Agents";
+import { getModelDefinition } from "../getModelDefinition";
 
 // Enhanced graph state schema with tools using modern Annotation pattern
 export const ToolEnabledGraphState = Annotation.Root({
   messages: Annotation<BaseMessage[]>({
     reducer: (x: BaseMessage[], y: BaseMessage[]) => x.concat(y),
     default: () => [],
+  }),
+  agent: Annotation<AIAgentDefinition>({
+    reducer: (x: AIAgentDefinition, y?: AIAgentDefinition) => y ?? x,
+    default: () => cheapest,
   }),
   model: Annotation<ChatOpenAI>({
     reducer: (x: ChatOpenAI, y?: ChatOpenAI) => y ?? x,
@@ -95,7 +106,7 @@ export function createToolEnabledWorkflow() {
 type RunToolEnabledWorkflowInput = {
   messages: BaseMessage[];
   threadId?: string;
-  model: ChatOpenAI;
+  agent: AIAgentDefinition;
   tools: DynamicTool[];
 };
 
@@ -105,13 +116,18 @@ type RunToolEnabledWorkflowInput = {
 export async function runToolEnabledWorkflow({
   messages,
   threadId: runId,
-  model,
+  agent,
   tools,
 }: RunToolEnabledWorkflowInput): Promise<unknown> {
   const workflow = createToolEnabledWorkflow();
+  const model = getModelDefinition(agent);
+  if (!model) {
+    throw new Error(`Model for agent ${agent.name} not configured`);
+  }
 
   const initialState = {
     messages,
+    agent,
     model,
     tools,
     runId,

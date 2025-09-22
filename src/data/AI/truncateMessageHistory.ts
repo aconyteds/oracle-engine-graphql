@@ -1,30 +1,19 @@
 import type { BaseMessage } from "@langchain/core/messages";
-import {
-  SystemMessage,
-  HumanMessage,
-  AIMessage,
-} from "@langchain/core/messages";
-
-import type { TrustedModel } from "./modelList";
+import { HumanMessage, AIMessage } from "@langchain/core/messages";
 import { calculateTokenCount } from "./calculateTokenCount";
-import type { RoleTypes } from ".";
-
-export type MessageItem = {
-  content: string;
-  tokenCount?: number;
-  role: RoleTypes;
-};
+import type { AIAgentDefinition } from "./types";
+import type { Message } from "../MongoDB";
 
 type TruncationStrategy = "alternate" | "latest";
 
 type TruncateMessageHistoryInput = {
-  messageList: MessageItem[];
-  model: TrustedModel;
+  messageList: Message[];
+  agent: AIAgentDefinition;
   truncationStrategy?: TruncationStrategy;
   maxContextPercentage?: number;
 };
 
-type MessagePair = [MessageItem | undefined, MessageItem | undefined];
+type MessagePair = [Message | undefined, Message | undefined];
 
 /**
  * Truncates the message history to fit within the model's context window.
@@ -34,7 +23,7 @@ type MessagePair = [MessageItem | undefined, MessageItem | undefined];
  */
 export const truncateMessageHistory = ({
   messageList,
-  model,
+  agent,
   truncationStrategy = "alternate",
   maxContextPercentage = 0.75,
 }: TruncateMessageHistoryInput): BaseMessage[] => {
@@ -43,37 +32,15 @@ export const truncateMessageHistory = ({
   }
 
   const truncatedMessageList: BaseMessage[] = [];
+  const { model, systemMessage } = agent;
 
   const maxTokens = Math.floor(model.contextWindow * maxContextPercentage);
 
   let totalTokens = 0;
 
-  // Get the first system message from the list, and remove the rest
-  let systemMessage: MessageItem | undefined;
-
-  // Filter out system messages
-  messageList = messageList.filter((message) => {
-    // get rid of empty messages
-    if (!message.content) {
-      return false;
-    }
-    // Keep user and assistant messages
-    if (message.role === "user" || message.role === "assistant") {
-      return true;
-    }
-    // If we find a system message, keep it and remove the rest
-    if (message.role === "system" && !systemMessage) {
-      // We take the first system message we find to pass as instructions to the AI
-      systemMessage = message;
-    }
-    return false;
-  });
-
-  // Calculate the token count for the system message
-  if (systemMessage) {
-    totalTokens +=
-      systemMessage.tokenCount || calculateTokenCount(systemMessage.content);
-    truncatedMessageList.push(new SystemMessage(systemMessage.content));
+  // Calculate the token count for the system message, this will allow us to reserve space for it
+  if (systemMessage.length > 0) {
+    totalTokens += calculateTokenCount(systemMessage);
   }
 
   const messagePairs = createMessagePairs(messageList);
@@ -122,7 +89,7 @@ export const truncateMessageHistory = ({
  * @param messageList - The list of messages to pair.
  * @returns An array of message pairs.
  */
-function createMessagePairs(messageList: MessageItem[]): MessagePair[] {
+function createMessagePairs(messageList: Message[]): MessagePair[] {
   const messagePairs: MessagePair[] = [];
   let currentPair: MessagePair = [undefined, undefined];
 

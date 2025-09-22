@@ -6,5 +6,7 @@ export * from "./modelList";
 export * from "./getModelDefinition";
 export * from "./agentList";
 export * from "./Workflows";
+export * from "./generateMessageWithRouter";
+export * from "./generateMessageWithStandardWorkflow";
 
 export type RoleTypes = "user" | "assistant" | "system";

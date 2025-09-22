@@ -66,6 +66,7 @@ test("Unit -> saveMessage creates message with required fields", async () => {
       tokenCount: 50,
       workspace: [],
       runId: null,
+      routingMetadata: null,
     },
   });
   expect(mockThreadUpdate).toHaveBeenCalledWith({
@@ -118,6 +119,7 @@ test("Unit -> saveMessage creates message with workspace and runId", async () =>
       tokenCount: 75,
       workspace: mockWorkspace,
       runId: "run-123",
+      routingMetadata: null,
     },
   });
   expect(result).toEqual(mockMessage);
@@ -154,6 +156,7 @@ test("Unit -> saveMessage handles system role messages", async () => {
       tokenCount: 25,
       workspace: [],
       runId: null,
+      routingMetadata: null,
     },
   });
   expect(result).toEqual(mockMessage);

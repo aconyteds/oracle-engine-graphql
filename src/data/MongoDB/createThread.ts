@@ -21,7 +21,8 @@ export const createThread = async ({
       title,
       userId,
       // TODO:: Make this more dynamic
-      selectedAgent: "Cheapest",
+      selectedAgent: "Default Router",
+      // selectedAgent: "Cheapest",
     },
   });
 

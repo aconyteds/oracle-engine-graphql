@@ -56,16 +56,17 @@ type MessageWorkspace {
 }
 
 model Message {
-  id         String             @id @default(auto()) @map("_id") @db.ObjectId
-  role       String
-  tokenCount Int
-  content    String
-  workspace  MessageWorkspace[]
-  thread     Thread             @relation(fields: [threadId], references: [id])
-  threadId   String             @db.ObjectId
-  createdAt  DateTime           @default(now())
-  updatedAt  DateTime           @updatedAt
-  runId      String? // UUID to trace the LLM call in LangSmith
+  id              String             @id @default(auto()) @map("_id") @db.ObjectId
+  role            String
+  tokenCount      Int
+  content         String
+  workspace       MessageWorkspace[]
+  thread          Thread             @relation(fields: [threadId], references: [id])
+  threadId        String             @db.ObjectId
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  runId           String? // UUID to trace the LLM call in LangSmith
+  routingMetadata Json? // Store routing decision and performance data per message
 }
 
 // RPG data
