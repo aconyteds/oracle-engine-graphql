@@ -43,6 +43,7 @@ test("Unit -> saveMessage creates message with required fields", async () => {
     tokenCount: 50,
     workspace: [],
     runId: null,
+    routingMetadata: null,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
@@ -95,6 +96,7 @@ test("Unit -> saveMessage creates message with workspace and runId", async () =>
     tokenCount: 75,
     workspace: mockWorkspace,
     runId: "run-123",
+    routingMetadata: null,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
@@ -134,6 +136,7 @@ test("Unit -> saveMessage handles system role messages", async () => {
     tokenCount: 25,
     workspace: [],
     runId: null,
+    routingMetadata: null,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
@@ -180,6 +183,7 @@ test("Unit -> addMessageWorkspaceEntry adds workspace entry to existing message"
     tokenCount: 40,
     workspace: existingWorkspace,
     runId: "run-456",
+    routingMetadata: null,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
@@ -226,6 +230,7 @@ test("Unit -> addMessageWorkspaceEntry handles message with empty workspace", as
     tokenCount: 35,
     workspace: [],
     runId: null,
+    routingMetadata: null,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
