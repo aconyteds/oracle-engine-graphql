@@ -7,6 +7,7 @@ const mockUpdate = mock();
 const mockThreadUpdate = mock();
 const mockCalculateTokenCount = mock();
 
+// Set up mocks before importing the module under test
 void mock.module("./client", () => ({
   DBClient: {
     message: {

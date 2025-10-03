@@ -6,6 +6,7 @@ const mockRouteToAgent = { name: "routeToAgent" };
 const mockAnalyzeConversationContext = { name: "analyzeConversationContext" };
 const mockBuildRouterSystemMessage = mock();
 
+// Create module mocks before importing
 void mock.module("../../Tools/routing", () => ({
   routeToAgent: mockRouteToAgent,
   analyzeConversationContext: mockAnalyzeConversationContext,
