@@ -78,7 +78,7 @@ beforeEach(() => {
   mockRunRouterWorkflow.mockResolvedValue({
     routingDecision: {
       targetAgent: "Character Generator",
-      confidence: 90,
+      confidence: 4.5,
       reasoning: "Character creation request",
       fallbackAgent: "Cheapest",
       intentKeywords: ["character", "wizard"],

@@ -12,8 +12,8 @@ export const routeToAgent = new DynamicStructuredTool({
     confidence: z
       .number()
       .min(0)
-      .max(100)
-      .describe("Confidence level 0-100 for routing decision"),
+      .max(5)
+      .describe("Confidence level 0-5 for routing decision"),
     reasoning: z
       .string()
       .min(10)
@@ -57,7 +57,7 @@ export const routeToAgent = new DynamicStructuredTool({
     };
 
     console.log(
-      `🎯 Routing Decision: ${targetAgent} (${confidence}% confidence)`
+      `🎯 Routing Decision: ${targetAgent} (${confidence} confidence)`
     );
     console.log(`📝 Reasoning: ${reasoning}`);
 

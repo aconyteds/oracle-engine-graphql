@@ -18,7 +18,7 @@ export function generateRoutingExamples(
       });
     } else {
       // Fallback: generate basic example from specialization or description
-      const confidence = agent.availableSubAgents?.length ? 80 : 85; // Lower for routers
+      const confidence = agent.availableSubAgents?.length ? 2 : 3; // Lower for routers
       const specialty =
         agent.specialization || agent.description || "relevant requests";
       examples.push(

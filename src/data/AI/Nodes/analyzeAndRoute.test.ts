@@ -58,7 +58,7 @@ const defaultWorkflowResult = {
       result: JSON.stringify({
         type: "routing_decision",
         targetAgent: "target-agent",
-        confidence: 85,
+        confidence: 4.25,
         reasoning: "Best match for request",
         fallbackAgent: "cheapest",
         intentKeywords: ["help", "question"],
@@ -103,7 +103,7 @@ test("Unit -> analyzeAndRoute extracts routing decision from tool results", asyn
 
   expect(result.routingDecision).toBeDefined();
   expect(result.routingDecision?.targetAgent).toBe(mockTargetAgent);
-  expect(result.routingDecision?.confidence).toBe(85);
+  expect(result.routingDecision?.confidence).toBe(4.25);
   expect(result.routingDecision?.reasoning).toBe("Best match for request");
   expect(result.routingDecision?.fallbackAgent).toBe(mockCheapestAgent);
   expect(result.routingDecision?.intentKeywords).toEqual(["help", "question"]);
@@ -229,7 +229,7 @@ test("Unit -> analyzeAndRoute handles missing fallback agent", async () => {
         result: JSON.stringify({
           type: "routing_decision",
           targetAgent: "target-agent",
-          confidence: 85,
+          confidence: 4.25,
           reasoning: "Best match",
           fallbackAgent: "nonexistent-fallback",
           intentKeywords: [],
@@ -334,7 +334,7 @@ test("Unit -> analyzeAndRoute uses default fallback when not specified", async (
         result: JSON.stringify({
           type: "routing_decision",
           targetAgent: "target-agent",
-          confidence: 85,
+          confidence: 4.25,
           reasoning: "Best match",
           fallbackAgent: "", // Empty fallback
           intentKeywords: [],

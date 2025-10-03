@@ -21,7 +21,7 @@ const defaultAgent: AIAgentDefinition = {
 
 const defaultRoutingExample: RoutingExample = {
   userRequest: "Help me with test tasks",
-  confidence: 90,
+  confidence: 4.5,
   reasoning: "Test reasoning",
 };
 
@@ -39,7 +39,7 @@ test("Unit -> generateRoutingExamples uses agent's routing examples when provide
     {
       ...defaultRoutingExample,
       userRequest: "Another test request",
-      confidence: 85,
+      confidence: 4.25,
     },
   ];
   const agent = { ...defaultAgent, routingExamples };
@@ -47,7 +47,7 @@ test("Unit -> generateRoutingExamples uses agent's routing examples when provide
   const result = generateRoutingExamples([agent]);
 
   expect(result).toBe(
-    `- "Help me with test tasks" → TestAgent (confidence: 90)\n- "Another test request" → TestAgent (confidence: 85)`
+    `- "Help me with test tasks" → TestAgent (confidence: 4.5)\n- "Another test request" → TestAgent (confidence: 4.25)`
   );
 });
 
@@ -57,7 +57,7 @@ test("Unit -> generateRoutingExamples generates fallback example from specializa
   const result = generateRoutingExamples([agent]);
 
   expect(result).toBe(
-    `- "Help me with test specialization" → TestAgent (confidence: 85)`
+    `- "Help me with test specialization" → TestAgent (confidence: 3)`
   );
 });
 
@@ -69,7 +69,7 @@ test("Unit -> generateRoutingExamples generates fallback example from descriptio
   ]);
 
   expect(result).toBe(
-    `- "Help me with Test agent description" → TestAgent (confidence: 85)`
+    `- "Help me with Test agent description" → TestAgent (confidence: 3)`
   );
 });
 
@@ -85,7 +85,7 @@ test("Unit -> generateRoutingExamples uses 'relevant requests' when no specializ
   ]);
 
   expect(result).toBe(
-    `- "Help me with relevant requests" → TestAgent (confidence: 85)`
+    `- "Help me with relevant requests" → TestAgent (confidence: 3)`
   );
 });
 
@@ -100,7 +100,7 @@ test("Unit -> generateRoutingExamples uses lower confidence for router agents", 
   const result = generateRoutingExamples([routerAgent]);
 
   expect(result).toBe(
-    `- "Help me with test specialization" → RouterAgent (confidence: 80)`
+    `- "Help me with test specialization" → RouterAgent (confidence: 2)`
   );
 });
 
@@ -122,22 +122,22 @@ test("Unit -> generateRoutingExamples handles multiple agents with mixed routing
   ]);
 
   expect(result).toBe(
-    `- "Help me with test tasks" → AgentWithExamples (confidence: 90)\n- "Help me with other specialization" → AgentWithoutExamples (confidence: 85)`
+    `- "Help me with test tasks" → AgentWithExamples (confidence: 4.5)\n- "Help me with other specialization" → AgentWithoutExamples (confidence: 3)`
   );
 });
 
 test("Unit -> generateRoutingExamples handles agent with multiple routing examples", () => {
   const routingExamples = [
-    { userRequest: "First request", confidence: 95 },
-    { userRequest: "Second request", confidence: 88 },
-    { userRequest: "Third request", confidence: 92 },
+    { userRequest: "First request", confidence: 4.5 },
+    { userRequest: "Second request", confidence: 4.25 },
+    { userRequest: "Third request", confidence: 4.3 },
   ];
   const agent = { ...defaultAgent, routingExamples };
 
   const result = generateRoutingExamples([agent]);
 
   expect(result).toBe(
-    `- "First request" → TestAgent (confidence: 95)\n- "Second request" → TestAgent (confidence: 88)\n- "Third request" → TestAgent (confidence: 92)`
+    `- "First request" → TestAgent (confidence: 4.5)\n- "Second request" → TestAgent (confidence: 4.25)\n- "Third request" → TestAgent (confidence: 4.3)`
   );
 });
 
@@ -152,7 +152,7 @@ test("Unit -> generateRoutingExamples handles multiple agents with different con
   const agentWithExamples = {
     ...defaultAgent,
     name: "ExampleAgent",
-    routingExamples: [{ userRequest: "Custom request", confidence: 93 }],
+    routingExamples: [{ userRequest: "Custom request", confidence: 4.5 }],
   };
 
   const result = generateRoutingExamples([
@@ -162,7 +162,7 @@ test("Unit -> generateRoutingExamples handles multiple agents with different con
   ]);
 
   expect(result).toBe(
-    `- "Help me with test specialization" → LeafAgent (confidence: 85)\n- "Help me with router specialization" → RouterAgent (confidence: 80)\n- "Custom request" → ExampleAgent (confidence: 93)`
+    `- "Help me with test specialization" → LeafAgent (confidence: 3)\n- "Help me with router specialization" → RouterAgent (confidence: 2)\n- "Custom request" → ExampleAgent (confidence: 4.5)`
   );
 });
 
@@ -172,6 +172,6 @@ test("Unit -> generateRoutingExamples handles empty routing examples array", () 
   const result = generateRoutingExamples([agent]);
 
   expect(result).toBe(
-    `- "Help me with test specialization" → TestAgent (confidence: 85)`
+    `- "Help me with test specialization" → TestAgent (confidence: 3)`
   );
 });

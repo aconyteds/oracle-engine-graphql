@@ -11,7 +11,7 @@ beforeEach(() => {
 test("Unit -> routeToAgent returns valid routing decision structure", async () => {
   const input = {
     targetAgent: "Character Generator",
-    confidence: 95,
+    confidence: 4.75,
     reasoning:
       "User requested character creation with specific class and level",
     fallbackAgent: "Cheapest",
@@ -30,7 +30,7 @@ test("Unit -> routeToAgent returns valid routing decision structure", async () =
 
   expect(parsed.type).toBe("routing_decision");
   expect(parsed.targetAgent).toBe("Character Generator");
-  expect(parsed.confidence).toBe(95);
+  expect(parsed.confidence).toBe(4.75);
   expect(parsed.fallbackAgent).toBe("Cheapest");
   expect(parsed.intentKeywords).toEqual(["character", "create", "wizard"]);
   expect(parsed.timestamp).toBeDefined();
@@ -39,7 +39,7 @@ test("Unit -> routeToAgent returns valid routing decision structure", async () =
 test("Unit -> routeToAgent uses undefined fallback when not specified", async () => {
   const input = {
     targetAgent: "Character Generator",
-    confidence: 80,
+    confidence: 4,
     reasoning: "Character creation request",
     intentKeywords: ["npc"],
   };
@@ -55,7 +55,7 @@ test("Unit -> routeToAgent uses undefined fallback when not specified", async ()
 test("Unit -> routeToAgent logs routing decisions", async () => {
   const input = {
     targetAgent: "Character Generator",
-    confidence: 90,
+    confidence: 4.5,
     reasoning: "Clear character creation intent",
     intentKeywords: ["character"],
   };
@@ -63,7 +63,7 @@ test("Unit -> routeToAgent logs routing decisions", async () => {
   await routeToAgent.call(input);
 
   expect(mockConsoleLog).toHaveBeenCalledWith(
-    "🎯 Routing Decision: Character Generator (90% confidence)"
+    "🎯 Routing Decision: Character Generator (4.5 confidence)"
   );
   expect(mockConsoleLog).toHaveBeenCalledWith(
     "📝 Reasoning: Clear character creation intent"
@@ -73,7 +73,7 @@ test("Unit -> routeToAgent logs routing decisions", async () => {
 test("Unit -> routeToAgent handles context factors", async () => {
   const input = {
     targetAgent: "Cheapest",
-    confidence: 70,
+    confidence: 3.5,
     reasoning: "General question with some context",
     intentKeywords: ["help"],
     contextFactors: ["previous_character_discussion", "topic_shift"],
@@ -93,7 +93,7 @@ test("Unit -> routeToAgent handles context factors", async () => {
 test("Unit -> routeToAgent handles missing optional parameters", async () => {
   const input = {
     targetAgent: "General Assistant",
-    confidence: 75,
+    confidence: 3.75,
     reasoning: "Basic question about math",
     intentKeywords: ["math", "calculation"],
   };

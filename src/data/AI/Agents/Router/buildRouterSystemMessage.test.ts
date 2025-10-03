@@ -70,10 +70,10 @@ test("Unit -> buildRouterSystemMessage generates complete system message with su
     `"SubAgent" (Specialized Agent): Sub agent description`
   );
   expect(result).toContain(
-    `"Help me with test specialization" → TestAgent (confidence: 85)`
+    `"Help me with test specialization" → TestAgent (confidence: 3)`
   );
   expect(result).toContain(
-    `"Help me with sub specialization" → SubAgent (confidence: 85)`
+    `"Help me with sub specialization" → SubAgent (confidence: 3)`
   );
 });
 
@@ -107,7 +107,7 @@ test("Unit -> buildRouterSystemMessage includes routing instructions", () => {
     "1. Analyze the user's message for primary intent and domain",
     "2. Consider conversation context and history",
     "3. Determine the most appropriate agent based on expertise",
-    "4. Provide confidence score (0-100) for your decision",
+    "4. Provide confidence score (0-5) for your decision",
     "5. Include brief reasoning for routing choice",
     "6. Always specify a fallback agent",
     "7. Consider sub-router agents for complex domain-specific requests",
@@ -140,7 +140,7 @@ test("Unit -> buildRouterSystemMessage includes ambiguous request guidance", () 
   ]);
 
   const expectedGuidance = [
-    "- If uncertain between agents, use lower confidence (50-70)",
+    "- If uncertain between agents, use lower confidence (2-3)",
     "- Consider routing to domain-specific sub-router for better analysis",
     "- Provide detailed reasoning for borderline cases",
     "- Default to most general available agent for unclear requests",
@@ -203,7 +203,7 @@ test("Unit -> buildRouterSystemMessage integrates sub-agent descriptions and rou
     ...defaultAgent,
     name: "ExampleAgent",
     description: "Agent with custom examples",
-    routingExamples: [{ userRequest: "Custom request", confidence: 93 }],
+    routingExamples: [{ userRequest: "Custom request", confidence: 4.3 }],
   };
 
   const result = buildRouterSystemMessage("Router", "Description", [
@@ -213,5 +213,5 @@ test("Unit -> buildRouterSystemMessage integrates sub-agent descriptions and rou
   expect(result).toContain(
     `"ExampleAgent" (Specialized Agent): Agent with custom examples`
   );
-  expect(result).toContain(`"Custom request" → ExampleAgent (confidence: 93)`);
+  expect(result).toContain(`"Custom request" → ExampleAgent (confidence: 4.3)`);
 });

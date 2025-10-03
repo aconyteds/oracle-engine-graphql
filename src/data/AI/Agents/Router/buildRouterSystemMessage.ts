@@ -27,7 +27,7 @@ ROUTING INSTRUCTIONS:
 1. Analyze the user's message for primary intent and domain
 2. Consider conversation context and history
 3. Determine the most appropriate agent based on expertise
-4. Provide confidence score (0-100) for your decision
+4. Provide confidence score (0-5) for your decision
 5. Include brief reasoning for routing choice
 6. Always specify a fallback agent
 7. Consider sub-router agents for complex domain-specific requests
@@ -41,7 +41,7 @@ ROUTING EXAMPLES:
 ${routingExamples}
 
 AMBIGUOUS REQUESTS:
-- If uncertain between agents, use lower confidence (50-70)
+- If uncertain between agents, use lower confidence (2-3)
 - Consider routing to domain-specific sub-router for better analysis
 - Provide detailed reasoning for borderline cases
 - Default to most general available agent for unclear requests
