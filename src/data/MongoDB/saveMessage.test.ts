@@ -1,5 +1,5 @@
 import { test, expect, beforeEach, mock } from "bun:test";
-import type { Message, MessageWorkspace } from "./client";
+import type { Message, MessageWorkspace } from "@prisma/client";
 
 const mockCreate = mock();
 const mockFindUniqueOrThrow = mock();
@@ -8,7 +8,7 @@ const mockThreadUpdate = mock();
 const mockCalculateTokenCount = mock();
 
 // Set up mocks before importing the module under test
-void mock.module("./client", () => ({
+mock.module("./client", () => ({
   DBClient: {
     message: {
       create: mockCreate,
@@ -21,7 +21,7 @@ void mock.module("./client", () => ({
   },
 }));
 
-void mock.module("../AI", () => ({
+mock.module("../AI", () => ({
   calculateTokenCount: mockCalculateTokenCount,
 }));
 
@@ -34,7 +34,7 @@ beforeEach(() => {
   mockThreadUpdate.mockClear();
   mockCalculateTokenCount.mockClear();
 });
-
+// Failing in CI but not locally - investigating
 test("Unit -> saveMessage creates message with required fields", async () => {
   const mockMessage: Message = {
     id: "test-message-id",
@@ -78,7 +78,7 @@ test("Unit -> saveMessage creates message with required fields", async () => {
   });
   expect(result).toEqual(mockMessage);
 });
-
+// Failing in CI but not locally - investigating
 test("Unit -> saveMessage creates message with workspace and runId", async () => {
   const mockWorkspace: MessageWorkspace[] = [
     {
@@ -127,7 +127,7 @@ test("Unit -> saveMessage creates message with workspace and runId", async () =>
   });
   expect(result).toEqual(mockMessage);
 });
-
+// Failing in CI but not locally - investigating
 test("Unit -> saveMessage handles system role messages", async () => {
   const mockMessage: Message = {
     id: "system-message-id",

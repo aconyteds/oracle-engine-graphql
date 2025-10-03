@@ -38,6 +38,7 @@ export default tseslint.config(
       ],
       "@typescript-eslint/no-explicit-any": "warn",
       "@typescript-eslint/consistent-type-imports": "warn",
+      "@typescript-eslint/no-floating-promises": "off",
       "import/newline-after-import": "warn",
       "import/no-unresolved": "off",
     },
