@@ -2,6 +2,7 @@
 
 // Quick integration test script
 import { getAgentByName } from "./src/data/AI/agentList";
+import type { AIAgentDefinition } from "./src/data/AI/types";
 
 console.log("🧪 Testing Router Integration...\n");
 
@@ -10,6 +11,10 @@ try {
   const cheapest = getAgentByName("Cheapest");
   const mainRouter = getAgentByName("MainRouter");
   const charGen = getAgentByName("Character Generator");
+
+  if (!cheapest || !mainRouter || !charGen) {
+    throw new Error("Failed to load expected agents for integration test");
+  }
 
   console.log("✅ Agent Loading Test:");
   console.log(
@@ -23,7 +28,7 @@ try {
   );
 
   // Test agent type detection logic (same as generateMessage.ts)
-  function getAgentType(agent: any): "standard" | "router" {
+  function getAgentType(agent: AIAgentDefinition): "standard" | "router" {
     return agent.availableSubAgents && agent.availableSubAgents.length > 0
       ? "router"
       : "standard";
@@ -38,10 +43,9 @@ try {
   console.log(
     `   MainRouter has ${mainRouter.availableSubAgents?.length || 0} sub-agents:`
   );
-  mainRouter.availableSubAgents?.forEach((sub, i) => {
-    console.log(
-      `   ${i + 1}. ${sub.name} (Router: ${!!sub.availableSubAgents?.length})`
-    );
+  mainRouter.availableSubAgents?.forEach((subAgent, index) => {
+    const isRouter = Boolean(subAgent.availableSubAgents?.length);
+    console.log(`   ${index + 1}. ${subAgent.name} (Router: ${isRouter})`);
   });
 
   console.log(

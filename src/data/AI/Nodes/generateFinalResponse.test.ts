@@ -6,7 +6,7 @@ const mockModel = {
   invoke: mock(),
 };
 
-mock.module("@langchain/core/messages", () => ({
+void mock.module("@langchain/core/messages", () => ({
   HumanMessage: class MockHumanMessage {
     constructor(public content: string) {}
     id = "HumanMessage_1";
@@ -57,10 +57,10 @@ test("Unit -> generateFinalResponse generates final response successfully", asyn
   expect(result.metadata?.toolsExecuted).toBe(true);
 });
 
-test("Unit -> generateFinalResponse throws error when no messages", async () => {
+test("Unit -> generateFinalResponse throws error when no messages", () => {
   const state = { ...defaultState, messages: [] };
 
-  await expect(generateFinalResponse(state)).rejects.toThrow(
+  expect(generateFinalResponse(state)).rejects.toThrow(
     "No messages available for final response generation"
   );
   expect(mockModel.invoke).not.toHaveBeenCalled();
@@ -77,7 +77,7 @@ test("Unit -> generateFinalResponse passes runId to model", async () => {
   });
 });
 
-test("Unit -> generateFinalResponse handles model error", async () => {
+test("Unit -> generateFinalResponse handles model error", () => {
   const originalConsoleError = console.error;
   const mockConsoleError = mock();
   console.error = mockConsoleError;
@@ -86,7 +86,7 @@ test("Unit -> generateFinalResponse handles model error", async () => {
   mockModel.invoke.mockRejectedValue(testError);
 
   try {
-    await expect(generateFinalResponse(defaultState)).rejects.toThrow(
+    expect(generateFinalResponse(defaultState)).rejects.toThrow(
       "Model invocation failed"
     );
     expect(mockConsoleError).toHaveBeenCalledWith(

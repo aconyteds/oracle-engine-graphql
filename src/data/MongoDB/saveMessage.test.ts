@@ -7,7 +7,7 @@ const mockUpdate = mock();
 const mockThreadUpdate = mock();
 const mockCalculateTokenCount = mock();
 
-mock.module("./client", () => ({
+void mock.module("./client", () => ({
   DBClient: {
     message: {
       create: mockCreate,
@@ -20,7 +20,7 @@ mock.module("./client", () => ({
   },
 }));
 
-mock.module("../AI", () => ({
+void mock.module("../AI", () => ({
   calculateTokenCount: mockCalculateTokenCount,
 }));
 

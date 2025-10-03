@@ -4,7 +4,7 @@ import type { Message } from "../MongoDB";
 
 const mockCalculateTokenCount = mock();
 
-mock.module("./calculateTokenCount", () => ({
+void mock.module("./calculateTokenCount", () => ({
   calculateTokenCount: mockCalculateTokenCount,
 }));
 

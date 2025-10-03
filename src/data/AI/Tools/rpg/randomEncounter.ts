@@ -11,7 +11,7 @@ const randomEncounterSchema = z.object({
 });
 
 export const randomEncounter = tool(
-  async (input: { input?: string }): Promise<string> => {
+  (input: { input?: string }): string => {
     const encounterInput = input.input || "";
     const normalizedInput = encounterInput.toLowerCase();
 

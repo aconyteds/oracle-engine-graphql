@@ -18,11 +18,11 @@ const mockModel = {
   invoke: mock(),
 } as any;
 
-mock.module("../getModelDefinition", () => ({
+void mock.module("../getModelDefinition", () => ({
   getModelDefinition: mockGetModelDefinition,
 }));
 
-mock.module("../Workflows/toolEnabledWorkflow", () => ({
+void mock.module("../Workflows/toolEnabledWorkflow", () => ({
   runToolEnabledWorkflow: mockRunToolEnabledWorkflow,
 }));
 
@@ -105,18 +105,18 @@ test("Unit -> executeTargetAgent executes target agent successfully", async () =
   expect(result.routingMetadata?.success).toBe(true);
 });
 
-test("Unit -> executeTargetAgent throws error when no routing decision", async () => {
+test("Unit -> executeTargetAgent throws error when no routing decision", () => {
   const stateWithoutDecision = {
     ...defaultState,
     routingDecision: undefined,
   };
 
-  await expect(executeTargetAgent(stateWithoutDecision)).rejects.toThrow(
+  expect(executeTargetAgent(stateWithoutDecision)).rejects.toThrow(
     "No routing decision available"
   );
 });
 
-test("Unit -> executeTargetAgent throws error when no target agent", async () => {
+test("Unit -> executeTargetAgent handles missing target agent gracefully", async () => {
   const stateWithoutTarget = {
     ...defaultState,
     routingDecision: {
@@ -131,7 +131,12 @@ test("Unit -> executeTargetAgent throws error when no target agent", async () =>
     },
   };
 
-  await expect(executeTargetAgent(stateWithoutTarget)).rejects.toThrow();
+  const result = await executeTargetAgent(stateWithoutTarget);
+
+  expect(result.currentResponse).toContain(
+    "I apologize, but I encountered an issue"
+  );
+  expect(result.routingMetadata?.success).toBe(false);
 });
 
 test("Unit -> executeTargetAgent uses prepared messages when available", async () => {

@@ -9,7 +9,7 @@ const mockDBClient = {
   },
 };
 
-mock.module("../../../data/MongoDB", () => ({
+void mock.module("../../../data/MongoDB", () => ({
   DBClient: mockDBClient,
 }));
 
@@ -20,7 +20,7 @@ const mockGetModelDefinition = mock().mockReturnValue({
 
 const mockGetAgentByName = mock();
 
-mock.module("../../../data/AI", () => ({
+void mock.module("../../../data/AI", () => ({
   truncateMessageHistory: mock().mockReturnValue([]),
   getAgentByName: mockGetAgentByName,
   getModelDefinition: mockGetModelDefinition,
@@ -28,11 +28,11 @@ mock.module("../../../data/AI", () => ({
   generateMessageWithStandardWorkflow: mockGenerateMessageWithStandardWorkflow,
 }));
 
-mock.module("../../../graphql/errors", () => ({
+void mock.module("../../../graphql/errors", () => ({
   ServerError: mock().mockImplementation((msg: string) => new Error(msg)),
 }));
 
-mock.module("crypto", () => ({
+void mock.module("crypto", () => ({
   randomUUID: mock().mockReturnValue("test-run-id"),
 }));
 
@@ -52,11 +52,13 @@ beforeEach(() => {
 
   // Mock workflow generators to return async generators
   mockGenerateMessageWithRouter.mockImplementation(async function* () {
+    await Promise.resolve(); // Ensure the function contains an await expression
     yield { responseType: "Final", content: "Router response" };
   });
 
   mockGenerateMessageWithStandardWorkflow.mockImplementation(
     async function* () {
+      await Promise.resolve(); // Ensure the function contains an await expression
       yield { responseType: "Final", content: "Standard response" };
     }
   );

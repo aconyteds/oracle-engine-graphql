@@ -1,4 +1,4 @@
-import { createApplication, gql, createModule } from "graphql-modules";
+import { createApplication, createModule, gql } from "graphql-modules";
 import {
   resolvers as scalarResolvers,
   typeDefs as scalarTypeDefs,
@@ -10,29 +10,14 @@ import MessageModule from "./Message";
 import ThreadModule from "./Thread";
 import AIModule from "./AI";
 
+const combinedTypeDefs = `${scalarTypeDefs.join("\n")}\n\n  type Query {\n    _empty: String\n  }\n\n  type Mutation {\n    _empty: String\n  }\n\n  type Subscription {\n    _empty: String\n  }\n\n  schema {\n    query: Query\n    mutation: Mutation\n  }`;
+
+const rootTypeDefs = gql(combinedTypeDefs);
+
 const ROOT_MODULE = createModule({
   id: "_root",
   dirname: __dirname,
-  typeDefs: gql(`
-    ${scalarTypeDefs}
-
-    type Query {
-      _empty: String
-    }
-
-    type Mutation {
-      _empty: String
-    }
-
-    type Subscription {
-      _empty: String
-    }
-
-    schema {
-      query: Query
-      mutation: Mutation
-    }
-  `),
+  typeDefs: rootTypeDefs,
   resolvers: {
     ...scalarResolvers,
   },

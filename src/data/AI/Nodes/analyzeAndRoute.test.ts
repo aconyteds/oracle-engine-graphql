@@ -26,19 +26,19 @@ const mockModel = {
   invoke: mock(),
 };
 
-mock.module("../getModelDefinition", () => ({
+void mock.module("../getModelDefinition", () => ({
   getModelDefinition: mockGetModelDefinition,
 }));
 
-mock.module("../Workflows/toolEnabledWorkflow", () => ({
+void mock.module("../Workflows/toolEnabledWorkflow", () => ({
   runToolEnabledWorkflow: mockRunToolEnabledWorkflow,
 }));
 
-mock.module("../agentList", () => ({
+void mock.module("../agentList", () => ({
   getAgentByName: mockGetAgentByName,
 }));
 
-mock.module("../Agents", () => ({
+void mock.module("../Agents", () => ({
   cheapest: mockCheapestAgent,
 }));
 

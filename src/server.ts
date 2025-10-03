@@ -25,10 +25,10 @@ const graphqlServer = async (path: string = "/graphql") => {
     path,
   });
 
-  const { schema, createApolloExecutor, createSubscription } =
-    GraphQLApplication;
-  // Apply permissions to the schema
-  const schemaWithPermissions = applyMiddleware(schema, permissions);
+  const schemaWithPermissions = applyMiddleware(
+    GraphQLApplication.schema,
+    permissions
+  );
   const serverCleanup = useServer(
     {
       schema: schemaWithPermissions,
@@ -39,26 +39,31 @@ const graphqlServer = async (path: string = "/graphql") => {
         });
         return currContext;
       },
-      subscribe: createSubscription(),
+      subscribe: GraphQLApplication.createSubscription(),
     },
     wsServer
   );
 
   const apolloServer = new ApolloServer<ServerContext>({
     gateway: {
-      async load() {
-        return { executor: createApolloExecutor() };
+      load() {
+        return Promise.resolve({
+          executor: GraphQLApplication.createApolloExecutor(),
+        });
       },
       onSchemaLoadOrUpdate(callback) {
         callback({ apiSchema: schemaWithPermissions, coreSupergraphSdl: "" });
         return () => {};
       },
-      async stop() {},
+      async stop() {
+        return Promise.resolve();
+      },
     },
     plugins: [
       ApolloServerPluginDrainHttpServer({ httpServer }),
       {
         async serverWillStart() {
+          await Promise.resolve();
           return {
             async drainServer() {
               await serverCleanup.dispose();

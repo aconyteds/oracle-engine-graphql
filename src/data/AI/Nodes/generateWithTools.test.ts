@@ -27,7 +27,7 @@ const mockModelWithTools = {
   invoke: mock(),
 };
 
-mock.module("@langchain/core/messages", () => ({
+void mock.module("@langchain/core/messages", () => ({
   SystemMessage: class MockSystemMessage {
     constructor(public content: string) {}
     id = "SystemMessage_1";
@@ -175,7 +175,7 @@ test("Unit -> generateWithTools handles multiple tool calls", async () => {
   expect(result.metadata?.toolCallCount).toBe(2);
 });
 
-test("Unit -> generateWithTools handles error during generation", async () => {
+test("Unit -> generateWithTools handles error during generation", () => {
   const originalConsoleError = console.error;
   const mockConsoleError = mock();
   console.error = mockConsoleError;
@@ -184,7 +184,7 @@ test("Unit -> generateWithTools handles error during generation", async () => {
   mockModelWithTools.invoke.mockRejectedValue(testError);
 
   try {
-    await expect(generateWithTools(defaultState)).rejects.toThrow(
+    expect(generateWithTools(defaultState)).rejects.toThrow(
       "Model generation failed"
     );
     expect(mockConsoleError).toHaveBeenCalledWith(

@@ -27,15 +27,15 @@ const mockGenerateMessageWithRouter = mock();
 const mockGenerateMessageWithStandardWorkflow = mock();
 const mockRandomUUID = mock();
 
-mock.module("../../../data/MongoDB", () => ({
+void mock.module("../../../data/MongoDB", () => ({
   DBClient: mockDBClient,
 }));
 
-mock.module("../../../graphql/errors", () => ({
+void mock.module("../../../graphql/errors", () => ({
   ServerError: mockServerError,
 }));
 
-mock.module("../../../data/AI", () => ({
+void mock.module("../../../data/AI", () => ({
   truncateMessageHistory: mockTruncateMessageHistory,
   getAgentByName: mockGetAgentByName,
   getModelDefinition: mockGetModelDefinition,
@@ -43,7 +43,7 @@ mock.module("../../../data/AI", () => ({
   generateMessageWithStandardWorkflow: mockGenerateMessageWithStandardWorkflow,
 }));
 
-mock.module("crypto", () => ({
+void mock.module("crypto", () => ({
   randomUUID: mockRandomUUID,
 }));
 
@@ -89,6 +89,7 @@ const defaultMessage: Message = {
   runId: null,
   createdAt: new Date(),
   updatedAt: new Date(),
+  routingMetadata: null,
 };
 
 const defaultWorkflowResults = [
@@ -121,12 +122,14 @@ beforeEach(() => {
   mockGenerateMessageWithStandardWorkflow.mockImplementation(
     async function* () {
       for (const result of defaultWorkflowResults) {
+        await Promise.resolve(); // No-op await to satisfy async generator requirements
         yield result;
       }
     }
   );
 
   mockGenerateMessageWithRouter.mockImplementation(async function* () {
+    await Promise.resolve(); // No-op await to satisfy async generator requirements
     yield { responseType: "Final", content: "Router response" };
   });
 
@@ -134,14 +137,12 @@ beforeEach(() => {
   mockServerError.mockImplementation((msg: string) => new Error(msg));
 });
 
-test("Unit -> generateMessage throws error when thread not found", async () => {
+test("Unit -> generateMessage throws error when thread not found", () => {
   mockDBClient.thread.findUnique.mockResolvedValue(null);
 
   const generator = generateMessage("non-existent-thread-id");
 
-  await expect(async () => {
-    await generator.next();
-  }).toThrow("Thread not found");
+  expect(generator.next()).rejects.toThrow("Thread not found");
 
   expect(mockDBClient.thread.findUnique).toHaveBeenCalledWith({
     where: { id: "non-existent-thread-id" },
@@ -168,9 +169,8 @@ test("Unit -> generateMessage throws error when agent not found", async () => {
 
   const generator = generateMessage("thread-id");
 
-  await expect(async () => {
-    await generator.next();
-  }).toThrow("Invalid agent selected.");
+  // eslint-disable-next-line @typescript-eslint/await-thenable
+  await expect(generator.next()).rejects.toThrow("Invalid agent selected.");
 
   expect(mockGetAgentByName).toHaveBeenCalledWith("invalid-agent");
 });
@@ -180,9 +180,10 @@ test("Unit -> generateMessage throws error when model definition invalid", async
 
   const generator = generateMessage("thread-id");
 
-  await expect(async () => {
-    await generator.next();
-  }).toThrow("Invalid agent Configuration detected.");
+  // eslint-disable-next-line @typescript-eslint/await-thenable
+  await expect(generator.next()).rejects.toThrow(
+    "Invalid agent Configuration detected."
+  );
 
   expect(mockGetModelDefinition).toHaveBeenCalledWith(defaultAgent);
 });

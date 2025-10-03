@@ -2,7 +2,7 @@ import { GraphQLError } from "graphql";
 import { ApolloServerErrorCode } from "@apollo/server/errors";
 
 export const ServerError = (
-  message: string | Object,
+  message: string | Record<string, unknown>,
   code: ApolloServerErrorCode = ApolloServerErrorCode.INTERNAL_SERVER_ERROR
 ) => {
   const errorMessage =

@@ -9,11 +9,11 @@ const mockCheapestAgent = {
   availableTools: [{ name: "basic-tool" }],
 } as AIAgentDefinition;
 
-mock.module("../Workflows/toolEnabledWorkflow", () => ({
+void mock.module("../Workflows/toolEnabledWorkflow", () => ({
   runToolEnabledWorkflow: mockRunToolEnabledWorkflow,
 }));
 
-mock.module("../Agents", () => ({
+void mock.module("../Agents", () => ({
   cheapest: mockCheapestAgent,
 }));
 

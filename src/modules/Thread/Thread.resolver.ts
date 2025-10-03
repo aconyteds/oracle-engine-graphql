@@ -8,7 +8,7 @@ const ThreadResolvers: ThreadModule.Resolvers = {
   Query: {
     threads: async (_, __, { user }): Promise<ThreadModule.Thread[]> => {
       if (!user) {
-        throw InvalidUserCredentials;
+        throw InvalidUserCredentials();
       }
       const threads = await getUserThreads(user.id);
       return threads.map(TranslateThread);
@@ -19,7 +19,7 @@ const ThreadResolvers: ThreadModule.Resolvers = {
       { user }
     ): Promise<ThreadModule.GetThreadPayload | null> => {
       if (!user) {
-        throw InvalidUserCredentials;
+        throw InvalidUserCredentials();
       }
       await verifyThreadOwnership(threadId, user.id);
       const thread = await getThread(threadId);
@@ -31,7 +31,7 @@ const ThreadResolvers: ThreadModule.Resolvers = {
   Thread: {
     messages: async (parent, _, { user }): Promise<ThreadModule.Message[]> => {
       if (!user) {
-        throw InvalidUserCredentials;
+        throw InvalidUserCredentials();
       }
       const threadId = parent.id;
       await verifyThreadOwnership(threadId, user.id);
@@ -42,7 +42,7 @@ const ThreadResolvers: ThreadModule.Resolvers = {
   User: {
     threads: async (parent): Promise<ThreadModule.Thread[]> => {
       if (!parent) {
-        throw InvalidUserCredentials;
+        throw InvalidUserCredentials();
       }
       const threads = await getUserThreads(parent.id);
       return threads.map((thread) => ({

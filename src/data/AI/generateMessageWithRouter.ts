@@ -39,15 +39,16 @@ export async function* generateMessageWithRouter({
     // Add routing analysis to workspace
     if (routerResult.routingDecision) {
       const decision = routerResult.routingDecision;
+      const targetAgentName = decision.targetAgent.name;
 
       yield {
         responseType: "Intermediate",
-        content: `🤖 Routing to ${decision.targetAgent} (${decision.confidence}% confidence)`,
+        content: `🤖 Routing to ${targetAgentName} (${decision.confidence}% confidence)`,
       };
 
       workspaceEntries.push({
         messageType: "routing",
-        content: `Routed to: ${decision.targetAgent} with ${decision.confidence}% confidence. Reasoning: ${decision.reasoning}`,
+        content: `Routed to: ${targetAgentName} with ${decision.confidence}% confidence. Reasoning: ${decision.reasoning}`,
         timestamp: decision.routedAt,
         elapsedTime: routerResult.routingMetadata?.executionTime || 0,
       });

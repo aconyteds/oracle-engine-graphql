@@ -11,7 +11,8 @@ const characterStatsSchema = z.object({
 });
 
 export const characterStatsGenerator = tool(
-  async (input: z.infer<typeof characterStatsSchema>): Promise<string> => {
+  (rawInput: unknown): Promise<string> => {
+    const input = characterStatsSchema.parse(rawInput);
     const system = input.system || "generic";
     const normalizedSystem = system.toLowerCase().replace(/\s+/g, "");
 
@@ -26,15 +27,19 @@ export const characterStatsGenerator = tool(
       ];
       const rolls = stats.map((stat) => {
         // 4d6 drop lowest method
-        const rolls = Array.from(
+        const diceRolls = Array.from(
           { length: 4 },
           () => Math.floor(Math.random() * 6) + 1
         );
-        rolls.sort((a, b) => b - a);
-        const total = rolls.slice(0, 3).reduce((sum, roll) => sum + roll, 0);
+        diceRolls.sort((a, b) => b - a);
+        const total = diceRolls
+          .slice(0, 3)
+          .reduce((sum, roll) => sum + roll, 0);
         return `${stat}: ${total}`;
       });
-      return `**D&D 5e Character Stats:**\n${rolls.join("\n")}`;
+      return Promise.resolve(
+        `**D&D 5e Character Stats:**\n${rolls.join("\n")}`
+      );
     }
 
     // Generic stats
@@ -42,7 +47,9 @@ export const characterStatsGenerator = tool(
       { length: 6 },
       () => Math.floor(Math.random() * 18) + 3
     );
-    return `**Generic RPG Stats:** ${stats.join(", ")} (3-20 scale)`;
+    return Promise.resolve(
+      `**Generic RPG Stats:** ${stats.join(", ")} (3-20 scale)`
+    );
   },
   {
     name: "character_stats_generator",

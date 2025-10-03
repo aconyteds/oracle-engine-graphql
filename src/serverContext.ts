@@ -25,15 +25,17 @@ export const getContext = async ({
 
   if (req && req.headers) {
     const headers = normalizeKeys(req.headers);
-    if (headers.authorization) {
-      token = (headers.authorization as string).replace("Bearer ", "");
+    const authorizationHeader = headers.authorization;
+    if (typeof authorizationHeader === "string") {
+      token = authorizationHeader.replace("Bearer ", "");
     }
   }
 
   if (connectionParams && !token) {
     const params = normalizeKeys(connectionParams);
-    if (params.authorization) {
-      token = (params.authorization as string).replace("Bearer ", "");
+    const authorizationParam = params.authorization;
+    if (typeof authorizationParam === "string") {
+      token = authorizationParam.replace("Bearer ", "");
     }
   }
 
@@ -43,7 +45,7 @@ export const getContext = async ({
     try {
       const user = await verifyUser(token);
       if (user && user.user) {
-        context.user = user.user as User;
+        context.user = user.user;
       }
     } catch (error) {
       console.error("Error verifying token:", error);
@@ -56,11 +58,9 @@ export const getContext = async ({
 
 // Helper function to normalize object keys to lowercase
 function normalizeKeys(obj: Record<string, unknown>): Record<string, unknown> {
-  return Object.keys(obj).reduce(
-    (acc, key) => {
-      acc[key.toLowerCase()] = obj[key] as unknown;
-      return acc;
-    },
-    {} as Record<string, unknown>
-  );
+  const normalized: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    normalized[key.toLowerCase()] = value;
+  }
+  return normalized;
 }

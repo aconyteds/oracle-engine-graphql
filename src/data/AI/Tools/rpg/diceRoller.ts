@@ -10,12 +10,15 @@ const diceRollerSchema = z.object({
 });
 
 export const diceRoller = tool(
-  async (input: z.infer<typeof diceRollerSchema>): Promise<string> => {
+  (rawInput: unknown): Promise<string> => {
+    const input = diceRollerSchema.parse(rawInput);
     try {
       // Parse dice notation like "2d6+3"
       const match = input.diceNotation.match(/^(\d+)?d(\d+)([+-]\d+)?$/i);
       if (!match) {
-        return "Invalid dice notation. Use format like '2d6', '1d20+5', etc.";
+        return Promise.resolve(
+          "Invalid dice notation. Use format like '2d6', '1d20+5', etc."
+        );
       }
 
       const numDice = parseInt(match[1] || "1");
@@ -23,7 +26,9 @@ export const diceRoller = tool(
       const modifier = parseInt(match[3] || "0");
 
       if (numDice > 100 || diceSize > 1000) {
-        return "Dice values too large. Maximum 100 dice of size 1000.";
+        return Promise.resolve(
+          "Dice values too large. Maximum 100 dice of size 1000."
+        );
       }
 
       const rolls: number[] = [];
@@ -35,9 +40,12 @@ export const diceRoller = tool(
         total += roll;
       }
 
-      return `🎲 Rolling ${input.diceNotation}: [${rolls.join(", ")}]${modifier !== 0 ? ` ${modifier >= 0 ? "+" : ""}${modifier}` : ""} = **${total}**`;
+      const modifierString =
+        modifier !== 0 ? ` ${modifier >= 0 ? "+" : ""}${modifier}` : "";
+      const summary = `🎲 Rolling ${input.diceNotation}: [${rolls.join(", ")}]${modifierString} = **${total}**`;
+      return Promise.resolve(summary);
     } catch (error) {
-      return `Error rolling dice: ${error}`;
+      return Promise.resolve(`Error rolling dice: ${String(error)}`);
     }
   },
   {

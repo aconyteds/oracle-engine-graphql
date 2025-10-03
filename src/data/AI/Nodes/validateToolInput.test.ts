@@ -29,21 +29,21 @@ test("Unit -> validateToolInput validates state with messages and tools", async 
   expect(result.metadata?.existingData).toBe(true);
 });
 
-test("Unit -> validateToolInput throws error when no messages provided", async () => {
+test("Unit -> validateToolInput throws error when no messages provided", () => {
   const state = { ...defaultState, messages: [] };
 
-  await expect(validateToolInput(state)).rejects.toThrow(
+  expect(() => validateToolInput(state)).toThrow(
     "No messages provided for generation"
   );
 });
 
-test("Unit -> validateToolInput throws error when messages is undefined", async () => {
+test("Unit -> validateToolInput throws error when messages is undefined", () => {
   const state = {
     ...defaultState,
     messages: undefined as unknown as HumanMessage[],
   };
 
-  await expect(validateToolInput(state)).rejects.toThrow(
+  expect(() => validateToolInput(state)).toThrow(
     "No messages provided for generation"
   );
 });

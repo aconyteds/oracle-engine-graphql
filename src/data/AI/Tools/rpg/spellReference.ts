@@ -8,7 +8,7 @@ const spellReferenceSchema = z.object({
 });
 
 export const spellReference = tool(
-  async (input: z.infer<typeof spellReferenceSchema>): Promise<string> => {
+  (input: z.infer<typeof spellReferenceSchema>): string => {
     const normalizedSpellName = input.spellName
       .toLowerCase()
       .replace(/\s+/g, "");

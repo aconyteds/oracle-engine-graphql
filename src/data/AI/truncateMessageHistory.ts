@@ -137,7 +137,10 @@ function selectMessages(
     case "latest":
       return selectMessagePairsLatest(messagePairs, maxTokens, systemTokens);
     default:
-      throw new Error(`Invalid truncation strategy: ${truncationStrategy}`);
+      const exhaustiveCheck: never = truncationStrategy;
+      throw new Error(
+        `Invalid truncation strategy: ${String(exhaustiveCheck)}`
+      );
   }
 }
 

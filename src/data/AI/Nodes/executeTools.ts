@@ -27,7 +27,7 @@ export async function executeTools(
       toolMessages.push(
         new ToolMessage(errorMessage, toolCall.id || "unknown")
       );
-      results[toolCall.name] = { error: errorMessage } as unknown;
+      results[toolCall.name] = { error: errorMessage };
       toolResultsForDB.push({
         toolName: toolCall.name,
         result: errorMessage,
@@ -51,7 +51,7 @@ export async function executeTools(
       toolMessages.push(
         new ToolMessage(resultString, toolCall.id || "unknown")
       );
-      results[toolCall.name] = toolResult as unknown;
+      results[toolCall.name] = toolResult;
       toolResultsForDB.push({
         toolName: toolCall.name,
         result: resultString,
@@ -60,11 +60,13 @@ export async function executeTools(
         dateOccurred: new Date(),
       });
     } catch (error) {
-      const errorMessage = `Error executing tool ${toolCall.name}: ${error}`;
+      const errorMessage = `Error executing tool ${toolCall.name}: ${String(
+        error
+      )}`;
       toolMessages.push(
         new ToolMessage(errorMessage, toolCall.id || "unknown")
       );
-      results[toolCall.name] = { error: errorMessage } as unknown;
+      results[toolCall.name] = { error: errorMessage };
       toolResultsForDB.push({
         toolName: toolCall.name,
         result: errorMessage,

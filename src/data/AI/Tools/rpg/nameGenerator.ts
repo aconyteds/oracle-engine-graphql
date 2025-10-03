@@ -11,7 +11,8 @@ const nameGeneratorSchema = z.object({
 });
 
 export const nameGenerator = tool(
-  async (input: z.infer<typeof nameGeneratorSchema>): Promise<string> => {
+  (rawInput: unknown): Promise<string> => {
+    const input = nameGeneratorSchema.parse(rawInput);
     const nameType = input.nameType || "character";
     const type = nameType.toLowerCase();
 
@@ -42,7 +43,7 @@ export const nameGenerator = tool(
       ];
       const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
       const suffix = suffixes[Math.floor(Math.random() * suffixes.length)];
-      return `🏰 **Place Name:** ${prefix}${suffix}`;
+      return Promise.resolve(`🏰 **Place Name:** ${prefix}${suffix}`);
     }
 
     if (type === "tavern" || type === "inn") {
@@ -71,7 +72,7 @@ export const nameGenerator = tool(
       const adjective =
         adjectives[Math.floor(Math.random() * adjectives.length)];
       const noun = nouns[Math.floor(Math.random() * nouns.length)];
-      return `🍺 **Tavern Name:** The ${adjective} ${noun}`;
+      return Promise.resolve(`🍺 **Tavern Name:** The ${adjective} ${noun}`);
     }
 
     if (type === "item" || type === "weapon" || type === "armor") {
@@ -98,7 +99,7 @@ export const nameGenerator = tool(
       const adjective =
         adjectives[Math.floor(Math.random() * adjectives.length)];
       const item = items[Math.floor(Math.random() * items.length)];
-      return `⚔️ **Item Name:** ${adjective} ${item}`;
+      return Promise.resolve(`⚔️ **Item Name:** ${adjective} ${item}`);
     }
 
     // Default: character names
@@ -126,7 +127,7 @@ export const nameGenerator = tool(
     ];
     const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
     const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
-    return `👤 **Character Name:** ${firstName} ${lastName}`;
+    return Promise.resolve(`👤 **Character Name:** ${firstName} ${lastName}`);
   },
   {
     name: "name_generator",

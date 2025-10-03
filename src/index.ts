@@ -23,7 +23,10 @@ const startServer = async () => {
   console.log(`🚀 Server is running on http://localhost:${port}${path}`);
 };
 
-startServer();
+startServer().catch((error: unknown) => {
+  console.error("Failed to start GraphQL server:", error);
+  process.exit(1);
+});
 
 process.on("SIGINT", () => {
   console.log("🚀 Server is shutting down...");

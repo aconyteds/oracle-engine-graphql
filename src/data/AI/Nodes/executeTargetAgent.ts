@@ -12,14 +12,13 @@ export async function executeTargetAgent(state: typeof RouterGraphState.State) {
   try {
     const targetAgent = routingDecision.targetAgent;
     if (!targetAgent) {
-      throw new Error(`Agent ${routingDecision.targetAgent} not found`);
+      throw new Error("Routing decision did not include a target agent");
     }
+    const targetAgentName = targetAgent.name;
 
     const model = getModelDefinition(targetAgent);
     if (!model) {
-      throw new Error(
-        `Model for agent ${routingDecision.targetAgent} not configured`
-      );
+      throw new Error(`Model for agent ${targetAgentName} not configured`);
     }
 
     // Execute the actual agent workflow using prepared messages (with proper system message)
@@ -45,14 +44,12 @@ export async function executeTargetAgent(state: typeof RouterGraphState.State) {
       },
     };
   } catch (error) {
-    console.error(
-      `Failed to execute target agent ${routingDecision.targetAgent.name}:`,
-      error
-    );
+    const agentName = routingDecision.targetAgent?.name ?? "unknown";
+    console.error(`Failed to execute target agent ${agentName}:`, error);
 
     return {
       ...state,
-      currentResponse: `I apologize, but I encountered an issue while processing your request with the ${routingDecision.targetAgent.name} agent. Let me try a different approach.`,
+      currentResponse: `I apologize, but I encountered an issue while processing your request with the ${agentName} agent. Let me try a different approach.`,
       routingMetadata: {
         ...state.routingMetadata!,
         success: false,

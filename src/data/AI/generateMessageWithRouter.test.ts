@@ -11,16 +11,16 @@ const mockRunRouterWorkflow = mock();
 const mockSaveMessage = mock();
 const mockTranslateMessage = mock();
 
-mock.module("../MongoDB", () => ({
+void mock.module("../MongoDB", () => ({
   DBClient: mockDBClient,
   saveMessage: mockSaveMessage,
 }));
 
-mock.module("./Workflows/routerWorkflow", () => ({
+void mock.module("./Workflows/routerWorkflow", () => ({
   runRouterWorkflow: mockRunRouterWorkflow,
 }));
 
-mock.module("../../modules/utils", () => ({
+void mock.module("../../modules/utils", () => ({
   TranslateMessage: mockTranslateMessage,
 }));
 
@@ -163,20 +163,20 @@ test("Unit -> generateMessageWithRouter stores routing metadata with message", a
     content: "Created a level 1 wizard character named Merlin",
     role: "assistant",
 
-    workspace: expect.arrayContaining([
-      expect.objectContaining({
+    workspace: [
+      {
+        content: expect.stringContaining("Routed to:") as string,
+        elapsedTime: expect.any(Number) as number,
         messageType: "routing",
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        content: expect.stringContaining("Character Generator"),
-      }) as unknown,
-    ]) as unknown,
+        timestamp: expect.any(Date) as Date,
+      },
+    ],
     runId: "f47ac10b-58cc-4372-a567-0e02b2c3d479",
 
-    routingMetadata: expect.objectContaining({
-      success: true,
+    routingMetadata: {
+      executionTime: 0,
       fallbackUsed: false,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      executionTime: expect.any(Number),
-    }) as unknown,
+      success: true,
+    },
   });
 });

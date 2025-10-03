@@ -1,6 +1,8 @@
 import type { RouterGraphState } from "../Workflows/routerWorkflow";
 
-export async function validateRouting(state: typeof RouterGraphState.State) {
+export function validateRouting(
+  state: typeof RouterGraphState.State
+): Promise<typeof RouterGraphState.State> {
   // Simple validation - check if we have a successful response
   const hasValidResponse = !!(
     state.currentResponse && state.currentResponse.length > 0
@@ -10,11 +12,11 @@ export async function validateRouting(state: typeof RouterGraphState.State) {
   const isSuccessful =
     hasValidResponse && state.routingMetadata?.success !== false;
 
-  return {
+  return Promise.resolve({
     ...state,
     routingMetadata: {
       ...state.routingMetadata!,
       success: isSuccessful,
     },
-  };
+  });
 }
