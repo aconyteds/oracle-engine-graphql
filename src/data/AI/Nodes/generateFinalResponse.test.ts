@@ -16,8 +16,23 @@ void mock.module("@langchain/core/messages", () => ({
     id = "AIMessage_1";
   },
   ToolMessage: class MockToolMessage {
-    constructor(public content: string) {}
+    public content: string;
+    public tool_call_id: string;
     id = "ToolMessage_1";
+
+    constructor(
+      contentOrConfig: string | { content: string; tool_call_id: string }
+    ) {
+      if (typeof contentOrConfig === "string") {
+        // Legacy constructor for this test
+        this.content = contentOrConfig;
+        this.tool_call_id = "mock-tool-call-id";
+      } else {
+        // New object-based constructor
+        this.content = contentOrConfig.content;
+        this.tool_call_id = contentOrConfig.tool_call_id;
+      }
+    }
   },
 }));
 
