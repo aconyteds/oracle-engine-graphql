@@ -1,16 +1,11 @@
-import { test, expect, beforeEach, mock, describe, afterAll } from "bun:test";
+import { test, expect, beforeEach, mock, describe, afterEach } from "bun:test";
 import type { AIAgentDefinition } from "./types";
 import type { Message } from "../MongoDB";
 
-const mockCalculateTokenCount = mock();
-
-void mock.module("./calculateTokenCount", () => ({
-  calculateTokenCount: mockCalculateTokenCount,
-}));
-
-import { truncateMessageHistory } from "./truncateMessageHistory";
-
 describe("truncateMessageHistory", () => {
+  let mockCalculateTokenCount: ReturnType<typeof mock>;
+  let truncateMessageHistory: typeof import("./truncateMessageHistory").truncateMessageHistory;
+
   // Default mock data - reusable across tests
   const defaultAgent: AIAgentDefinition = {
     name: "test-agent",
@@ -44,7 +39,18 @@ describe("truncateMessageHistory", () => {
     routingMetadata: null,
   });
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    mock.restore();
+
+    mockCalculateTokenCount = mock();
+
+    mock.module("./calculateTokenCount", () => ({
+      calculateTokenCount: mockCalculateTokenCount,
+    }));
+
+    const module = await import("./truncateMessageHistory");
+    truncateMessageHistory = module.truncateMessageHistory;
+
     mockCalculateTokenCount.mockClear();
     // Default token count calculation
     mockCalculateTokenCount.mockImplementation(
@@ -52,7 +58,7 @@ describe("truncateMessageHistory", () => {
     );
   });
 
-  afterAll(() => {
+  afterEach(() => {
     mock.restore();
   });
 

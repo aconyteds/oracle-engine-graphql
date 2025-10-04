@@ -1,26 +1,38 @@
-import { test, expect, beforeEach, describe } from "bun:test";
+import { test, expect, beforeEach, describe, afterEach, mock } from "bun:test";
 import type { ToolEnabledGraphState } from "../Workflows/toolEnabledWorkflow";
-import { HumanMessage, SystemMessage } from "@langchain/core/messages";
-
-import { validateToolInput } from "./validateToolInput";
 
 describe("validateToolInput", () => {
-  const defaultTool = { name: "test-tool", description: "Test tool" };
+  let HumanMessage: any;
+  let SystemMessage: any;
+  let validateToolInput: typeof import("./validateToolInput").validateToolInput;
 
-  const defaultState = {
-    messages: [
-      new HumanMessage("Test message"),
-      new SystemMessage("System message"),
-    ],
-    tools: [defaultTool, { name: "tool2", description: "Another tool" }],
-    metadata: { existingData: true },
-  } as typeof ToolEnabledGraphState.State;
+  beforeEach(async () => {
+    mock.restore();
 
-  beforeEach(() => {
-    // No mocks to clear for this simple validation function
+    const messagesModule = await import("@langchain/core/messages");
+    HumanMessage = messagesModule.HumanMessage;
+    SystemMessage = messagesModule.SystemMessage;
+
+    const module = await import("./validateToolInput");
+    validateToolInput = module.validateToolInput;
+  });
+
+  afterEach(() => {
+    mock.restore();
   });
 
   test("Unit -> validateToolInput validates state with messages and tools", async () => {
+    const defaultTool = { name: "test-tool", description: "Test tool" };
+
+    const defaultState = {
+      messages: [
+        new HumanMessage("Test message"),
+        new SystemMessage("System message"),
+      ],
+      tools: [defaultTool, { name: "tool2", description: "Another tool" }],
+      metadata: { existingData: true },
+    } as typeof ToolEnabledGraphState.State;
+
     const result = await validateToolInput(defaultState);
 
     expect(result.metadata?.validated).toBe(true);
@@ -31,7 +43,13 @@ describe("validateToolInput", () => {
   });
 
   test("Unit -> validateToolInput throws error when no messages provided", () => {
-    const state = { ...defaultState, messages: [] };
+    const defaultTool = { name: "test-tool", description: "Test tool" };
+
+    const state = {
+      messages: [],
+      tools: [defaultTool],
+      metadata: { existingData: true },
+    } as typeof ToolEnabledGraphState.State;
 
     expect(() => validateToolInput(state)).toThrow(
       "No messages provided for generation"
@@ -39,10 +57,13 @@ describe("validateToolInput", () => {
   });
 
   test("Unit -> validateToolInput throws error when messages is undefined", () => {
+    const defaultTool = { name: "test-tool", description: "Test tool" };
+
     const state = {
-      ...defaultState,
-      messages: undefined as unknown as HumanMessage[],
-    };
+      messages: undefined as unknown as any[],
+      tools: [defaultTool],
+      metadata: { existingData: true },
+    } as typeof ToolEnabledGraphState.State;
 
     expect(() => validateToolInput(state)).toThrow(
       "No messages provided for generation"
@@ -50,7 +71,14 @@ describe("validateToolInput", () => {
   });
 
   test("Unit -> validateToolInput handles empty tools array", async () => {
-    const state = { ...defaultState, tools: [] };
+    const state = {
+      messages: [
+        new HumanMessage("Test message"),
+        new SystemMessage("System message"),
+      ],
+      tools: [],
+      metadata: { existingData: true },
+    } as typeof ToolEnabledGraphState.State;
 
     const result = await validateToolInput(state);
 
@@ -60,10 +88,13 @@ describe("validateToolInput", () => {
   });
 
   test("Unit -> validateToolInput handles single message", async () => {
+    const defaultTool = { name: "test-tool", description: "Test tool" };
+
     const state = {
-      ...defaultState,
       messages: [new HumanMessage("Single message")],
-    };
+      tools: [defaultTool],
+      metadata: { existingData: true },
+    } as typeof ToolEnabledGraphState.State;
 
     const result = await validateToolInput(state);
 
@@ -72,10 +103,16 @@ describe("validateToolInput", () => {
   });
 
   test("Unit -> validateToolInput preserves existing metadata", async () => {
+    const defaultTool = { name: "test-tool", description: "Test tool" };
+
     const state = {
-      ...defaultState,
+      messages: [
+        new HumanMessage("Test message"),
+        new SystemMessage("System message"),
+      ],
+      tools: [defaultTool],
       metadata: { customField: "value", count: 42 },
-    };
+    } as typeof ToolEnabledGraphState.State;
 
     const result = await validateToolInput(state);
 
@@ -85,7 +122,16 @@ describe("validateToolInput", () => {
   });
 
   test("Unit -> validateToolInput handles undefined metadata", async () => {
-    const state = { ...defaultState, metadata: undefined };
+    const defaultTool = { name: "test-tool", description: "Test tool" };
+
+    const state = {
+      messages: [
+        new HumanMessage("Test message"),
+        new SystemMessage("System message"),
+      ],
+      tools: [defaultTool, { name: "tool2", description: "Another tool" }],
+      metadata: undefined,
+    } as typeof ToolEnabledGraphState.State;
 
     const result = await validateToolInput(state);
 
@@ -100,7 +146,14 @@ describe("validateToolInput", () => {
       { name: "weather", description: "Weather tool" },
       { name: "search", description: "Search tool" },
     ];
-    const state = { ...defaultState, tools: complexTools };
+    const state = {
+      messages: [
+        new HumanMessage("Test message"),
+        new SystemMessage("System message"),
+      ],
+      tools: complexTools,
+      metadata: { existingData: true },
+    } as typeof ToolEnabledGraphState.State;
 
     const result = await validateToolInput(state);
 

@@ -38,10 +38,16 @@ jobs:
         run: bunx prisma generate
 
       - name: Run Unit Tests
-        run: bun run test
+        run: bun test --test-name-pattern Unit --bail
+        env:
+          # Force sequential test execution to avoid module mock conflicts
+          BUN_TEST_SEQUENTIAL: "true"
 
       - name: Run Integration Tests
-        run: bun run test:e2e
+        run: bun test --test-name-pattern E2E --bail
+        env:
+          # Force sequential test execution
+          BUN_TEST_SEQUENTIAL: "true"
 
   # Job 2: Apply Database Changes with Prisma when code is merged to main
   db-push:

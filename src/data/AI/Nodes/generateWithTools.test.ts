@@ -1,4 +1,4 @@
-import { test, expect, beforeEach, mock, describe, afterAll } from "bun:test";
+import { test, expect, beforeEach, mock, describe, afterEach } from "bun:test";
 import {
   HumanMessage,
   SystemMessage,
@@ -6,6 +6,12 @@ import {
 } from "@langchain/core/messages";
 import type { ToolEnabledGraphState } from "../Workflows/toolEnabledWorkflow";
 import type { AIAgentDefinition } from "../types";
+
+// Mock variables
+let generateWithTools: typeof import("./generateWithTools").generateWithTools;
+let MockSystemMessage: typeof SystemMessage;
+let MockHumanMessage: typeof HumanMessage;
+let MockAIMessage: typeof AIMessage;
 
 const mockModel = {
   bindTools: mock(),
@@ -27,38 +33,53 @@ const mockModelWithTools = {
   invoke: mock(),
 };
 
-void mock.module("@langchain/core/messages", () => ({
-  SystemMessage: class MockSystemMessage {
-    constructor(public content: string) {}
-    id = "SystemMessage_1";
-  },
-  HumanMessage: class MockHumanMessage {
-    constructor(public content: string) {}
-    id = "HumanMessage_1";
-  },
-  AIMessage: class MockAIMessage {
-    constructor(public content: string) {}
-    id = "AIMessage_1";
-  },
-}));
-
-import { generateWithTools } from "./generateWithTools";
-
 describe("generateWithTools", () => {
-  const defaultMessages = [new HumanMessage("Test message")];
+  let defaultMessages: InstanceType<typeof HumanMessage>[];
+  let defaultState: typeof ToolEnabledGraphState.State;
+  let defaultResponse: InstanceType<typeof AIMessage>;
 
-  const defaultState = {
-    messages: defaultMessages,
-    tools: [mockTool],
-    runId: "test-run-123",
-    metadata: { initialData: true },
-    agent: mockAgent,
-    model: mockModel,
-  } as unknown as typeof ToolEnabledGraphState.State;
+  beforeEach(async () => {
+    mock.restore();
 
-  const defaultResponse = new AIMessage("Test response");
+    // Mock @langchain/core/messages
+    void mock.module("@langchain/core/messages", () => ({
+      SystemMessage: class {
+        constructor(public content: string) {}
+        id = "SystemMessage_1";
+      },
+      HumanMessage: class {
+        constructor(public content: string) {}
+        id = "HumanMessage_1";
+      },
+      AIMessage: class {
+        constructor(public content: string) {}
+        id = "AIMessage_1";
+      },
+    }));
 
-  beforeEach(() => {
+    // Dynamic import
+    const messagesModule = await import("@langchain/core/messages");
+    MockSystemMessage = messagesModule.SystemMessage;
+    MockHumanMessage = messagesModule.HumanMessage;
+    MockAIMessage = messagesModule.AIMessage;
+
+    const module = await import("./generateWithTools");
+    generateWithTools = module.generateWithTools;
+
+    // Configure default mock data using dynamically imported classes
+    defaultMessages = [new MockHumanMessage("Test message")];
+    defaultResponse = new MockAIMessage("Test response");
+
+    defaultState = {
+      messages: defaultMessages,
+      tools: [mockTool],
+      runId: "test-run-123",
+      metadata: { initialData: true },
+      agent: mockAgent,
+      model: mockModel,
+    } as unknown as typeof ToolEnabledGraphState.State;
+
+    // Configure mocks
     mockModel.bindTools.mockClear();
     mockModel.invoke.mockClear();
     mockModelWithTools.invoke.mockClear();
@@ -68,7 +89,7 @@ describe("generateWithTools", () => {
     mockModel.invoke.mockResolvedValue(defaultResponse);
   });
 
-  afterAll(() => {
+  afterEach(() => {
     mock.restore();
   });
 
@@ -131,23 +152,27 @@ describe("generateWithTools", () => {
     await generateWithTools(defaultState);
 
     const invokeCall = mockModelWithTools.invoke.mock.calls[0] as unknown[];
-    const messagesUsed = invokeCall[0] as SystemMessage[];
+    const messagesUsed = invokeCall[0] as InstanceType<
+      typeof MockSystemMessage
+    >[];
 
-    expect(messagesUsed[0]).toBeInstanceOf(SystemMessage);
+    expect(messagesUsed[0]).toBeInstanceOf(MockSystemMessage);
     expect(messagesUsed[0].content).toBe("You are a helpful assistant");
   });
 
   test("Unit -> generateWithTools filters out existing system messages", async () => {
     const messagesWithSystem = [
-      new SystemMessage("Old system message"),
-      new HumanMessage("User message"),
+      new MockSystemMessage("Old system message"),
+      new MockHumanMessage("User message"),
     ];
     const state = { ...defaultState, messages: messagesWithSystem };
 
     await generateWithTools(state);
 
     const invokeCall = mockModelWithTools.invoke.mock.calls[0] as unknown[];
-    const messagesUsed = invokeCall[0] as SystemMessage[];
+    const messagesUsed = invokeCall[0] as InstanceType<
+      typeof MockSystemMessage
+    >[];
 
     expect(messagesUsed).toHaveLength(2);
     expect(messagesUsed[0].content).toBe("You are a helpful assistant");

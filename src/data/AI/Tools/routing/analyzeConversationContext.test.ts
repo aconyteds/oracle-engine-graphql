@@ -1,11 +1,12 @@
 import { test, expect, beforeEach, describe } from "bun:test";
-import { analyzeConversationContext } from "./analyzeConversationContext";
 import type {
   ConversationAnalysis,
   AnalysisMessage,
 } from "./analyzeConversationContext";
 
 describe("analyzeConversationContext", () => {
+  let analyzeConversationContext: typeof import("./analyzeConversationContext").analyzeConversationContext;
+
   // Default mock data - reusable across tests
   const createMessage = (
     id: string,
@@ -21,8 +22,9 @@ describe("analyzeConversationContext", () => {
     routingMetadata,
   });
 
-  beforeEach(() => {
-    // No mocks to clear for this tool
+  beforeEach(async () => {
+    const module = await import("./analyzeConversationContext");
+    analyzeConversationContext = module.analyzeConversationContext;
   });
 
   test("Unit -> analyzeConversationContext returns empty analysis for no messages", async () => {

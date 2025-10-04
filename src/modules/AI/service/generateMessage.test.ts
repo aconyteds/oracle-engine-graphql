@@ -1,4 +1,4 @@
-import { test, expect, beforeEach, mock, describe, afterAll } from "bun:test";
+import { test, expect, beforeEach, mock, describe, afterEach } from "bun:test";
 import type { Message } from "../../../data/MongoDB";
 import type { GenerateMessagePayload } from "../../../generated/graphql";
 
@@ -13,44 +13,25 @@ interface MockThread {
   updatedAt: Date;
 }
 
-const mockFindUnique = mock();
-const mockDBClient = {
-  thread: {
-    findUnique: mockFindUnique,
-  },
-};
-
-const mockServerError = mock();
-const mockTruncateMessageHistory = mock();
-const mockGetAgentByName = mock();
-const mockGetModelDefinition = mock();
-const mockGenerateMessageWithRouter = mock();
-const mockGenerateMessageWithStandardWorkflow = mock();
-const mockRandomUUID = mock();
-
-void mock.module("../../../data/MongoDB", () => ({
-  DBClient: mockDBClient,
-}));
-
-void mock.module("../../../graphql/errors", () => ({
-  ServerError: mockServerError,
-}));
-
-void mock.module("../../../data/AI", () => ({
-  truncateMessageHistory: mockTruncateMessageHistory,
-  getAgentByName: mockGetAgentByName,
-  getModelDefinition: mockGetModelDefinition,
-  generateMessageWithRouter: mockGenerateMessageWithRouter,
-  generateMessageWithStandardWorkflow: mockGenerateMessageWithStandardWorkflow,
-}));
-
-void mock.module("crypto", () => ({
-  randomUUID: mockRandomUUID,
-}));
-
-import { generateMessage } from "./generateMessage";
-
 describe("Unit -> generateMessage", () => {
+  // Mock variables
+  let mockFindUnique: ReturnType<typeof mock>;
+  let mockDBClient: {
+    thread: {
+      findUnique: ReturnType<typeof mock>;
+    };
+  };
+  let mockServerError: ReturnType<typeof mock>;
+  let mockTruncateMessageHistory: ReturnType<typeof mock>;
+  let mockGetAgentByName: ReturnType<typeof mock>;
+  let mockGetModelDefinition: ReturnType<typeof mock>;
+  let mockGenerateMessageWithRouter: ReturnType<typeof mock>;
+  let mockGenerateMessageWithStandardWorkflow: ReturnType<typeof mock>;
+  let mockRandomUUID: ReturnType<typeof mock>;
+  let generateMessage: (
+    threadId: string
+  ) => AsyncGenerator<GenerateMessagePayload>;
+
   // Default mock data
   const defaultThread: MockThread = {
     id: "thread-id",
@@ -101,16 +82,65 @@ describe("Unit -> generateMessage", () => {
     },
   ];
 
-  beforeEach(() => {
-    // Clear all mocks
-    mockFindUnique.mockClear();
-    mockServerError.mockClear();
-    mockTruncateMessageHistory.mockClear();
-    mockGetAgentByName.mockClear();
-    mockGetModelDefinition.mockClear();
-    mockGenerateMessageWithRouter.mockClear();
-    mockGenerateMessageWithStandardWorkflow.mockClear();
-    mockRandomUUID.mockClear();
+  beforeEach(async () => {
+    // Restore all mocks first
+    mock.restore();
+
+    // Create mock functions
+    mockFindUnique = mock();
+    mockDBClient = {
+      thread: {
+        findUnique: mockFindUnique,
+      },
+    };
+    mockServerError = mock();
+    mockTruncateMessageHistory = mock();
+    mockGetAgentByName = mock();
+    mockGetModelDefinition = mock();
+    mockGenerateMessageWithRouter = mock();
+    mockGenerateMessageWithStandardWorkflow = mock();
+    mockRandomUUID = mock();
+
+    // Mock modules
+    void mock.module("../../../data/MongoDB", () => ({
+      DBClient: mockDBClient,
+    }));
+
+    void mock.module("../../../graphql/errors", () => ({
+      ServerError: mockServerError,
+    }));
+
+    void mock.module("../../../data/AI/truncateMessageHistory", () => ({
+      truncateMessageHistory: mockTruncateMessageHistory,
+    }));
+
+    void mock.module("../../../data/AI/agentList", () => ({
+      getAgentByName: mockGetAgentByName,
+    }));
+
+    void mock.module("../../../data/AI/getModelDefinition", () => ({
+      getModelDefinition: mockGetModelDefinition,
+    }));
+
+    void mock.module("../../../data/AI/generateMessageWithRouter", () => ({
+      generateMessageWithRouter: mockGenerateMessageWithRouter,
+    }));
+
+    void mock.module(
+      "../../../data/AI/generateMessageWithStandardWorkflow",
+      () => ({
+        generateMessageWithStandardWorkflow:
+          mockGenerateMessageWithStandardWorkflow,
+      })
+    );
+
+    void mock.module("crypto", () => ({
+      randomUUID: mockRandomUUID,
+    }));
+
+    // Dynamic import
+    const module = await import("./generateMessage");
+    generateMessage = module.generateMessage;
 
     // Set up default mock behavior
     mockFindUnique.mockResolvedValue(defaultThread);
@@ -139,7 +169,7 @@ describe("Unit -> generateMessage", () => {
     mockServerError.mockImplementation((msg: string) => new Error(msg));
   });
 
-  afterAll(() => {
+  afterEach(() => {
     mock.restore();
   });
 

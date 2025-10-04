@@ -1,28 +1,37 @@
-import { test, expect, beforeEach, mock, describe, afterAll } from "bun:test";
+import { test, expect, beforeEach, mock, describe, afterEach } from "bun:test";
 import type { Message, MessageWorkspace } from "@prisma/client";
 
-const mockFindUniqueOrThrow = mock();
-const mockUpdate = mock();
-
-mock.module("./client", () => ({
-  DBClient: {
-    message: {
-      findUniqueOrThrow: mockFindUniqueOrThrow,
-      update: mockUpdate,
-    },
-  },
-}));
-import { addMessageWorkspaceEntry } from "./addMessageWorkspaceEntry";
-
 describe("addMessageWorkspaceEntry", () => {
-  beforeEach(() => {
-    mockFindUniqueOrThrow.mockClear();
-    mockUpdate.mockClear();
+  let mockFindUniqueOrThrow: ReturnType<typeof mock>;
+  let mockUpdate: ReturnType<typeof mock>;
+  let addMessageWorkspaceEntry: (
+    messageId: string,
+    workspaceEntry: MessageWorkspace
+  ) => Promise<Message>;
+
+  beforeEach(async () => {
+    mock.restore();
+
+    mockFindUniqueOrThrow = mock();
+    mockUpdate = mock();
+
+    mock.module("./client", () => ({
+      DBClient: {
+        message: {
+          findUniqueOrThrow: mockFindUniqueOrThrow,
+          update: mockUpdate,
+        },
+      },
+    }));
+
+    const module = await import("./addMessageWorkspaceEntry");
+    addMessageWorkspaceEntry = module.addMessageWorkspaceEntry;
   });
 
-  afterAll(() => {
+  afterEach(() => {
     mock.restore();
   });
+
   test("Unit -> addMessageWorkspaceEntry adds workspace entry to existing message", async () => {
     const existingWorkspace: MessageWorkspace[] = [
       {

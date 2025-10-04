@@ -1,25 +1,12 @@
-import { test, expect, beforeEach, mock, describe, afterAll } from "bun:test";
+import { test, expect, beforeEach, mock, describe, afterEach } from "bun:test";
 import type { RouterGraphState } from "../Workflows/routerWorkflow";
 import type { AIAgentDefinition } from "../types";
 
-const mockRunToolEnabledWorkflow = mock();
-const mockCheapestAgent = {
-  name: "cheapest",
-  description: "Cheapest AI agent",
-  availableTools: [{ name: "basic-tool" }],
-} as AIAgentDefinition;
-
-void mock.module("../Workflows/toolEnabledWorkflow", () => ({
-  runToolEnabledWorkflow: mockRunToolEnabledWorkflow,
-}));
-
-void mock.module("../Agents", () => ({
-  cheapest: mockCheapestAgent,
-}));
-
-import { executeDefaultAgent } from "./executeDefaultAgent";
-
 describe("executeDefaultAgent", () => {
+  let mockRunToolEnabledWorkflow: ReturnType<typeof mock>;
+  let mockCheapestAgent: AIAgentDefinition;
+  let executeDefaultAgent: typeof import("./executeDefaultAgent").executeDefaultAgent;
+
   const defaultState = {
     messages: [{ content: "Test message" }],
     runId: "test-run-123",
@@ -37,12 +24,31 @@ describe("executeDefaultAgent", () => {
     metadata: { responseGenerated: true },
   };
 
-  beforeEach(() => {
-    mockRunToolEnabledWorkflow.mockClear();
+  beforeEach(async () => {
+    mock.restore();
+
+    mockRunToolEnabledWorkflow = mock();
+    mockCheapestAgent = {
+      name: "cheapest",
+      description: "Cheapest AI agent",
+      availableTools: [{ name: "basic-tool" }],
+    } as AIAgentDefinition;
+
+    mock.module("../Workflows/toolEnabledWorkflow", () => ({
+      runToolEnabledWorkflow: mockRunToolEnabledWorkflow,
+    }));
+
+    mock.module("../Agents", () => ({
+      cheapest: mockCheapestAgent,
+    }));
+
+    const module = await import("./executeDefaultAgent");
+    executeDefaultAgent = module.executeDefaultAgent;
+
     mockRunToolEnabledWorkflow.mockResolvedValue(defaultWorkflowResult);
   });
 
-  afterAll(() => {
+  afterEach(() => {
     mock.restore();
   });
 

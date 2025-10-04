@@ -3,13 +3,16 @@ import { routeToAgent } from "./routeToAgent";
 
 describe("routeToAgent", () => {
   const mockConsoleLog = mock();
-  console.log = mockConsoleLog;
+  const originalConsoleLog = console.log;
 
   beforeEach(() => {
+    mock.restore();
+    console.log = mockConsoleLog;
     mockConsoleLog.mockClear();
   });
 
   afterAll(() => {
+    console.log = originalConsoleLog;
     mock.restore();
   });
 

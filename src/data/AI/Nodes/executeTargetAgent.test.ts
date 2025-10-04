@@ -1,12 +1,13 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { test, expect, beforeEach, mock, describe, afterAll } from "bun:test";
+import { test, expect, beforeEach, mock, describe, afterEach } from "bun:test";
 import { HumanMessage } from "@langchain/core/messages";
 import type { RouterGraphState } from "../Workflows/routerWorkflow";
 import type { AIAgentDefinition } from "../types";
 
-const mockGetModelDefinition = mock();
-const mockRunToolEnabledWorkflow = mock();
+let mockGetModelDefinition: ReturnType<typeof mock>;
+let mockRunToolEnabledWorkflow: ReturnType<typeof mock>;
+let executeTargetAgent: any;
 
 const mockTargetAgent = {
   name: "target-agent",
@@ -17,16 +18,6 @@ const mockTargetAgent = {
 const mockModel = {
   invoke: mock(),
 } as any;
-
-void mock.module("../getModelDefinition", () => ({
-  getModelDefinition: mockGetModelDefinition,
-}));
-
-void mock.module("../Workflows/toolEnabledWorkflow", () => ({
-  runToolEnabledWorkflow: mockRunToolEnabledWorkflow,
-}));
-
-import { executeTargetAgent } from "./executeTargetAgent";
 
 describe("executeTargetAgent", () => {
   const defaultState = {
@@ -83,15 +74,28 @@ describe("executeTargetAgent", () => {
     metadata: { responseGenerated: true },
   };
 
-  beforeEach(() => {
-    mockGetModelDefinition.mockClear();
-    mockRunToolEnabledWorkflow.mockClear();
+  beforeEach(async () => {
+    mock.restore();
+
+    mockGetModelDefinition = mock();
+    mockRunToolEnabledWorkflow = mock();
+
+    void mock.module("../getModelDefinition", () => ({
+      getModelDefinition: mockGetModelDefinition,
+    }));
+
+    void mock.module("../Workflows/toolEnabledWorkflow", () => ({
+      runToolEnabledWorkflow: mockRunToolEnabledWorkflow,
+    }));
+
+    const module = await import("./executeTargetAgent");
+    executeTargetAgent = module.executeTargetAgent;
 
     mockGetModelDefinition.mockReturnValue(mockModel);
     mockRunToolEnabledWorkflow.mockResolvedValue(defaultWorkflowResult);
   });
 
-  afterAll(() => {
+  afterEach(() => {
     mock.restore();
   });
 

@@ -1,37 +1,21 @@
-import { test, expect, beforeEach, mock, describe, afterAll } from "bun:test";
-
-const mockFindUnique = mock();
-const mockUpdate = mock();
-
-const mockDBClient = {
-  thread: {
-    findUnique: mockFindUnique,
-    update: mockUpdate,
-  },
-};
-
-const mockRunRouterWorkflow = mock();
-const mockSaveMessage = mock();
-const mockTranslateMessage = mock();
-
-mock.module("../MongoDB", () => ({
-  DBClient: mockDBClient,
-  saveMessage: mockSaveMessage,
-}));
-
-mock.module("./Workflows/routerWorkflow", () => ({
-  runRouterWorkflow: mockRunRouterWorkflow,
-}));
-
-mock.module("../../modules/utils", () => ({
-  TranslateMessage: mockTranslateMessage,
-}));
-
-import { generateMessageWithRouter } from "./generateMessageWithRouter";
+import { test, expect, beforeEach, mock, describe, afterEach } from "bun:test";
 import type { AIAgentDefinition } from "./types";
 import type { BaseMessage } from "@langchain/core/messages";
 
 describe("generateMessageWithRouter", () => {
+  let mockFindUnique: ReturnType<typeof mock>;
+  let mockUpdate: ReturnType<typeof mock>;
+  let mockDBClient: {
+    thread: {
+      findUnique: ReturnType<typeof mock>;
+      update: ReturnType<typeof mock>;
+    };
+  };
+  let mockRunRouterWorkflow: ReturnType<typeof mock>;
+  let mockSaveMessage: ReturnType<typeof mock>;
+  let mockTranslateMessage: ReturnType<typeof mock>;
+  let generateMessageWithRouter: any;
+
   const defaultThread = {
     userId: "507f1f77bcf86cd799439011",
     selectedAgent: "MainRouter",
@@ -71,13 +55,41 @@ describe("generateMessageWithRouter", () => {
     createdAt: new Date(),
   };
 
-  beforeEach(() => {
-    mockFindUnique.mockClear();
-    mockUpdate.mockClear();
-    mockRunRouterWorkflow.mockClear();
-    mockSaveMessage.mockClear();
-    mockTranslateMessage.mockClear();
+  beforeEach(async () => {
+    mock.restore();
 
+    // Create mocks
+    mockFindUnique = mock();
+    mockUpdate = mock();
+    mockDBClient = {
+      thread: {
+        findUnique: mockFindUnique,
+        update: mockUpdate,
+      },
+    };
+    mockRunRouterWorkflow = mock();
+    mockSaveMessage = mock();
+    mockTranslateMessage = mock();
+
+    // Mock modules
+    mock.module("../MongoDB", () => ({
+      DBClient: mockDBClient,
+      saveMessage: mockSaveMessage,
+    }));
+
+    mock.module("./Workflows/routerWorkflow", () => ({
+      runRouterWorkflow: mockRunRouterWorkflow,
+    }));
+
+    mock.module("../../modules/utils", () => ({
+      TranslateMessage: mockTranslateMessage,
+    }));
+
+    // Dynamic import
+    const module = await import("./generateMessageWithRouter");
+    generateMessageWithRouter = module.generateMessageWithRouter;
+
+    // Configure mocks
     mockFindUnique.mockResolvedValue(defaultThread);
     mockSaveMessage.mockResolvedValue(defaultSavedMessage);
     mockTranslateMessage.mockReturnValue(defaultSavedMessage);
@@ -102,7 +114,7 @@ describe("generateMessageWithRouter", () => {
     });
   });
 
-  afterAll(() => {
+  afterEach(() => {
     mock.restore();
   });
 

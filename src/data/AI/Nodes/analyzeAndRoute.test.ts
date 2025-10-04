@@ -1,50 +1,33 @@
-import { test, expect, beforeEach, mock, afterAll, describe } from "bun:test";
+import { test, expect, beforeEach, mock, afterEach, describe } from "bun:test";
 import type { RouterGraphState } from "../Workflows/routerWorkflow";
 import type { AIAgentDefinition } from "../types";
 
-const mockGetModelDefinition = mock();
-const mockRunToolEnabledWorkflow = mock();
-const mockGetAgentByName = mock();
-
-const mockRouterAgent = {
-  name: "router-agent",
-  description: "Router agent",
-  availableTools: [{ name: "routeToAgent" }],
-} as AIAgentDefinition;
-
-const mockTargetAgent = {
-  name: "target-agent",
-  description: "Target agent",
-} as AIAgentDefinition;
-
-const mockCheapestAgent = {
-  name: "cheapest",
-  description: "Cheapest agent",
-} as AIAgentDefinition;
-
-const mockModel = {
-  invoke: mock(),
-};
-
-void mock.module("../getModelDefinition", () => ({
-  getModelDefinition: mockGetModelDefinition,
-}));
-
-void mock.module("../Workflows/toolEnabledWorkflow", () => ({
-  runToolEnabledWorkflow: mockRunToolEnabledWorkflow,
-}));
-
-void mock.module("../agentList", () => ({
-  getAgentByName: mockGetAgentByName,
-}));
-
-void mock.module("../Agents", () => ({
-  cheapest: mockCheapestAgent,
-}));
-
-import { analyzeAndRoute } from "./analyzeAndRoute";
-
 describe("analyzeAndRoute", () => {
+  let mockGetModelDefinition: ReturnType<typeof mock>;
+  let mockRunToolEnabledWorkflow: ReturnType<typeof mock>;
+  let mockGetAgentByName: ReturnType<typeof mock>;
+  let analyzeAndRoute: typeof import("./analyzeAndRoute").analyzeAndRoute;
+
+  const mockRouterAgent = {
+    name: "router-agent",
+    description: "Router agent",
+    availableTools: [{ name: "routeToAgent" }],
+  } as AIAgentDefinition;
+
+  const mockTargetAgent = {
+    name: "target-agent",
+    description: "Target agent",
+  } as AIAgentDefinition;
+
+  const mockCheapestAgent = {
+    name: "cheapest",
+    description: "Cheapest agent",
+  } as AIAgentDefinition;
+
+  const mockModel = {
+    invoke: mock(),
+  };
+
   const defaultState = {
     messages: [{ content: "Test message" }],
     runId: "test-run-123",
@@ -70,7 +53,32 @@ describe("analyzeAndRoute", () => {
     ],
   };
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    mock.restore();
+
+    mockGetModelDefinition = mock();
+    mockRunToolEnabledWorkflow = mock();
+    mockGetAgentByName = mock();
+
+    mock.module("../getModelDefinition", () => ({
+      getModelDefinition: mockGetModelDefinition,
+    }));
+
+    mock.module("../Workflows/toolEnabledWorkflow", () => ({
+      runToolEnabledWorkflow: mockRunToolEnabledWorkflow,
+    }));
+
+    mock.module("../agentList", () => ({
+      getAgentByName: mockGetAgentByName,
+    }));
+
+    mock.module("../Agents", () => ({
+      cheapest: mockCheapestAgent,
+    }));
+
+    const module = await import("./analyzeAndRoute");
+    analyzeAndRoute = module.analyzeAndRoute;
+
     mockGetModelDefinition.mockClear();
     mockRunToolEnabledWorkflow.mockClear();
     mockGetAgentByName.mockClear();
@@ -84,7 +92,7 @@ describe("analyzeAndRoute", () => {
     });
   });
 
-  afterAll(() => {
+  afterEach(() => {
     mock.restore();
   });
 

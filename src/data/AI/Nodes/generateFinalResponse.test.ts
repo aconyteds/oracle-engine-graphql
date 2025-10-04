@@ -1,72 +1,93 @@
-import { test, expect, beforeEach, mock, describe, afterAll } from "bun:test";
-import { HumanMessage, AIMessage, ToolMessage } from "@langchain/core/messages";
+import { test, expect, beforeEach, mock, describe, afterEach } from "bun:test";
 import type { ToolEnabledGraphState } from "../Workflows/toolEnabledWorkflow";
 
-const mockModel = {
-  invoke: mock(),
-};
-
-void mock.module("@langchain/core/messages", () => ({
-  HumanMessage: class MockHumanMessage {
-    constructor(public content: string) {}
-    id = "HumanMessage_1";
-  },
-  AIMessage: class MockAIMessage {
-    constructor(public content: string) {}
-    id = "AIMessage_1";
-  },
-  ToolMessage: class MockToolMessage {
-    public content: string;
-    public tool_call_id: string;
-    id = "ToolMessage_1";
-
-    constructor(
-      contentOrConfig: string | { content: string; tool_call_id: string }
-    ) {
-      if (typeof contentOrConfig === "string") {
-        // Legacy constructor for this test
-        this.content = contentOrConfig;
-        this.tool_call_id = "mock-tool-call-id";
-      } else {
-        // New object-based constructor
-        this.content = contentOrConfig.content;
-        this.tool_call_id = contentOrConfig.tool_call_id;
-      }
-    }
-  },
-}));
-
-import { generateFinalResponse } from "./generateFinalResponse";
-
 describe("generateFinalResponse", () => {
-  const defaultMessages = [
-    new HumanMessage("User question"),
-    new AIMessage("AI response with tool calls"),
-    new ToolMessage("Tool result"),
-  ];
+  // Mock dependencies - recreated for each test
+  let mockInvoke: ReturnType<typeof mock>;
+  let HumanMessage: any;
+  let AIMessage: any;
+  let ToolMessage: any;
+  let generateFinalResponse: typeof import("./generateFinalResponse").generateFinalResponse;
 
-  const defaultState = {
-    messages: defaultMessages,
-    model: mockModel,
-    runId: "test-run-456",
-    metadata: { toolsExecuted: true },
-  } as unknown as typeof ToolEnabledGraphState.State;
+  beforeEach(async () => {
+    // Restore all mocks before each test
+    mock.restore();
 
-  const defaultResponse = new AIMessage("Final response content");
+    // Create fresh mock
+    mockInvoke = mock();
 
-  beforeEach(() => {
-    mockModel.invoke.mockClear();
-    mockModel.invoke.mockResolvedValue(defaultResponse);
+    const mockModel = {
+      invoke: mockInvoke,
+    };
+
+    // Set up module mocks
+    mock.module("@langchain/core/messages", () => ({
+      HumanMessage: class MockHumanMessage {
+        constructor(public content: string) {}
+        id = "HumanMessage_1";
+      },
+      AIMessage: class MockAIMessage {
+        constructor(public content: string) {}
+        id = "AIMessage_1";
+      },
+      ToolMessage: class MockToolMessage {
+        public content: string;
+        public tool_call_id: string;
+        id = "ToolMessage_1";
+
+        constructor(
+          contentOrConfig: string | { content: string; tool_call_id: string }
+        ) {
+          if (typeof contentOrConfig === "string") {
+            this.content = contentOrConfig;
+            this.tool_call_id = "mock-tool-call-id";
+          } else {
+            this.content = contentOrConfig.content;
+            this.tool_call_id = contentOrConfig.tool_call_id;
+          }
+        }
+      },
+    }));
+
+    // Import the module under test after mocks are set up
+    const messagesModule = await import("@langchain/core/messages");
+    HumanMessage = messagesModule.HumanMessage;
+    AIMessage = messagesModule.AIMessage;
+    ToolMessage = messagesModule.ToolMessage;
+
+    const module = await import("./generateFinalResponse");
+    generateFinalResponse = module.generateFinalResponse;
+
+    // Configure default mock behavior
+    const defaultResponse = new AIMessage("Final response content");
+    mockInvoke.mockResolvedValue(defaultResponse);
   });
 
-  afterAll(() => {
+  afterEach(() => {
+    // Restore mocks after each test for complete isolation
     mock.restore();
   });
 
   test("Unit -> generateFinalResponse generates final response successfully", async () => {
+    const defaultMessages = [
+      new HumanMessage("User question"),
+      new AIMessage("AI response with tool calls"),
+      new ToolMessage("Tool result"),
+    ];
+
+    const defaultState = {
+      messages: defaultMessages,
+      model: { invoke: mockInvoke },
+      runId: "test-run-456",
+      metadata: { toolsExecuted: true },
+    } as unknown as typeof ToolEnabledGraphState.State;
+
+    const defaultResponse = new AIMessage("Final response content");
+    mockInvoke.mockResolvedValue(defaultResponse);
+
     const result = await generateFinalResponse(defaultState);
 
-    expect(mockModel.invoke).toHaveBeenCalledWith(defaultMessages, {
+    expect(mockInvoke).toHaveBeenCalledWith(defaultMessages, {
       runId: "test-run-456",
     });
     expect(result.messages).toHaveLength(1);
@@ -78,21 +99,37 @@ describe("generateFinalResponse", () => {
   });
 
   test("Unit -> generateFinalResponse throws error when no messages", () => {
-    const state = { ...defaultState, messages: [] };
+    const state = {
+      messages: [],
+      model: { invoke: mockInvoke },
+      runId: "test-run-456",
+      metadata: { toolsExecuted: true },
+    } as unknown as typeof ToolEnabledGraphState.State;
 
     expect(generateFinalResponse(state)).rejects.toThrow(
       "No messages available for final response generation"
     );
-    expect(mockModel.invoke).not.toHaveBeenCalled();
+    expect(mockInvoke).not.toHaveBeenCalled();
   });
 
   test("Unit -> generateFinalResponse passes runId to model", async () => {
+    const defaultMessages = [
+      new HumanMessage("User question"),
+      new AIMessage("AI response with tool calls"),
+      new ToolMessage("Tool result"),
+    ];
+
     const customRunId = "custom-run-789";
-    const state = { ...defaultState, runId: customRunId };
+    const state = {
+      messages: defaultMessages,
+      model: { invoke: mockInvoke },
+      runId: customRunId,
+      metadata: { toolsExecuted: true },
+    } as unknown as typeof ToolEnabledGraphState.State;
 
     await generateFinalResponse(state);
 
-    expect(mockModel.invoke).toHaveBeenCalledWith(defaultMessages, {
+    expect(mockInvoke).toHaveBeenCalledWith(defaultMessages, {
       runId: customRunId,
     });
   });
@@ -102,11 +139,24 @@ describe("generateFinalResponse", () => {
     const mockConsoleError = mock();
     console.error = mockConsoleError;
 
+    const defaultMessages = [
+      new HumanMessage("User question"),
+      new AIMessage("AI response with tool calls"),
+      new ToolMessage("Tool result"),
+    ];
+
+    const state = {
+      messages: defaultMessages,
+      model: { invoke: mockInvoke },
+      runId: "test-run-456",
+      metadata: { toolsExecuted: true },
+    } as unknown as typeof ToolEnabledGraphState.State;
+
     const testError = new Error("Model invocation failed");
-    mockModel.invoke.mockRejectedValue(testError);
+    mockInvoke.mockRejectedValue(testError);
 
     try {
-      expect(generateFinalResponse(defaultState)).rejects.toThrow(
+      expect(generateFinalResponse(state)).rejects.toThrow(
         "Model invocation failed"
       );
       expect(mockConsoleError).toHaveBeenCalledWith(
@@ -119,12 +169,23 @@ describe("generateFinalResponse", () => {
   });
 
   test("Unit -> generateFinalResponse preserves existing metadata", async () => {
+    const defaultMessages = [
+      new HumanMessage("User question"),
+      new AIMessage("AI response with tool calls"),
+      new ToolMessage("Tool result"),
+    ];
+
     const customMetadata = {
       toolsExecuted: true,
       customField: "value",
       count: 42,
     };
-    const state = { ...defaultState, metadata: customMetadata };
+    const state = {
+      messages: defaultMessages,
+      model: { invoke: mockInvoke },
+      runId: "test-run-456",
+      metadata: customMetadata,
+    } as unknown as typeof ToolEnabledGraphState.State;
 
     const result = await generateFinalResponse(state);
 
@@ -135,7 +196,18 @@ describe("generateFinalResponse", () => {
   });
 
   test("Unit -> generateFinalResponse handles undefined metadata", async () => {
-    const state = { ...defaultState, metadata: undefined };
+    const defaultMessages = [
+      new HumanMessage("User question"),
+      new AIMessage("AI response with tool calls"),
+      new ToolMessage("Tool result"),
+    ];
+
+    const state = {
+      messages: defaultMessages,
+      model: { invoke: mockInvoke },
+      runId: "test-run-456",
+      metadata: undefined,
+    } as unknown as typeof ToolEnabledGraphState.State;
 
     const result = await generateFinalResponse(state);
 
@@ -144,22 +216,40 @@ describe("generateFinalResponse", () => {
 
   test("Unit -> generateFinalResponse works with single message", async () => {
     const singleMessage = [new HumanMessage("Single question")];
-    const state = { ...defaultState, messages: singleMessage };
+    const state = {
+      messages: singleMessage,
+      model: { invoke: mockInvoke },
+      runId: "test-run-456",
+      metadata: { toolsExecuted: true },
+    } as unknown as typeof ToolEnabledGraphState.State;
 
     const result = await generateFinalResponse(state);
 
-    expect(mockModel.invoke).toHaveBeenCalledWith(singleMessage, {
+    expect(mockInvoke).toHaveBeenCalledWith(singleMessage, {
       runId: "test-run-456",
     });
     expect(result.isComplete).toBe(true);
   });
 
   test("Unit -> generateFinalResponse extracts string content correctly", async () => {
+    const defaultMessages = [
+      new HumanMessage("User question"),
+      new AIMessage("AI response with tool calls"),
+      new ToolMessage("Tool result"),
+    ];
+
+    const state = {
+      messages: defaultMessages,
+      model: { invoke: mockInvoke },
+      runId: "test-run-456",
+      metadata: { toolsExecuted: true },
+    } as unknown as typeof ToolEnabledGraphState.State;
+
     const responseContent = "This is the final response";
     const response = new AIMessage(responseContent);
-    mockModel.invoke.mockResolvedValue(response);
+    mockInvoke.mockResolvedValue(response);
 
-    const result = await generateFinalResponse(defaultState);
+    const result = await generateFinalResponse(state);
 
     expect(result.currentResponse).toBe(responseContent);
   });
@@ -172,11 +262,16 @@ describe("generateFinalResponse", () => {
       new AIMessage("Tool interpretation"),
       new ToolMessage("Weather result: sunny"),
     ];
-    const state = { ...defaultState, messages: complexMessages };
+    const state = {
+      messages: complexMessages,
+      model: { invoke: mockInvoke },
+      runId: "test-run-456",
+      metadata: { toolsExecuted: true },
+    } as unknown as typeof ToolEnabledGraphState.State;
 
     await generateFinalResponse(state);
 
-    expect(mockModel.invoke).toHaveBeenCalledWith(complexMessages, {
+    expect(mockInvoke).toHaveBeenCalledWith(complexMessages, {
       runId: "test-run-456",
     });
   });

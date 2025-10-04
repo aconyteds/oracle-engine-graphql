@@ -1,10 +1,15 @@
-import { test, expect, describe } from "bun:test";
+import { test, expect, describe, beforeEach } from "bun:test";
 import type { AIAgentDefinition } from "../../types";
 import type { TrustedModel } from "../../modelList";
 
-import { buildRouterSystemMessage } from "./buildRouterSystemMessage";
-
 describe("buildRouterSystemMessage", () => {
+  let buildRouterSystemMessage: typeof import("./buildRouterSystemMessage").buildRouterSystemMessage;
+
+  beforeEach(async () => {
+    const module = await import("./buildRouterSystemMessage");
+    buildRouterSystemMessage = module.buildRouterSystemMessage;
+  });
+
   const defaultModel: TrustedModel = {
     modelName: "gpt-4",
     modelProvider: "OpenAI",

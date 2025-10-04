@@ -1,41 +1,30 @@
-import { test, expect, beforeEach, mock, describe, afterAll } from "bun:test";
+import { test, expect, beforeEach, afterEach, mock, describe } from "bun:test";
 import type { RouterGraphState } from "../Workflows/routerWorkflow";
 import type { AIAgentDefinition } from "../types";
 
-const mockGetModelDefinition = mock();
-const mockRunToolEnabledWorkflow = mock();
-
-const mockCheapestAgent = {
-  name: "cheapest",
-  description: "Cheapest AI agent",
-  availableTools: [{ name: "basic-tool" }],
-} as AIAgentDefinition;
-
-const mockFallbackAgent = {
-  name: "fallback-agent",
-  description: "Fallback agent",
-  availableTools: [{ name: "fallback-tool" }],
-} as AIAgentDefinition;
-
-const mockModel = {
-  invoke: mock(),
-};
-
-void mock.module("../getModelDefinition", () => ({
-  getModelDefinition: mockGetModelDefinition,
-}));
-
-void mock.module("../Workflows/toolEnabledWorkflow", () => ({
-  runToolEnabledWorkflow: mockRunToolEnabledWorkflow,
-}));
-
-void mock.module("../Agents", () => ({
-  cheapest: mockCheapestAgent,
-}));
-
-import { executeFallback } from "./executeFallback";
-
 describe("executeFallback", () => {
+  let mockGetModelDefinition: ReturnType<typeof mock>;
+  let mockRunToolEnabledWorkflow: ReturnType<typeof mock>;
+  let executeFallback: (
+    state: typeof RouterGraphState.State
+  ) => Promise<Partial<typeof RouterGraphState.State>>;
+
+  const mockCheapestAgent = {
+    name: "cheapest",
+    description: "Cheapest AI agent",
+    availableTools: [{ name: "basic-tool" }],
+  } as AIAgentDefinition;
+
+  const mockFallbackAgent = {
+    name: "fallback-agent",
+    description: "Fallback agent",
+    availableTools: [{ name: "fallback-tool" }],
+  } as AIAgentDefinition;
+
+  const mockModel = {
+    invoke: mock(),
+  };
+
   const defaultState = {
     messages: [{ content: "Test message" }],
     runId: "test-run-123",
@@ -57,15 +46,32 @@ describe("executeFallback", () => {
     metadata: { responseGenerated: true },
   };
 
-  beforeEach(() => {
-    mockGetModelDefinition.mockClear();
-    mockRunToolEnabledWorkflow.mockClear();
+  beforeEach(async () => {
+    mock.restore();
+
+    mockGetModelDefinition = mock();
+    mockRunToolEnabledWorkflow = mock();
+
+    void mock.module("../getModelDefinition", () => ({
+      getModelDefinition: mockGetModelDefinition,
+    }));
+
+    void mock.module("../Workflows/toolEnabledWorkflow", () => ({
+      runToolEnabledWorkflow: mockRunToolEnabledWorkflow,
+    }));
+
+    void mock.module("../Agents", () => ({
+      cheapest: mockCheapestAgent,
+    }));
+
+    const module = await import("./executeFallback");
+    executeFallback = module.executeFallback;
 
     mockGetModelDefinition.mockReturnValue(mockModel);
     mockRunToolEnabledWorkflow.mockResolvedValue(defaultWorkflowResult);
   });
 
-  afterAll(() => {
+  afterEach(() => {
     mock.restore();
   });
 
