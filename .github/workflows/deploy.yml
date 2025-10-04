@@ -38,7 +38,7 @@ jobs:
         run: bunx prisma generate
 
       - name: Run Unit Tests
-        run: bun test --debug
+        run: bun run test
 
       - name: Run Integration Tests
         run: bun run test:e2e

@@ -1,30 +1,13 @@
-import { test, expect, beforeEach, mock, describe } from "bun:test";
+import { test, expect, beforeEach, mock, describe, afterEach } from "bun:test";
 import type { Message, MessageWorkspace } from "@prisma/client";
 
-const mockCreate = mock();
-const mockThreadUpdate = mock();
-
-// Set up mocks before importing the module under test
-mock.module("./client", () => ({
-  DBClient: {
-    message: {
-      create: mockCreate,
-    },
-    thread: {
-      update: mockThreadUpdate,
-    },
-  },
-}));
-
-const mockCalculateTokenCount = mock();
-
-mock.module("../AI", () => ({
-  calculateTokenCount: mockCalculateTokenCount,
-}));
-
-import { saveMessage } from "./saveMessage";
-
 describe("saveMessage", () => {
+  // Mock dependencies - recreated for each test
+  let mockCreate: ReturnType<typeof mock>;
+  let mockThreadUpdate: ReturnType<typeof mock>;
+  let mockCalculateTokenCount: ReturnType<typeof mock>;
+  let saveMessage: typeof import("./saveMessage").saveMessage;
+
   const defaultMockMessage: Message = {
     id: "default-message-id",
     content: "Default message content",
@@ -38,14 +21,44 @@ describe("saveMessage", () => {
     updatedAt: new Date(),
   };
 
-  beforeEach(() => {
-    mockCreate.mockClear();
-    mockThreadUpdate.mockClear();
-    mockCalculateTokenCount.mockClear();
+  beforeEach(async () => {
+    // Restore all mocks before each test
+    mock.restore();
 
+    // Create fresh mock objects
+    mockCreate = mock();
+    mockThreadUpdate = mock();
+    mockCalculateTokenCount = mock();
+
+    // Set up module mocks
+    mock.module("./client", () => ({
+      DBClient: {
+        message: {
+          create: mockCreate,
+        },
+        thread: {
+          update: mockThreadUpdate,
+        },
+      },
+    }));
+
+    mock.module("../AI", () => ({
+      calculateTokenCount: mockCalculateTokenCount,
+    }));
+
+    // Import the module under test after mocks are set up
+    const module = await import("./saveMessage");
+    saveMessage = module.saveMessage;
+
+    // Configure default mock behavior
     mockCalculateTokenCount.mockReturnValue(10);
     mockCreate.mockResolvedValue(defaultMockMessage);
     mockThreadUpdate.mockResolvedValue({});
+  });
+
+  afterEach(() => {
+    // Restore mocks after each test for complete isolation
+    mock.restore();
   });
   // Failing in CI but not locally - investigating
   test("Unit -> saveMessage creates message with required fields", async () => {

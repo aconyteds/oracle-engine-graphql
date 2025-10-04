@@ -1,33 +1,22 @@
-import { test, expect, beforeEach, mock, describe, afterAll } from "bun:test";
+import { test, expect, beforeEach, mock, describe, afterEach } from "bun:test";
 import type { AIAgentDefinition } from "../../types";
-
-// Mock dependencies
-const mockRouteToAgent = { name: "routeToAgent" };
-const mockAnalyzeConversationContext = { name: "analyzeConversationContext" };
-const mockBuildRouterSystemMessage = mock();
-
-// Create module mocks before importing
-void mock.module("../../Tools/routing", () => ({
-  routeToAgent: mockRouteToAgent,
-  analyzeConversationContext: mockAnalyzeConversationContext,
-}));
-
-void mock.module("./buildRouterSystemMessage", () => ({
-  buildRouterSystemMessage: mockBuildRouterSystemMessage,
-}));
-
 import type { TrustedModel } from "../../modelList";
 import type { ClientOptions } from "@langchain/openai";
 import type { Tool } from "@langchain/core/dist/tools";
 
-import { buildRouterAgent } from "./buildRouterAgent";
-
 describe("buildRouterAgent", () => {
+  // Mock dependencies - recreated for each test
+  let mockRouteToAgent: { name: string };
+  let mockAnalyzeConversationContext: { name: string };
+  let mockBuildRouterSystemMessage: ReturnType<typeof mock>;
+  let buildRouterAgent: typeof import("./buildRouterAgent").buildRouterAgent;
+
   const defaultModel: TrustedModel = {
     modelName: "gpt-4",
     modelProvider: "OpenAI",
     contextWindow: 8192,
   };
+
   // Default mock data
   const defaultAgent: AIAgentDefinition = {
     name: "TestAgent",
@@ -52,12 +41,35 @@ describe("buildRouterAgent", () => {
 
   const defaultRouterSystemMessage = "Generated router system message";
 
-  beforeEach(() => {
-    mockBuildRouterSystemMessage.mockClear();
+  beforeEach(async () => {
+    // Restore all mocks before each test
+    mock.restore();
+
+    // Create fresh mock objects
+    mockRouteToAgent = { name: "routeToAgent" };
+    mockAnalyzeConversationContext = { name: "analyzeConversationContext" };
+    mockBuildRouterSystemMessage = mock();
+
+    // Set up module mocks
+    mock.module("../../Tools/routing", () => ({
+      routeToAgent: mockRouteToAgent,
+      analyzeConversationContext: mockAnalyzeConversationContext,
+    }));
+
+    mock.module("./buildRouterSystemMessage", () => ({
+      buildRouterSystemMessage: mockBuildRouterSystemMessage,
+    }));
+
+    // Import the module under test after mocks are set up
+    const module = await import("./buildRouterAgent");
+    buildRouterAgent = module.buildRouterAgent;
+
+    // Configure default mock behavior
     mockBuildRouterSystemMessage.mockReturnValue(defaultRouterSystemMessage);
   });
 
-  afterAll(() => {
+  afterEach(() => {
+    // Restore mocks after each test for complete isolation
     mock.restore();
   });
 
