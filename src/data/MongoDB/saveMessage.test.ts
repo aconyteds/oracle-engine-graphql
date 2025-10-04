@@ -2,24 +2,21 @@ import { test, expect, beforeEach, mock, describe } from "bun:test";
 import type { Message, MessageWorkspace } from "@prisma/client";
 
 const mockCreate = mock();
-const mockFindUniqueOrThrow = mock();
-const mockUpdate = mock();
 const mockThreadUpdate = mock();
-const mockCalculateTokenCount = mock();
 
 // Set up mocks before importing the module under test
 mock.module("./client", () => ({
   DBClient: {
     message: {
       create: mockCreate,
-      findUniqueOrThrow: mockFindUniqueOrThrow,
-      update: mockUpdate,
     },
     thread: {
       update: mockThreadUpdate,
     },
   },
 }));
+
+const mockCalculateTokenCount = mock();
 
 mock.module("../AI", () => ({
   calculateTokenCount: mockCalculateTokenCount,
@@ -28,31 +25,31 @@ mock.module("../AI", () => ({
 import { saveMessage } from "./saveMessage";
 
 describe("saveMessage", () => {
+  const defaultMockMessage: Message = {
+    id: "default-message-id",
+    content: "Default message content",
+    threadId: "default-thread-id",
+    role: "user",
+    tokenCount: 20,
+    workspace: [],
+    runId: null,
+    routingMetadata: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
   beforeEach(() => {
     mockCreate.mockClear();
-    mockFindUniqueOrThrow.mockClear();
-    mockUpdate.mockClear();
     mockThreadUpdate.mockClear();
     mockCalculateTokenCount.mockClear();
+
+    mockCalculateTokenCount.mockReturnValue(10);
+    mockCreate.mockResolvedValue(defaultMockMessage);
+    mockThreadUpdate.mockResolvedValue({});
   });
   // Failing in CI but not locally - investigating
   test("Unit -> saveMessage creates message with required fields", async () => {
-    const mockMessage: Message = {
-      id: "test-message-id",
-      content: "Test message content",
-      threadId: "test-thread-id",
-      role: "user",
-      tokenCount: 50,
-      workspace: [],
-      runId: null,
-      routingMetadata: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-
     mockCalculateTokenCount.mockReturnValue(50);
-    mockCreate.mockResolvedValue(mockMessage);
-    mockThreadUpdate.mockResolvedValue({});
 
     const result = await saveMessage({
       threadId: "test-thread-id",
@@ -79,7 +76,7 @@ describe("saveMessage", () => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       data: { updatedAt: expect.any(Date) },
     });
-    expect(result).toEqual(mockMessage);
+    expect(result).toEqual(defaultMockMessage);
   });
   // Failing in CI but not locally - investigating
   test("Unit -> saveMessage creates message with workspace and runId", async () => {
