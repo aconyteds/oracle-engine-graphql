@@ -1,11 +1,12 @@
-import { test, expect, beforeEach, mock } from "bun:test";
+import { test, expect, beforeEach, mock, describe, afterAll } from "bun:test";
 
 const mockGenerateMessageWithRouter = mock();
 const mockGenerateMessageWithStandardWorkflow = mock();
 
+const mockFindUnique = mock();
 const mockDBClient = {
   thread: {
-    findUnique: mock(),
+    findUnique: mockFindUnique,
   },
 };
 
@@ -38,91 +39,97 @@ void mock.module("crypto", () => ({
 
 import { generateMessage } from "./generateMessage";
 
-beforeEach(() => {
-  mockDBClient.thread.findUnique.mockClear();
-  mockGenerateMessageWithRouter.mockClear();
-  mockGenerateMessageWithStandardWorkflow.mockClear();
-  mockGetAgentByName.mockClear();
+describe("generateMessage", () => {
+  beforeEach(() => {
+    mockFindUnique.mockClear();
+    mockGenerateMessageWithRouter.mockClear();
+    mockGenerateMessageWithStandardWorkflow.mockClear();
+    mockGetAgentByName.mockClear();
 
-  mockDBClient.thread.findUnique.mockResolvedValue({
-    userId: "user-1",
-    selectedAgent: "TestAgent",
-    messages: [],
-  });
+    mockFindUnique.mockResolvedValue({
+      userId: "user-1",
+      selectedAgent: "TestAgent",
+      messages: [],
+    });
 
-  // Mock workflow generators to return async generators
-  mockGenerateMessageWithRouter.mockImplementation(async function* () {
-    await Promise.resolve(); // Ensure the function contains an await expression
-    yield { responseType: "Final", content: "Router response" };
-  });
-
-  mockGenerateMessageWithStandardWorkflow.mockImplementation(
-    async function* () {
+    // Mock workflow generators to return async generators
+    mockGenerateMessageWithRouter.mockImplementation(async function* () {
       await Promise.resolve(); // Ensure the function contains an await expression
-      yield { responseType: "Final", content: "Standard response" };
-    }
-  );
-});
+      yield { responseType: "Final", content: "Router response" };
+    });
 
-test("Unit -> generateMessage uses router workflow for router agents", async () => {
-  // Mock a router agent
-  mockGetAgentByName.mockReturnValue({
-    name: "MainRouter",
-    routerType: "router",
-    model: { modelName: "gpt-4.1-nano" },
-    systemMessage: "Test router",
-    availableTools: [],
-    availableSubAgents: [{ name: "SubAgent" }],
+    mockGenerateMessageWithStandardWorkflow.mockImplementation(
+      async function* () {
+        await Promise.resolve(); // Ensure the function contains an await expression
+        yield { responseType: "Final", content: "Standard response" };
+      }
+    );
   });
 
-  const generator = generateMessage("test-thread");
-  const results = [];
+  afterAll(() => {
+    mock.restore();
+  });
 
-  for await (const result of generator) {
-    results.push(result);
-  }
-
-  // Should have called the router function
-  expect(mockGenerateMessageWithRouter).toHaveBeenCalledWith({
-    threadId: "test-thread",
-    agent: expect.objectContaining({
+  test("Unit -> generateMessage uses router workflow for router agents", async () => {
+    // Mock a router agent
+    mockGetAgentByName.mockReturnValue({
       name: "MainRouter",
       routerType: "router",
-    }) as unknown,
-    messageHistory: expect.any(Array) as unknown,
-    runId: "test-run-id",
+      model: { modelName: "gpt-4.1-nano" },
+      systemMessage: "Test router",
+      availableTools: [],
+      availableSubAgents: [{ name: "SubAgent" }],
+    });
+
+    const generator = generateMessage("test-thread");
+    const results = [];
+
+    for await (const result of generator) {
+      results.push(result);
+    }
+
+    // Should have called the router function
+    expect(mockGenerateMessageWithRouter).toHaveBeenCalledWith({
+      threadId: "test-thread",
+      agent: expect.objectContaining({
+        name: "MainRouter",
+        routerType: "router",
+      }) as unknown,
+      messageHistory: expect.any(Array) as unknown,
+      runId: "test-run-id",
+    });
+    expect(mockGenerateMessageWithStandardWorkflow).not.toHaveBeenCalled();
+    expect(results[0].content).toBe("Router response");
   });
-  expect(mockGenerateMessageWithStandardWorkflow).not.toHaveBeenCalled();
-  expect(results[0].content).toBe("Router response");
-});
 
-test("Unit -> generateMessage uses standard workflow for simple agents", async () => {
-  // Mock a simple agent
-  mockGetAgentByName.mockReturnValue({
-    name: "Cheapest",
-    routerType: "simple",
-    model: { modelName: "gpt-4.1-nano" },
-    systemMessage: "Test agent",
-    availableTools: [],
-  });
-
-  const generator = generateMessage("test-thread");
-  const results = [];
-
-  for await (const result of generator) {
-    results.push(result);
-  }
-
-  // Should have called the standard workflow function
-  expect(mockGenerateMessageWithStandardWorkflow).toHaveBeenCalledWith({
-    threadId: "test-thread",
-    agent: expect.objectContaining({
+  test("Unit -> generateMessage uses standard workflow for simple agents", async () => {
+    // Mock a simple agent
+    mockGetAgentByName.mockReturnValue({
       name: "Cheapest",
       routerType: "simple",
-    }) as unknown,
-    messageHistory: expect.any(Array) as unknown,
-    runId: "test-run-id",
+      model: { modelName: "gpt-4.1-nano" },
+      systemMessage: "Test agent",
+      availableTools: [],
+    });
+
+    const generator = generateMessage("test-thread");
+    const results = [];
+
+    for await (const result of generator) {
+      results.push(result);
+    }
+
+    // Should have called the standard workflow function
+    expect(mockGenerateMessageWithStandardWorkflow).toHaveBeenCalledWith({
+      threadId: "test-thread",
+      agent: expect.objectContaining({
+        name: "Cheapest",
+        routerType: "simple",
+      }) as unknown,
+      messageHistory: expect.any(Array) as unknown,
+      runId: "test-run-id",
+    });
+    expect(mockGenerateMessageWithRouter).not.toHaveBeenCalled();
+    expect(results[0].content).toBe("Standard response");
   });
-  expect(mockGenerateMessageWithRouter).not.toHaveBeenCalled();
-  expect(results[0].content).toBe("Standard response");
 });
