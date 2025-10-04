@@ -42,7 +42,7 @@ describe("saveMessage", () => {
       },
     }));
 
-    mock.module("../AI", () => ({
+    mock.module("../AI/calculateTokenCount", () => ({
       calculateTokenCount: mockCalculateTokenCount,
     }));
 
