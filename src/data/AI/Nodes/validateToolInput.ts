@@ -3,7 +3,7 @@ import type { ToolEnabledGraphState } from "../Workflows/toolEnabledWorkflow";
 /**
  * Validation node for tool-enabled workflow
  */
-export async function validateToolInput(
+export function validateToolInput(
   state: typeof ToolEnabledGraphState.State
 ): Promise<Partial<typeof ToolEnabledGraphState.State>> {
   const { messages, tools } = state;
@@ -12,7 +12,7 @@ export async function validateToolInput(
     throw new Error("No messages provided for generation");
   }
 
-  return {
+  return Promise.resolve({
     metadata: {
       ...state.metadata,
       validated: true,
@@ -20,5 +20,5 @@ export async function validateToolInput(
       toolsAvailable: tools.length,
       toolNames: tools.map((tool) => tool.name),
     },
-  };
+  });
 }

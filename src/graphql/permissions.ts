@@ -3,9 +3,9 @@ import { rule, shield, allow } from "graphql-shield";
 import type { ServerContext } from "../serverContext";
 
 // Rule to check if user is authenticated
-const isAuthenticated = rule({ cache: "contextual" })(async (
-  parent,
-  args,
+const isAuthenticated = rule({ cache: "contextual" })((
+  _parent,
+  _args,
   context: ServerContext
 ) => {
   return !!context.user;

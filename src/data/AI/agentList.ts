@@ -1,12 +1,21 @@
-import { cheapest, characterGenerator } from "./Agents";
+import { cheapest, characterGenerator, defaultRouter } from "./Agents";
 import type { AIAgentDefinition } from "./types";
 
+// Initialize traditional agent list
 export const AGENT_LIST = new Map<string, AIAgentDefinition>(
-  [cheapest, characterGenerator].map((agent) => [agent.name, agent])
+  [cheapest, characterGenerator, defaultRouter].map((agent) => [
+    agent.name,
+    agent,
+  ])
 );
 
 export function getAgentByName(name: string): AIAgentDefinition {
-  return AGENT_LIST.get(name) as AIAgentDefinition;
+  // Use traditional agent list
+  const agent = AGENT_LIST.get(name);
+  if (!agent) {
+    throw new Error(`Agent ${name} not found`);
+  }
+  return agent;
 }
 
 export function getDefaultAgent(): AIAgentDefinition {

@@ -38,10 +38,11 @@ class TypedPubSub<T extends Record<string, unknown>> implements PubSubEngine {
     this.pubsub.unsubscribe(subId);
   }
 
-  asyncIterator<K extends keyof T>(triggers: K | K[]): AsyncIterator<any> {
-    return this.pubsub.asyncIterator(
-      triggers as string | string[]
-    ) as AsyncIterator<any>;
+  asyncIterator<TPayload>(
+    triggers: string | string[]
+  ): AsyncIterator<TPayload> {
+    const triggerNames = Array.isArray(triggers) ? triggers : [triggers];
+    return this.pubsub.asyncIterator<TPayload>(triggerNames);
   }
 }
 

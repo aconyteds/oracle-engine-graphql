@@ -24,7 +24,7 @@ const AIResolvers: AiModule.Resolvers = {
           }
           if (chunk.responseType === "Final" && !!chunk.message) {
             // Publish the final message to the PubSub
-            pubsub.publish("messageCreated", {
+            await pubsub.publish("messageCreated", {
               threadId,
               message: chunk.message,
             });

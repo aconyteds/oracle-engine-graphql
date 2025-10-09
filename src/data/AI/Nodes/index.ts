@@ -2,3 +2,8 @@ export * from "./validateToolInput";
 export * from "./generateWithTools";
 export * from "./executeTools";
 export * from "./generateFinalResponse";
+export * from "./analyzeAndRoute";
+export * from "./executeTargetAgent";
+export * from "./validateRouting";
+export * from "./executeFallback";
+export * from "./executeDefaultAgent";

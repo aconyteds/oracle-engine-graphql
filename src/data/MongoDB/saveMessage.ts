@@ -15,6 +15,8 @@ type SaveMessageInput = {
   workspace?: MessageWorkspace[];
   // Optional runId for LangSmith tracing
   runId?: string;
+  // Optional routing metadata for router agents
+  routingMetadata?: Record<string, unknown>;
 };
 
 export const saveMessage = async ({
@@ -23,6 +25,7 @@ export const saveMessage = async ({
   role,
   workspace = [],
   runId,
+  routingMetadata,
 }: SaveMessageInput): Promise<Message> => {
   // Calculate the token Count
   const tokenCount = calculateTokenCount(content);
@@ -36,6 +39,7 @@ export const saveMessage = async ({
       tokenCount,
       workspace,
       runId: runId ? String(runId) : null,
+      routingMetadata: routingMetadata ? JSON.stringify(routingMetadata) : null,
     },
   });
 
@@ -50,24 +54,4 @@ export const saveMessage = async ({
 
   // Return the new message ID
   return newMessage;
-};
-
-export const addMessageWorkspaceEntry = async (
-  messageId: string,
-  workspaceEntry: MessageWorkspace
-): Promise<Message> => {
-  // Get the current message to append to its workspace
-  const currentMessage = await DBClient.message.findUniqueOrThrow({
-    where: { id: messageId },
-  });
-
-  // Update the message with the new workspace entry
-  const updatedMessage = await DBClient.message.update({
-    where: { id: messageId },
-    data: {
-      workspace: [...currentMessage.workspace, workspaceEntry],
-    },
-  });
-
-  return updatedMessage;
 };

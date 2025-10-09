@@ -37,11 +37,13 @@ jobs:
       - name: Generate Prisma Client
         run: bunx prisma generate
 
-      - name: Run Unit Tests
-        run: bun run test
+      - name: Run Unit Tests (Isolated)
+        run: bash scripts/run-isolated-tests.sh Unit
+        # This script runs each test file individually to work around Bun's mock.module() bug
+        # See: https://github.com/oven-sh/bun/issues/7823
 
-      - name: Run Integration Tests
-        run: bun run test:e2e
+      - name: Run Integration Tests (Isolated)
+        run: bash scripts/run-isolated-tests.sh E2E
 
   # Job 2: Apply Database Changes with Prisma when code is merged to main
   db-push:

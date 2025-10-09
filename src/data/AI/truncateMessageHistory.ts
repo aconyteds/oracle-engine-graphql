@@ -1,30 +1,19 @@
 import type { BaseMessage } from "@langchain/core/messages";
-import {
-  SystemMessage,
-  HumanMessage,
-  AIMessage,
-} from "@langchain/core/messages";
-
-import type { TrustedModel } from "./modelList";
+import { HumanMessage, AIMessage } from "@langchain/core/messages";
 import { calculateTokenCount } from "./calculateTokenCount";
-import type { RoleTypes } from ".";
-
-export type MessageItem = {
-  content: string;
-  tokenCount?: number;
-  role: RoleTypes;
-};
+import type { AIAgentDefinition } from "./types";
+import type { Message } from "../MongoDB";
 
 type TruncationStrategy = "alternate" | "latest";
 
 type TruncateMessageHistoryInput = {
-  messageList: MessageItem[];
-  model: TrustedModel;
+  messageList: Message[];
+  agent: AIAgentDefinition;
   truncationStrategy?: TruncationStrategy;
   maxContextPercentage?: number;
 };
 
-type MessagePair = [MessageItem | undefined, MessageItem | undefined];
+type MessagePair = [Message | undefined, Message | undefined];
 
 /**
  * Truncates the message history to fit within the model's context window.
@@ -34,7 +23,7 @@ type MessagePair = [MessageItem | undefined, MessageItem | undefined];
  */
 export const truncateMessageHistory = ({
   messageList,
-  model,
+  agent,
   truncationStrategy = "alternate",
   maxContextPercentage = 0.75,
 }: TruncateMessageHistoryInput): BaseMessage[] => {
@@ -43,75 +32,53 @@ export const truncateMessageHistory = ({
   }
 
   const truncatedMessageList: BaseMessage[] = [];
+  const { model, systemMessage } = agent;
 
   const maxTokens = Math.floor(model.contextWindow * maxContextPercentage);
 
   let totalTokens = 0;
 
-  // Get the first system message from the list, and remove the rest
-  let systemMessage: MessageItem | undefined;
-
-  // Filter out system messages
-  messageList = messageList.filter((message) => {
-    // get rid of empty messages
-    if (!message.content) {
-      return false;
-    }
-    // Keep user and assistant messages
-    if (message.role === "user" || message.role === "assistant") {
-      return true;
-    }
-    // If we find a system message, keep it and remove the rest
-    if (message.role === "system" && !systemMessage) {
-      // We take the first system message we find to pass as instructions to the AI
-      systemMessage = message;
-    }
-    return false;
-  });
-
-  // Calculate the token count for the system message
-  if (systemMessage) {
-    totalTokens +=
-      systemMessage.tokenCount || calculateTokenCount(systemMessage.content);
-    truncatedMessageList.push(new SystemMessage(systemMessage.content));
+  // Calculate the token count for the system message, this will allow us to reserve space for it
+  if (systemMessage.length > 0) {
+    totalTokens += calculateTokenCount(systemMessage);
   }
 
   const messagePairs = createMessagePairs(messageList);
-  const orderedMessagePairs = orderMessages(messagePairs, truncationStrategy);
+  const selectedMessagePairs = selectMessages(
+    messagePairs,
+    truncationStrategy,
+    maxTokens,
+    totalTokens
+  );
 
-  // Temporary list to collect messages
-  const tempMessageList: BaseMessage[] = [];
+  // Convert selected pairs to BaseMessage objects and sort by createdAt
+  const selectedMessages: { message: BaseMessage; createdAt: Date }[] = [];
 
-  // Process the ordered message pairs and handle potential undefined messages
-  for (const pair of orderedMessagePairs) {
+  for (const pair of selectedMessagePairs) {
     const [currUserMessage, currAssistantMessage] = pair;
 
-    const userTokens = currUserMessage
-      ? currUserMessage.tokenCount ||
-        calculateTokenCount(currUserMessage.content)
-      : 0;
-    const assistantTokens = currAssistantMessage
-      ? currAssistantMessage.tokenCount ||
-        calculateTokenCount(currAssistantMessage.content)
-      : 0;
-
-    if (totalTokens + userTokens + assistantTokens > maxTokens) {
-      break;
-    }
-
-    totalTokens += userTokens + assistantTokens;
-
     if (currUserMessage) {
-      tempMessageList.push(new HumanMessage(currUserMessage.content));
+      selectedMessages.push({
+        message: new HumanMessage(currUserMessage.content),
+        createdAt: currUserMessage.createdAt,
+      });
     }
 
     if (currAssistantMessage) {
-      tempMessageList.push(new AIMessage(currAssistantMessage.content));
+      selectedMessages.push({
+        message: new AIMessage(currAssistantMessage.content),
+        createdAt: currAssistantMessage.createdAt,
+      });
     }
   }
 
-  // Reverse to maintain chronological order
-  truncatedMessageList.push(...tempMessageList.reverse());
+  // Sort by createdAt with oldest first
+  selectedMessages.sort(
+    (a, b) => a.createdAt.getTime() - b.createdAt.getTime()
+  );
+
+  // Extract the BaseMessage objects
+  truncatedMessageList.push(...selectedMessages.map((item) => item.message));
 
   return truncatedMessageList;
 };
@@ -122,7 +89,7 @@ export const truncateMessageHistory = ({
  * @param messageList - The list of messages to pair.
  * @returns An array of message pairs.
  */
-function createMessagePairs(messageList: MessageItem[]): MessagePair[] {
+function createMessagePairs(messageList: Message[]): MessagePair[] {
   const messagePairs: MessagePair[] = [];
   let currentPair: MessagePair = [undefined, undefined];
 
@@ -158,52 +125,110 @@ function createMessagePairs(messageList: MessageItem[]): MessagePair[] {
   return messagePairs;
 }
 
-function orderMessages(
+function selectMessages(
   messagePairs: MessagePair[],
-  truncationStrategy: TruncationStrategy
+  truncationStrategy: TruncationStrategy,
+  maxTokens: number,
+  systemTokens: number
 ): MessagePair[] {
   switch (truncationStrategy) {
     case "alternate":
-      return orderMessagePairsAlternate(messagePairs);
+      return selectMessagePairsAlternate(messagePairs, maxTokens, systemTokens);
     case "latest":
-      return orderMessagePairsLatest(messagePairs);
+      return selectMessagePairsLatest(messagePairs, maxTokens, systemTokens);
     default:
-      throw new Error(`Invalid truncation strategy: ${truncationStrategy}`);
+      const exhaustiveCheck: never = truncationStrategy;
+      throw new Error(
+        `Invalid truncation strategy: ${String(exhaustiveCheck)}`
+      );
   }
 }
 
 /**
- * Orders message pairs by alternating between the end and start of the array.
+ * Selects message pairs by alternating between the end and start of the array until token limit is reached.
  *
- * @param messagePairs - The message pairs to order.
- * @returns The ordered message pairs.
+ * @param messagePairs - The message pairs to select from.
+ * @param maxTokens - Maximum tokens allowed.
+ * @param systemTokens - Tokens already used by system message.
+ * @returns The selected message pairs.
  */
-function orderMessagePairsAlternate(
-  messagePairs: MessagePair[]
+function selectMessagePairsAlternate(
+  messagePairs: MessagePair[],
+  maxTokens: number,
+  systemTokens: number
 ): MessagePair[] {
-  const orderedMessagePairs: MessagePair[] = [];
+  const selectedMessagePairs: MessagePair[] = [];
+  let totalTokens = systemTokens;
   let start = 0;
   let end = messagePairs.length - 1;
   let takeFromEnd = true;
 
   while (start <= end) {
+    const currentPair = takeFromEnd ? messagePairs[end] : messagePairs[start];
+    const [currUserMessage, currAssistantMessage] = currentPair;
+
+    const userTokens = currUserMessage
+      ? currUserMessage.tokenCount ||
+        calculateTokenCount(currUserMessage.content)
+      : 0;
+    const assistantTokens = currAssistantMessage
+      ? currAssistantMessage.tokenCount ||
+        calculateTokenCount(currAssistantMessage.content)
+      : 0;
+
+    if (totalTokens + userTokens + assistantTokens <= maxTokens) {
+      totalTokens += userTokens + assistantTokens;
+      selectedMessagePairs.push(currentPair);
+    }
+
+    // Always advance to next position regardless of whether we added the pair
     if (takeFromEnd) {
-      orderedMessagePairs.push(messagePairs[end--]);
+      end--;
     } else {
-      orderedMessagePairs.push(messagePairs[start++]);
+      start++;
     }
     takeFromEnd = !takeFromEnd;
   }
 
-  return orderedMessagePairs;
+  return selectedMessagePairs;
 }
 
 /**
- * Orders message pairs by taking the latest messages first.
+ * Selects message pairs by taking the latest messages first until token limit is reached.
  *
- * @param messagePairs - The message pairs to order.
- * @returns The ordered message pairs.
+ * @param messagePairs - The message pairs to select from.
+ * @param maxTokens - Maximum tokens allowed.
+ * @param systemTokens - Tokens already used by system message.
+ * @returns The selected message pairs.
  */
-function orderMessagePairsLatest(messagePairs: MessagePair[]): MessagePair[] {
-  return messagePairs.slice().reverse();
+function selectMessagePairsLatest(
+  messagePairs: MessagePair[],
+  maxTokens: number,
+  systemTokens: number
+): MessagePair[] {
+  const selectedMessagePairs: MessagePair[] = [];
+  let totalTokens = systemTokens;
+
+  // Start from the end (most recent) and work backwards
+  for (let i = messagePairs.length - 1; i >= 0; i--) {
+    const [currUserMessage, currAssistantMessage] = messagePairs[i];
+
+    const userTokens = currUserMessage
+      ? currUserMessage.tokenCount ||
+        calculateTokenCount(currUserMessage.content)
+      : 0;
+    const assistantTokens = currAssistantMessage
+      ? currAssistantMessage.tokenCount ||
+        calculateTokenCount(currAssistantMessage.content)
+      : 0;
+
+    if (totalTokens + userTokens + assistantTokens > maxTokens) {
+      continue; // Skip this pair and try the next one
+    }
+
+    totalTokens += userTokens + assistantTokens;
+    selectedMessagePairs.push(messagePairs[i]);
+  }
+
+  return selectedMessagePairs;
 }

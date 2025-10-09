@@ -10,15 +10,18 @@ const calculatorSchema = z.object({
 });
 
 export const calculator = tool(
-  async (input: z.infer<typeof calculatorSchema>): Promise<string> => {
+  async (rawInput: unknown): Promise<string> => {
+    const input = calculatorSchema.parse(rawInput);
     try {
       // Simple calculator - in production you'd want more sophisticated parsing
-      const result = eval(
-        input.expression.replace(/[^0-9+\-*/().]/g, "")
-      ) as number;
+      const sanitizedExpression = input.expression.replace(
+        /[^0-9+\-*/().]/g,
+        ""
+      );
+      const result = await Promise.resolve(eval(sanitizedExpression) as number);
       return `The result is: ${result}`;
     } catch (error) {
-      return `Error calculating: ${error}`;
+      return `Error calculating: ${String(error)}`;
     }
   },
   {

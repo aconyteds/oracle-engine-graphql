@@ -1,4 +1,4 @@
-import { test, expect, beforeEach, mock } from "bun:test";
+import { test, expect, beforeEach, mock, describe, afterEach } from "bun:test";
 import type { Message } from "../../../data/MongoDB";
 import type { GenerateMessagePayload } from "../../../generated/graphql";
 
@@ -13,532 +13,386 @@ interface MockThread {
   updatedAt: Date;
 }
 
-const mockDBClient = {
-  thread: {
-    findUnique: mock(),
-  },
-};
+describe("Unit -> generateMessage", () => {
+  // Mock variables
+  let mockFindUnique: ReturnType<typeof mock>;
+  let mockDBClient: {
+    thread: {
+      findUnique: ReturnType<typeof mock>;
+    };
+  };
+  let mockServerError: ReturnType<typeof mock>;
+  let mockTruncateMessageHistory: ReturnType<typeof mock>;
+  let mockGetAgentByName: ReturnType<typeof mock>;
+  let mockGetModelDefinition: ReturnType<typeof mock>;
+  let mockGenerateMessageWithRouter: ReturnType<typeof mock>;
+  let mockGenerateMessageWithStandardWorkflow: ReturnType<typeof mock>;
+  let mockRandomUUID: ReturnType<typeof mock>;
+  let generateMessage: (
+    threadId: string
+  ) => AsyncGenerator<GenerateMessagePayload>;
 
-const mockServerError = mock();
-const mockTruncateMessageHistory = mock();
-const mockGetAgentByName = mock();
-const mockGetModelDefinition = mock();
-const mockRunToolEnabledWorkflow = mock();
-const mockSaveMessage = mock();
-const mockTranslateMessage = mock();
-const mockRandomUUID = mock();
-
-mock.module("../../../data/MongoDB", () => ({
-  DBClient: mockDBClient,
-  saveMessage: mockSaveMessage,
-}));
-
-mock.module("../../../graphql/errors", () => ({
-  ServerError: mockServerError,
-}));
-
-mock.module("../../../data/AI", () => ({
-  truncateMessageHistory: mockTruncateMessageHistory,
-  getAgentByName: mockGetAgentByName,
-  getModelDefinition: mockGetModelDefinition,
-  runToolEnabledWorkflow: mockRunToolEnabledWorkflow,
-}));
-
-mock.module("../../utils", () => ({
-  TranslateMessage: mockTranslateMessage,
-}));
-
-mock.module("crypto", () => ({
-  randomUUID: mockRandomUUID,
-}));
-
-import { generateMessage } from "./generateMessage";
-
-// Default mock data
-const defaultThread: MockThread = {
-  id: "thread-id",
-  title: "Test Thread",
-  userId: "user-id",
-  selectedAgent: "test-agent",
-  messages: [],
-  createdAt: new Date(),
-  updatedAt: new Date(),
-};
-
-const defaultAgent = {
-  model: "gpt-4",
-  useHistory: true,
-  systemMessage: "You are a helpful assistant",
-  availableTools: [],
-};
-
-const defaultAIModel = { modelName: "gpt-4" };
-
-const defaultMessage: Message = {
-  id: "msg-1",
-  role: "user",
-  content: "Hello",
-  tokenCount: 10,
-  workspace: [],
-  threadId: "thread-id",
-  runId: null,
-  createdAt: new Date(),
-  updatedAt: new Date(),
-};
-
-const defaultWorkflowResult = {
-  currentResponse: "Generated response",
-  metadata: {
-    hasToolCalls: false,
-    toolExecutionResults: [],
-  },
-  toolCallsForDB: [],
-  toolResultsForDB: [],
-};
-
-const defaultSavedMessage: Message = {
-  id: "new-msg-id",
-  role: "assistant",
-  content: "Generated response",
-  tokenCount: 25,
-  workspace: [],
-  threadId: "thread-id",
-  runId: "test-run-id",
-  createdAt: new Date(),
-  updatedAt: new Date(),
-};
-
-const defaultTranslatedMessage = {
-  id: "new-msg-id",
-  content: "Generated response",
-  createdAt: new Date().toISOString(),
-  threadId: "thread-id",
-  role: "Assistant" as const,
-  tokenCount: 25,
-  workspace: [],
-};
-
-beforeEach(() => {
-  // Clear all mocks
-  mockDBClient.thread.findUnique.mockClear();
-  mockServerError.mockClear();
-  mockTruncateMessageHistory.mockClear();
-  mockGetAgentByName.mockClear();
-  mockGetModelDefinition.mockClear();
-  mockRunToolEnabledWorkflow.mockClear();
-  mockSaveMessage.mockClear();
-  mockTranslateMessage.mockClear();
-  mockRandomUUID.mockClear();
-
-  // Set up default mock behavior
-  mockDBClient.thread.findUnique.mockResolvedValue(defaultThread);
-  mockGetAgentByName.mockReturnValue(defaultAgent);
-  mockGetModelDefinition.mockReturnValue(defaultAIModel);
-  mockTruncateMessageHistory.mockReturnValue([
-    { role: "system", content: defaultAgent.systemMessage },
-  ]);
-  mockRunToolEnabledWorkflow.mockResolvedValue(defaultWorkflowResult);
-  mockSaveMessage.mockResolvedValue(defaultSavedMessage);
-  mockTranslateMessage.mockReturnValue(defaultTranslatedMessage);
-  mockRandomUUID.mockReturnValue("test-run-id");
-  mockServerError.mockImplementation((msg: string) => new Error(msg));
-});
-
-test("Unit -> generateMessage throws error when thread not found", async () => {
-  mockDBClient.thread.findUnique.mockResolvedValue(null);
-
-  const generator = generateMessage("non-existent-thread-id");
-
-  await expect(async () => {
-    await generator.next();
-  }).toThrow("Thread not found");
-
-  expect(mockDBClient.thread.findUnique).toHaveBeenCalledWith({
-    where: { id: "non-existent-thread-id" },
-    select: {
-      userId: true,
-      selectedAgent: true,
-      messages: {
-        orderBy: {
-          createdAt: "asc",
-        },
-      },
-    },
-  });
-});
-
-test("Unit -> generateMessage throws error when agent not found", async () => {
-  const mockThread: MockThread = {
-    ...defaultThread,
-    selectedAgent: "invalid-agent",
+  // Default mock data
+  const defaultThread: MockThread = {
+    id: "thread-id",
+    title: "Test Thread",
+    userId: "user-id",
+    selectedAgent: "test-agent",
+    messages: [],
+    createdAt: new Date(),
+    updatedAt: new Date(),
   };
 
-  mockDBClient.thread.findUnique.mockResolvedValue(mockThread);
-  mockGetAgentByName.mockReturnValue(null);
+  const defaultAgent = {
+    name: "test-agent",
+    model: "gpt-4",
+    routerType: "simple" as const,
+    systemMessage: "You are a helpful assistant",
+    availableTools: [],
+  };
 
-  const generator = generateMessage("thread-id");
+  const defaultRouterAgent = {
+    name: "router-agent",
+    model: "gpt-4",
+    routerType: "router" as const,
+    systemMessage: "You are a router agent",
+    availableTools: [],
+    availableSubAgents: [{ name: "sub-agent" }],
+  };
 
-  await expect(async () => {
-    await generator.next();
-  }).toThrow("Invalid agent selected.");
+  const defaultAIModel = { modelName: "gpt-4" };
 
-  expect(mockGetAgentByName).toHaveBeenCalledWith("invalid-agent");
-});
+  const defaultMessage: Message = {
+    id: "msg-1",
+    role: "user",
+    content: "Hello",
+    tokenCount: 10,
+    workspace: [],
+    threadId: "thread-id",
+    runId: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    routingMetadata: null,
+  };
 
-test("Unit -> generateMessage throws error when model definition invalid", async () => {
-  mockGetModelDefinition.mockReturnValue(null);
-
-  const generator = generateMessage("thread-id");
-
-  await expect(async () => {
-    await generator.next();
-  }).toThrow("Invalid agent Configuration detected.");
-
-  expect(mockGetModelDefinition).toHaveBeenCalledWith(defaultAgent);
-});
-
-test("Unit -> generateMessage processes thread with history enabled", async () => {
-  const mockMessages: Message[] = [
-    { ...defaultMessage, content: "Hello" },
+  const defaultWorkflowResults = [
     {
-      ...defaultMessage,
-      id: "msg-2",
-      role: "assistant",
-      content: "Hi there!",
-      tokenCount: 15,
+      responseType: "Final" as const,
+      content: "Generated response",
     },
   ];
 
-  const mockThread: MockThread = {
-    ...defaultThread,
-    messages: mockMessages,
-  };
+  beforeEach(async () => {
+    // Restore all mocks first
+    mock.restore();
 
-  const mockAgent = {
-    ...defaultAgent,
-    availableTools: [{ name: "calculator" }],
-  };
-
-  mockDBClient.thread.findUnique.mockResolvedValue(mockThread);
-  mockGetAgentByName.mockReturnValue(mockAgent);
-  mockTruncateMessageHistory.mockReturnValue([
-    { role: "system", content: "You are a helpful assistant" },
-    { role: "user", content: "Hello", tokenCount: 10 },
-    { role: "assistant", content: "Hi there!", tokenCount: 15 },
-  ]);
-
-  const generator = generateMessage("thread-id");
-  const results: GenerateMessagePayload[] = [];
-
-  for await (const result of generator) {
-    results.push(result);
-  }
-
-  expect(results).toHaveLength(2);
-  expect(results[0]).toEqual({
-    responseType: "Debug",
-    content: "🔧 Tools available: calculator",
-  });
-  expect(results[1]).toEqual({
-    responseType: "Final",
-    content: "Generated response",
-    message: {
-      ...defaultTranslatedMessage,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      createdAt: expect.any(String),
-    },
-  });
-
-  expect(mockTruncateMessageHistory).toHaveBeenCalledWith({
-    messageList: [
-      { role: "system", content: "You are a helpful assistant" },
-      { role: "user", content: "Hello", tokenCount: 10 },
-      { role: "assistant", content: "Hi there!", tokenCount: 15 },
-    ],
-    model: "gpt-4",
-  });
-
-  expect(mockSaveMessage).toHaveBeenCalledWith({
-    threadId: "thread-id",
-    content: "Generated response",
-    role: "assistant",
-    workspace: [
-      {
-        messageType: "Debug",
-        content: "🔧 Tools available: calculator",
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        timestamp: expect.any(Date),
-        elapsedTime: null,
+    // Create mock functions
+    mockFindUnique = mock();
+    mockDBClient = {
+      thread: {
+        findUnique: mockFindUnique,
       },
-    ],
-    runId: "test-run-id",
-  });
-});
+    };
+    mockServerError = mock();
+    mockTruncateMessageHistory = mock();
+    mockGetAgentByName = mock();
+    mockGetModelDefinition = mock();
+    mockGenerateMessageWithRouter = mock();
+    mockGenerateMessageWithStandardWorkflow = mock();
+    mockRandomUUID = mock();
 
-test("Unit -> generateMessage processes thread without history", async () => {
-  const mockMessages: Message[] = [
-    {
-      ...defaultMessage,
-      content: "What is 2+2?",
-      createdAt: new Date("2023-01-01"),
-    },
-    {
-      ...defaultMessage,
-      id: "msg-2",
-      role: "assistant",
-      content: "4",
-      tokenCount: 5,
-      createdAt: new Date("2023-01-02"),
-    },
-    {
-      ...defaultMessage,
-      id: "msg-3",
-      content: "What about 3+3?",
-      tokenCount: 12,
-      createdAt: new Date("2023-01-03"),
-    },
-  ];
+    // Mock modules
+    void mock.module("../../../data/MongoDB", () => ({
+      DBClient: mockDBClient,
+    }));
 
-  const mockThread: MockThread = {
-    ...defaultThread,
-    messages: mockMessages,
-  };
+    void mock.module("../../../graphql/errors", () => ({
+      ServerError: mockServerError,
+    }));
 
-  const mockAgent = {
-    ...defaultAgent,
-    useHistory: false,
-    systemMessage: "You are a calculator",
-  };
+    void mock.module("../../../data/AI/truncateMessageHistory", () => ({
+      truncateMessageHistory: mockTruncateMessageHistory,
+    }));
 
-  const mockWorkflowResult = {
-    ...defaultWorkflowResult,
-    currentResponse: "6",
-  };
+    void mock.module("../../../data/AI/agentList", () => ({
+      getAgentByName: mockGetAgentByName,
+    }));
 
-  const mockSavedMessage: Message = {
-    ...defaultSavedMessage,
-    content: "6",
-    tokenCount: 5,
-  };
+    void mock.module("../../../data/AI/getModelDefinition", () => ({
+      getModelDefinition: mockGetModelDefinition,
+    }));
 
-  mockDBClient.thread.findUnique.mockResolvedValue(mockThread);
-  mockGetAgentByName.mockReturnValue(mockAgent);
-  mockTruncateMessageHistory.mockReturnValue([
-    { role: "system", content: "You are a calculator" },
-    { role: "user", content: "What about 3+3?", tokenCount: 12 },
-  ]);
-  mockRunToolEnabledWorkflow.mockResolvedValue(mockWorkflowResult);
-  mockSaveMessage.mockResolvedValue(mockSavedMessage);
-  mockTranslateMessage.mockReturnValue({
-    ...defaultTranslatedMessage,
-    content: "6",
-    tokenCount: 5,
-  });
+    void mock.module("../../../data/AI/generateMessageWithRouter", () => ({
+      generateMessageWithRouter: mockGenerateMessageWithRouter,
+    }));
 
-  const generator = generateMessage("thread-id");
-  const results: GenerateMessagePayload[] = [];
+    void mock.module(
+      "../../../data/AI/generateMessageWithStandardWorkflow",
+      () => ({
+        generateMessageWithStandardWorkflow:
+          mockGenerateMessageWithStandardWorkflow,
+      })
+    );
 
-  for await (const result of generator) {
-    results.push(result);
-  }
+    void mock.module("crypto", () => ({
+      randomUUID: mockRandomUUID,
+    }));
 
-  expect(mockTruncateMessageHistory).toHaveBeenCalledWith({
-    messageList: [
-      { role: "system", content: "You are a calculator" },
-      { role: "user", content: "What about 3+3?", tokenCount: 12 },
-    ],
-    model: "gpt-4",
-  });
-});
+    // Dynamic import
+    const module = await import("./generateMessage");
+    generateMessage = module.generateMessage;
 
-test("Unit -> generateMessage handles tool calls and results", async () => {
-  const mockThread: MockThread = {
-    ...defaultThread,
-    selectedAgent: "tool-agent",
-    messages: [
-      { ...defaultMessage, content: "Calculate 15 * 8", tokenCount: 15 },
-    ],
-  };
+    // Set up default mock behavior
+    mockFindUnique.mockResolvedValue(defaultThread);
+    mockGetAgentByName.mockReturnValue(defaultAgent);
+    mockGetModelDefinition.mockReturnValue(defaultAIModel);
+    mockTruncateMessageHistory.mockReturnValue([
+      { role: "system", content: defaultAgent.systemMessage },
+    ]);
 
-  const mockAgent = {
-    ...defaultAgent,
-    systemMessage: "You are a helpful assistant with tools",
-    availableTools: [{ name: "calculator" }, { name: "dice" }],
-  };
+    // Mock workflow generators to return async generators
+    mockGenerateMessageWithStandardWorkflow.mockImplementation(
+      async function* () {
+        for (const result of defaultWorkflowResults) {
+          await Promise.resolve(); // No-op await to satisfy async generator requirements
+          yield result;
+        }
+      }
+    );
 
-  const mockWorkflowResult = {
-    currentResponse: "The calculation result is 120.",
-    metadata: {
-      hasToolCalls: true,
-      toolExecutionResults: ["calculator"],
-    },
-    toolCallsForDB: [
-      {
-        toolName: "calculator",
-        arguments: '{"expression": "15 * 8"}',
-        dateOccurred: new Date("2023-01-01T12:00:00Z"),
-      },
-    ],
-    toolResultsForDB: [
-      {
-        result: "120",
-        elapsedTime: 150,
-        dateOccurred: new Date("2023-01-01T12:00:01Z"),
-      },
-    ],
-  };
-
-  const mockSavedMessage: Message = {
-    ...defaultSavedMessage,
-    content: "The calculation result is 120.",
-    tokenCount: 30,
-  };
-
-  mockDBClient.thread.findUnique.mockResolvedValue(mockThread);
-  mockGetAgentByName.mockReturnValue(mockAgent);
-  mockTruncateMessageHistory.mockReturnValue([
-    { role: "system", content: "You are a helpful assistant with tools" },
-    { role: "user", content: "Calculate 15 * 8", tokenCount: 15 },
-  ]);
-  mockRunToolEnabledWorkflow.mockResolvedValue(mockWorkflowResult);
-  mockSaveMessage.mockResolvedValue(mockSavedMessage);
-  mockTranslateMessage.mockReturnValue({
-    ...defaultTranslatedMessage,
-    content: "The calculation result is 120.",
-    tokenCount: 30,
-  });
-
-  const generator = generateMessage("thread-id");
-  const results: GenerateMessagePayload[] = [];
-
-  for await (const result of generator) {
-    results.push(result);
-  }
-
-  expect(results).toHaveLength(3);
-  expect(results[0]).toEqual({
-    responseType: "Debug",
-    content: "🔧 Tools available: calculator, dice",
-  });
-  expect(results[1]).toEqual({
-    responseType: "Intermediate",
-    content: "🛠️ Used tools: calculator",
-  });
-  expect(results[2]).toEqual({
-    responseType: "Final",
-    content: "The calculation result is 120.",
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    message: expect.any(Object),
-  });
-
-  expect(mockSaveMessage).toHaveBeenCalledWith({
-    threadId: "thread-id",
-    content: "The calculation result is 120.",
-    role: "assistant",
-    workspace: [
-      {
-        messageType: "Debug",
-        content: "🔧 Tools available: calculator, dice",
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        timestamp: expect.any(Date),
-        elapsedTime: null,
-      },
-      {
-        messageType: "tool_call",
-        content:
-          '\ntool_name: **calculator**\n\narguments: \n{\n  "expression": "15 * 8"\n}',
-        timestamp: new Date("2023-01-01T12:00:00Z"),
-        elapsedTime: null,
-      },
-      {
-        messageType: "tool_result",
-        content: "120",
-        elapsedTime: 150,
-        timestamp: new Date("2023-01-01T12:00:01Z"),
-      },
-    ],
-    runId: "test-run-id",
-  });
-});
-
-test("Unit -> generateMessage handles workflow error", async () => {
-  // Mock console.error to suppress output and verify it's called
-  const originalConsoleError = console.error;
-  const mockConsoleError = mock();
-  console.error = mockConsoleError;
-
-  const mockError = new Error("Workflow failed");
-  mockRunToolEnabledWorkflow.mockRejectedValue(mockError);
-
-  try {
-    const generator = generateMessage("thread-id");
-
-    // Get the first result (Debug message)
-    const firstResult = await generator.next();
-    expect(firstResult.value).toEqual({
-      responseType: "Debug",
-      content: "🔧 Tools available: ",
+    mockGenerateMessageWithRouter.mockImplementation(async function* () {
+      await Promise.resolve(); // No-op await to satisfy async generator requirements
+      yield { responseType: "Final", content: "Router response" };
     });
 
-    // The next call should throw an error
-    await expect(generator.next()).rejects.toThrow(
-      "Error generating message with tools."
-    );
-
-    // Verify console.error was called with the expected message
-    expect(mockConsoleError).toHaveBeenCalledWith(
-      "Error in tool-enabled generation:",
-      mockError
-    );
-  } finally {
-    // Restore original console.error
-    console.error = originalConsoleError;
-  }
-});
-
-test("Unit -> generateMessage handles empty thread messages", async () => {
-  const mockAgent = {
-    ...defaultAgent,
-    useHistory: false,
-  };
-
-  const mockWorkflowResult = {
-    ...defaultWorkflowResult,
-    currentResponse: "Hello! How can I help you?",
-  };
-
-  const mockSavedMessage: Message = {
-    ...defaultSavedMessage,
-    content: "Hello! How can I help you?",
-    tokenCount: 20,
-  };
-
-  mockGetAgentByName.mockReturnValue(mockAgent);
-  mockTruncateMessageHistory.mockReturnValue([
-    { role: "system", content: "You are a helpful assistant" },
-    { role: "user", content: "" },
-  ]);
-  mockRunToolEnabledWorkflow.mockResolvedValue(mockWorkflowResult);
-  mockSaveMessage.mockResolvedValue(mockSavedMessage);
-  mockTranslateMessage.mockReturnValue({
-    ...defaultTranslatedMessage,
-    content: "Hello! How can I help you?",
-    tokenCount: 20,
+    mockRandomUUID.mockReturnValue("test-run-id");
+    mockServerError.mockImplementation((msg: string) => new Error(msg));
   });
 
-  const generator = generateMessage("thread-id");
-  const results: GenerateMessagePayload[] = [];
+  afterEach(() => {
+    mock.restore();
+  });
 
-  for await (const result of generator) {
-    results.push(result);
-  }
+  test("Unit -> generateMessage throws error when thread not found", () => {
+    mockFindUnique.mockResolvedValue(null);
 
-  expect(results).toHaveLength(2);
-  expect(mockTruncateMessageHistory).toHaveBeenCalledWith({
-    messageList: [
+    const generator = generateMessage("non-existent-thread-id");
+
+    expect(generator.next()).rejects.toThrow("Thread not found");
+
+    expect(mockFindUnique).toHaveBeenCalledWith({
+      where: { id: "non-existent-thread-id" },
+      select: {
+        userId: true,
+        selectedAgent: true,
+        messages: {
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
+      },
+    });
+  });
+
+  test("Unit -> generateMessage throws error when agent not found", async () => {
+    const mockThread: MockThread = {
+      ...defaultThread,
+      selectedAgent: "invalid-agent",
+    };
+
+    mockFindUnique.mockResolvedValue(mockThread);
+    mockGetAgentByName.mockReturnValue(null);
+
+    const generator = generateMessage("thread-id");
+
+    // eslint-disable-next-line @typescript-eslint/await-thenable
+    await expect(generator.next()).rejects.toThrow("Invalid agent selected.");
+
+    expect(mockGetAgentByName).toHaveBeenCalledWith("invalid-agent");
+  });
+
+  test("Unit -> generateMessage throws error when model definition invalid", async () => {
+    mockGetModelDefinition.mockReturnValue(null);
+
+    const generator = generateMessage("thread-id");
+
+    // eslint-disable-next-line @typescript-eslint/await-thenable
+    await expect(generator.next()).rejects.toThrow(
+      "Invalid agent Configuration detected."
+    );
+
+    expect(mockGetModelDefinition).toHaveBeenCalledWith(defaultAgent);
+  });
+
+  test("Unit -> generateMessage uses standard workflow for simple agent", async () => {
+    const mockMessages: Message[] = [{ ...defaultMessage, content: "Hello" }];
+
+    const mockThread: MockThread = {
+      ...defaultThread,
+      messages: mockMessages,
+    };
+
+    mockFindUnique.mockResolvedValue(mockThread);
+    mockGetAgentByName.mockReturnValue(defaultAgent);
+    mockTruncateMessageHistory.mockReturnValue([
       { role: "system", content: "You are a helpful assistant" },
-      { role: "user", content: "" },
-    ],
-    model: "gpt-4",
+      { role: "user", content: "Hello", tokenCount: 10 },
+    ]);
+
+    const generator = generateMessage("thread-id");
+    const results: GenerateMessagePayload[] = [];
+
+    for await (const result of generator) {
+      results.push(result);
+    }
+
+    expect(results).toHaveLength(1);
+    expect(results[0]).toEqual({
+      responseType: "Final",
+      content: "Generated response",
+    });
+
+    expect(mockTruncateMessageHistory).toHaveBeenCalledWith({
+      messageList: mockMessages,
+      agent: defaultAgent,
+    });
+
+    expect(mockGenerateMessageWithStandardWorkflow).toHaveBeenCalledWith({
+      threadId: "thread-id",
+      agent: defaultAgent,
+      messageHistory: [
+        { role: "system", content: "You are a helpful assistant" },
+        { role: "user", content: "Hello", tokenCount: 10 },
+      ],
+      runId: "test-run-id",
+    });
+
+    expect(mockGenerateMessageWithRouter).not.toHaveBeenCalled();
+  });
+
+  test("Unit -> generateMessage uses router workflow for router agent", async () => {
+    const mockMessages: Message[] = [
+      { ...defaultMessage, content: "Help me with character creation" },
+    ];
+
+    const mockThread: MockThread = {
+      ...defaultThread,
+      messages: mockMessages,
+      selectedAgent: "router-agent",
+    };
+
+    mockFindUnique.mockResolvedValue(mockThread);
+    mockGetAgentByName.mockReturnValue(defaultRouterAgent);
+    mockTruncateMessageHistory.mockReturnValue([
+      { role: "system", content: "You are a router agent" },
+      {
+        role: "user",
+        content: "Help me with character creation",
+        tokenCount: 10,
+      },
+    ]);
+
+    const generator = generateMessage("thread-id");
+    const results: GenerateMessagePayload[] = [];
+
+    for await (const result of generator) {
+      results.push(result);
+    }
+
+    expect(results).toHaveLength(1);
+    expect(results[0]).toEqual({
+      responseType: "Final",
+      content: "Router response",
+    });
+
+    expect(mockTruncateMessageHistory).toHaveBeenCalledWith({
+      messageList: mockMessages,
+      agent: defaultRouterAgent,
+    });
+
+    expect(mockGenerateMessageWithRouter).toHaveBeenCalledWith({
+      threadId: "thread-id",
+      agent: defaultRouterAgent,
+      messageHistory: [
+        { role: "system", content: "You are a router agent" },
+        {
+          role: "user",
+          content: "Help me with character creation",
+          tokenCount: 10,
+        },
+      ],
+      runId: "test-run-id",
+    });
+
+    expect(mockGenerateMessageWithStandardWorkflow).not.toHaveBeenCalled();
+  });
+
+  test("Unit -> generateMessage handles undefined routerType as simple", async () => {
+    const agentWithoutRouterType = {
+      ...defaultAgent,
+      routerType: undefined,
+    };
+
+    mockGetAgentByName.mockReturnValue(agentWithoutRouterType);
+
+    const generator = generateMessage("thread-id");
+    const results: GenerateMessagePayload[] = [];
+
+    for await (const result of generator) {
+      results.push(result);
+    }
+
+    expect(results).toHaveLength(1);
+    expect(results[0]).toEqual({
+      responseType: "Final",
+      content: "Generated response",
+    });
+
+    expect(mockGenerateMessageWithStandardWorkflow).toHaveBeenCalled();
+    expect(mockGenerateMessageWithRouter).not.toHaveBeenCalled();
+  });
+
+  test("Unit -> generateMessage generates unique runId for each call", async () => {
+    mockRandomUUID
+      .mockReturnValueOnce("run-id-1")
+      .mockReturnValueOnce("run-id-2");
+
+    // First call
+    const generator1 = generateMessage("thread-id");
+    await generator1.next();
+
+    // Second call
+    const generator2 = generateMessage("thread-id");
+    await generator2.next();
+
+    expect(mockGenerateMessageWithStandardWorkflow).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ runId: "run-id-1" })
+    );
+    expect(mockGenerateMessageWithStandardWorkflow).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ runId: "run-id-2" })
+    );
+  });
+
+  test("Unit -> generateMessage passes correct parameters to truncateMessageHistory", async () => {
+    const mockMessages: Message[] = [
+      { ...defaultMessage, content: "Test message" },
+    ];
+
+    const mockThread: MockThread = {
+      ...defaultThread,
+      messages: mockMessages,
+    };
+
+    mockFindUnique.mockResolvedValue(mockThread);
+
+    const generator = generateMessage("thread-id");
+    await generator.next();
+
+    expect(mockTruncateMessageHistory).toHaveBeenCalledWith({
+      messageList: mockMessages,
+      agent: defaultAgent,
+    });
   });
 });

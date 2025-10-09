@@ -1,3 +1,4 @@
+import { SystemMessage } from "@langchain/core/messages";
 import type { ToolEnabledGraphState } from "../Workflows/toolEnabledWorkflow";
 import type { ToolCall, ToolCallForDB } from "../types";
 
@@ -7,13 +8,20 @@ import type { ToolCall, ToolCallForDB } from "../types";
 export async function generateWithTools(
   state: typeof ToolEnabledGraphState.State
 ): Promise<Partial<typeof ToolEnabledGraphState.State>> {
-  const { messages, model, tools, runId, metadata } = state;
+  const { messages, tools, runId, metadata, agent, model } = state;
+
+  const systemMessage = new SystemMessage(agent.systemMessage);
+  // Ensure the system message is the first message
+  const allMessages = [
+    systemMessage,
+    ...messages.filter(({ id }) => id?.includes("SystemMessage") === false),
+  ];
 
   try {
     // Bind tools to the model if tools are available
     const modelWithTools = tools.length > 0 ? model.bindTools(tools) : model;
 
-    const response = await modelWithTools.invoke(messages, {
+    const response = await modelWithTools.invoke(allMessages, {
       runId,
     });
 

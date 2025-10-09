@@ -16,9 +16,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Testing:**
 
 - `bun test` - Run unit tests (test-name-pattern: Unit)
+- `bun run test:isolated` - Run unit tests in isolation (one file at a time) - RECOMMENDED for CI
 - `bun test:e2e` - Run end-to-end tests (test-name-pattern: E2E)
+- `bun run test:e2e:isolated` - Run E2E tests in isolation - RECOMMENDED for CI
 - `bun run lint` - MUST be run after creating/modifying tests to fix lint errors
 - `bun run lint:fix` - Auto-fix lint issues in test files
+
+**Important:** Due to a bug in Bun's `mock.module()` (see [#7823](https://github.com/oven-sh/bun/issues/7823), [#6040](https://github.com/oven-sh/bun/issues/6040)), module mocks leak between test files. The `test:isolated` scripts run each test file individually to ensure proper isolation. Use these in CI and when debugging test failures.
 
 **Database:**
 
@@ -112,96 +116,141 @@ The system uses LangGraph for structured AI workflows:
 - Test files should be named `*.test.ts` and placed alongside the source file
 - Test naming convention: `"Unit -> functionName describes what it tests"`
 
-**Mocking Guidelines:**
+**Mocking Guidelines (CRITICAL - Dynamic Import Pattern REQUIRED):**
 
-- Use `mock.module()` to mock entire modules before importing the code under test
-- Create individual mock functions: `const mockFunction = mock()`
-- Mock database operations by mocking the Prisma client
-- Clear mocks in `beforeEach()` using `mockFunction.mockClear()`
-- Set return values with `mockFunction.mockReturnValue()` or `mockFunction.mockResolvedValue()`
-- Verify calls with `expect(mockFunction).toHaveBeenCalledWith(expectedArgs)`
+To ensure proper test isolation and prevent cross-test contamination, you MUST follow this dynamic import pattern when using `mock.module()`:
+
+1. **Declare mock variables with `let`** at the top of the `describe` block (NOT as constants)
+2. **Use `async beforeEach()`** to set up mocks before each test
+3. **Call `mock.restore()`** at the start of `beforeEach()` to clear all previous mocks
+4. **Create fresh mock instances** in `beforeEach()` for each test
+5. **Set up `mock.module()`** calls inside `beforeEach()` (NOT at the top level)
+6. **Use `await import()`** to dynamically import the module under test
+7. **Assign to variables** declared in the `describe` block
+8. **Use `afterEach()`** instead of `afterAll()` and call `mock.restore()`
+9. **Mock specific submodules** instead of barrel exports (e.g., `./calculateTokenCount` not `./index`)
 
 **Test Structure Best Practices:**
 
-- **DRY Principle:** Create default mock objects and reuse them across tests
-- **Default Mock Data:** Define `defaultThread`, `defaultAgent`, `defaultMessage`, etc. at file level
-- **Centralized Setup:** Configure default mock behavior in `beforeEach()` block
+- **Dynamic Imports:** ALWAYS use `await import()` inside `beforeEach()` when mocking modules
+- **Fresh Mocks:** Create new mock instances in `beforeEach()` to avoid state pollution
+- **Default Mock Data:** Define reusable default data as constants in `describe` block
+- **Centralized Setup:** Configure all default mock behavior in `beforeEach()` after dynamic import
 - **Spread Operator:** Use `{...defaultObject, specificOverride: "value"}` pattern
 - **Test Focus:** Each test should only override what makes it unique
 - **Console Mocking:** Mock `console.error` in error tests to suppress output and verify logging
+- **Clean Imports:** Never import the module under test at the top level when using `mock.module()`
 
-**Example Test Structure:**
+**Example Test Structure (MANDATORY PATTERN):**
 
 ```typescript
-import { test, expect, beforeEach, mock } from "bun:test";
+import { test, expect, beforeEach, mock, describe, afterEach } from "bun:test";
 import type { TypeFromClient } from "./client";
 
-// Mock functions
-const mockFunction = mock();
-const mockDBClient = { operation: { method: mock() } };
+describe("functionUnderTest", () => {
+  // Declare mock variables with 'let' (NOT const)
+  let mockFunction: ReturnType<typeof mock>;
+  let mockDBClient: {
+    operation: {
+      method: ReturnType<typeof mock>;
+    };
+  };
+  let functionUnderTest: typeof import("./sourceFile").functionUnderTest;
 
-mock.module("./dependency", () => ({
-  functionName: mockFunction,
-  DBClient: mockDBClient,
-}));
+  // Default mock data - reusable across tests
+  const defaultUser = {
+    id: "user-1",
+    name: "Test User",
+    email: "test@example.com",
+  };
 
-import { functionUnderTest } from "./sourceFile";
+  const defaultResult = {
+    success: true,
+    data: "expected data",
+  };
 
-// Default mock data - reusable across tests
-const defaultUser = {
-  id: "user-1",
-  name: "Test User",
-  email: "test@example.com",
-};
+  beforeEach(async () => {
+    // CRITICAL: Restore all mocks first
+    mock.restore();
 
-const defaultResult = {
-  success: true,
-  data: "expected data",
-};
+    // Create fresh mock instances
+    mockFunction = mock();
+    const mockMethod = mock();
+    mockDBClient = {
+      operation: {
+        method: mockMethod,
+      },
+    };
 
-beforeEach(() => {
-  // Clear all mocks
-  mockFunction.mockClear();
-  mockDBClient.operation.method.mockClear();
+    // Set up module mocks INSIDE beforeEach
+    mock.module("./dependency", () => ({
+      functionName: mockFunction,
+      DBClient: mockDBClient,
+    }));
 
-  // Set up default mock behavior
-  mockFunction.mockResolvedValue(defaultResult);
-  mockDBClient.operation.method.mockResolvedValue(defaultUser);
-});
+    // Dynamically import the module under test
+    const module = await import("./sourceFile");
+    functionUnderTest = module.functionUnderTest;
 
-test("Unit -> functionUnderTest handles basic case", async () => {
-  const result = await functionUnderTest("input");
+    // Configure default mock behavior AFTER import
+    mockFunction.mockResolvedValue(defaultResult);
+    mockDBClient.operation.method.mockResolvedValue(defaultUser);
+  });
 
-  expect(mockFunction).toHaveBeenCalledWith("input");
-  expect(result).toEqual(defaultResult);
-});
+  afterEach(() => {
+    // Clean up after each test
+    mock.restore();
+  });
 
-test("Unit -> functionUnderTest handles custom user", async () => {
-  const customUser = { ...defaultUser, name: "Custom User" };
-  mockDBClient.operation.method.mockResolvedValue(customUser);
+  test("Unit -> functionUnderTest handles basic case", async () => {
+    const result = await functionUnderTest("input");
 
-  const result = await functionUnderTest("input");
+    expect(mockFunction).toHaveBeenCalledWith("input");
+    expect(result).toEqual(defaultResult);
+  });
 
-  expect(result.user).toEqual(customUser);
-});
+  test("Unit -> functionUnderTest handles custom user", async () => {
+    const customUser = { ...defaultUser, name: "Custom User" };
+    mockDBClient.operation.method.mockResolvedValue(customUser);
 
-test("Unit -> functionUnderTest handles errors with console mocking", async () => {
-  // Mock console.error to suppress output and verify logging
-  const originalConsoleError = console.error;
-  const mockConsoleError = mock();
-  console.error = mockConsoleError;
+    const result = await functionUnderTest("input");
 
-  const testError = new Error("Test error");
-  mockFunction.mockRejectedValue(testError);
+    expect(result.user).toEqual(customUser);
+  });
 
-  try {
-    await expect(functionUnderTest("input")).rejects.toThrow("Test error");
-    expect(mockConsoleError).toHaveBeenCalledWith("Error occurred:", testError);
-  } finally {
-    console.error = originalConsoleError;
-  }
+  test("Unit -> functionUnderTest handles errors with console mocking", async () => {
+    const originalConsoleError = console.error;
+    const mockConsoleError = mock();
+    console.error = mockConsoleError;
+
+    const testError = new Error("Test error");
+    mockFunction.mockRejectedValue(testError);
+
+    try {
+      await expect(functionUnderTest("input")).rejects.toThrow("Test error");
+      expect(mockConsoleError).toHaveBeenCalledWith(
+        "Error occurred:",
+        testError
+      );
+    } finally {
+      console.error = originalConsoleError;
+    }
+  });
 });
 ```
+
+**Why Dynamic Imports Are Required:**
+
+- Prevents module cache pollution between tests
+- Ensures each test gets a fresh module instance with correct mocks
+- Avoids race conditions when tests run in random order
+- Required for reliable CI/CD test execution
+
+**Known Limitation - Module Mock Isolation:**
+
+Despite following the dynamic import pattern, Bun has a known bug where `mock.module()` mocks leak between test files and `mock.restore()` does not properly clear module-level mocks ([#7823](https://github.com/oven-sh/bun/issues/7823), [#6040](https://github.com/oven-sh/bun/issues/6040)).
+
+**Workaround:** Use `bun run test:isolated` which runs each test file individually to ensure complete isolation. This is automatically used in CI via the `scripts/run-isolated-tests.sh` script. Once Bun fixes these issues, we can return to running all tests together for better performance.
 
 **GraphQL:**
 
