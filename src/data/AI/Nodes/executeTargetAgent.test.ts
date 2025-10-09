@@ -126,6 +126,10 @@ describe("executeTargetAgent", () => {
   });
 
   test("Unit -> executeTargetAgent handles missing target agent gracefully", async () => {
+    const originalConsoleError = console.error;
+    const mockConsoleError = mock();
+    console.error = mockConsoleError;
+
     const stateWithoutTarget = {
       ...defaultState,
       routingDecision: {
@@ -140,12 +144,20 @@ describe("executeTargetAgent", () => {
       },
     };
 
-    const result = await executeTargetAgent(stateWithoutTarget);
+    try {
+      const result = await executeTargetAgent(stateWithoutTarget);
 
-    expect(result.currentResponse).toContain(
-      "I apologize, but I encountered an issue"
-    );
-    expect(result.routingMetadata?.success).toBe(false);
+      expect(result.currentResponse).toContain(
+        "I apologize, but I encountered an issue"
+      );
+      expect(result.routingMetadata?.success).toBe(false);
+      expect(mockConsoleError).toHaveBeenCalledWith(
+        "Failed to execute target agent unknown:",
+        expect.any(Error)
+      );
+    } finally {
+      console.error = originalConsoleError;
+    }
   });
 
   test("Unit -> executeTargetAgent uses prepared messages when available", async () => {

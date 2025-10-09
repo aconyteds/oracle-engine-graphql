@@ -27,13 +27,22 @@ echo -e "${BLUE}Running ${TEST_PATTERN} Tests in Isolation${NC}"
 echo -e "${BLUE}======================================${NC}"
 echo ""
 
-# Find all test files (excluding integration tests)
-TEST_FILES=$(find src -name '*.test.ts' -not -name '*.integration.test.ts' | sort)
+# Determine which test files to run based on pattern
+if [ "$TEST_PATTERN" = "E2E" ]; then
+  # E2E/Integration tests are in the e2e folder
+  TEST_FILES=$(find e2e -name '*.test.ts' 2>/dev/null | sort)
+  echo -e "${BLUE}Searching for E2E tests in: e2e/${NC}"
+else
+  # Unit tests are in src folder (excluding integration tests)
+  TEST_FILES=$(find src -name '*.test.ts' -not -name '*.integration.test.ts' 2>/dev/null | sort)
+  echo -e "${BLUE}Searching for Unit tests in: src/ (excluding *.integration.test.ts)${NC}"
+fi
 
 # Count total files
 TOTAL_FILES=$(echo "$TEST_FILES" | wc -l | tr -d ' ')
 
-if [ "$TOTAL_FILES" -eq 0 ]; then
+# Handle case where find returns empty string
+if [ -z "$TEST_FILES" ] || [ "$TOTAL_FILES" -eq 0 ]; then
   echo -e "${YELLOW}No test files found matching pattern.${NC}"
   exit 0
 fi
