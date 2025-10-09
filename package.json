@@ -7,7 +7,9 @@
     "postinstall": "bun run codegen",
     "codegen": "graphql-codegen --config codegen.ts",
     "test": "bun test --test-name-pattern Unit",
+    "test:isolated": "bash scripts/run-isolated-tests.sh Unit",
     "test:e2e": "bun test --test-name-pattern E2E",
+    "test:e2e:isolated": "bash scripts/run-isolated-tests.sh E2E",
     "dev": "bun --watch ./src/index.ts",
     "build": "bun build ./src/index.ts --outdir ./dist --target bun --minify",
     "start": "bun run ./dist/index.js",
@@ -39,7 +41,7 @@
     "@langchain/core": "^0.3.78",
     "@langchain/langgraph": "^0.4.9",
     "@langchain/openai": "^0.6.14",
-    "@prisma/client": "^6.16.3",
+    "@prisma/client": "^6.17.0",
     "cors": "^2.8.5",
     "express": "^4.21.2",
     "firebase-admin": "^12.7.0",
@@ -52,10 +54,10 @@
     "graphql-ws": "^5.16.2",
     "openai": "^4.104.0",
     "tiktoken": "^1.0.22",
-    "zod": "^4.1.11"
+    "zod": "^4.1.12"
   },
   "devDependencies": {
-    "@eslint/js": "^9.36.0",
+    "@eslint/js": "^9.37.0",
     "@graphql-codegen/cli": "^5.0.7",
     "@graphql-codegen/graphql-modules-preset": "^4.0.17",
     "@graphql-codegen/typescript": "^4.1.6",
@@ -64,17 +66,17 @@
     "@types/bun": "^1.2.23",
     "@types/cors": "^2.8.19",
     "@types/supertest": "^6.0.3",
-    "@typescript-eslint/eslint-plugin": "^8.45.0",
-    "@typescript-eslint/parser": "^8.45.0",
-    "eslint": "^9.36.0",
+    "@typescript-eslint/eslint-plugin": "^8.46.0",
+    "@typescript-eslint/parser": "^8.46.0",
+    "eslint": "^9.37.0",
     "eslint-plugin-import": "^2.32.0",
     "husky": "^9.1.7",
     "lint-staged": "^15.5.2",
     "prettier": "^3.6.2",
-    "prisma": "^6.16.3",
+    "prisma": "^6.17.0",
     "supertest": "^7.1.4",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.45.0"
+    "typescript-eslint": "^8.46.0"
   },
   "lint-staged": {
     "*.{js,ts,jsx,tsx,json,md}": "prettier --write"

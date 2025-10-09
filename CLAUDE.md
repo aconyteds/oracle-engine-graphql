@@ -16,9 +16,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Testing:**
 
 - `bun test` - Run unit tests (test-name-pattern: Unit)
+- `bun run test:isolated` - Run unit tests in isolation (one file at a time) - RECOMMENDED for CI
 - `bun test:e2e` - Run end-to-end tests (test-name-pattern: E2E)
+- `bun run test:e2e:isolated` - Run E2E tests in isolation - RECOMMENDED for CI
 - `bun run lint` - MUST be run after creating/modifying tests to fix lint errors
 - `bun run lint:fix` - Auto-fix lint issues in test files
+
+**Important:** Due to a bug in Bun's `mock.module()` (see [#7823](https://github.com/oven-sh/bun/issues/7823), [#6040](https://github.com/oven-sh/bun/issues/6040)), module mocks leak between test files. The `test:isolated` scripts run each test file individually to ensure proper isolation. Use these in CI and when debugging test failures.
 
 **Database:**
 
@@ -241,6 +245,12 @@ describe("functionUnderTest", () => {
 - Ensures each test gets a fresh module instance with correct mocks
 - Avoids race conditions when tests run in random order
 - Required for reliable CI/CD test execution
+
+**Known Limitation - Module Mock Isolation:**
+
+Despite following the dynamic import pattern, Bun has a known bug where `mock.module()` mocks leak between test files and `mock.restore()` does not properly clear module-level mocks ([#7823](https://github.com/oven-sh/bun/issues/7823), [#6040](https://github.com/oven-sh/bun/issues/6040)).
+
+**Workaround:** Use `bun run test:isolated` which runs each test file individually to ensure complete isolation. This is automatically used in CI via the `scripts/run-isolated-tests.sh` script. Once Bun fixes these issues, we can return to running all tests together for better performance.
 
 **GraphQL:**
 
