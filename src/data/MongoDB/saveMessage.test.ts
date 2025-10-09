@@ -6,7 +6,14 @@ describe("saveMessage", () => {
   let mockCreate: ReturnType<typeof mock>;
   let mockThreadUpdate: ReturnType<typeof mock>;
   let mockCalculateTokenCount: ReturnType<typeof mock>;
-  let saveMessage: typeof import("./saveMessage").saveMessage;
+  let saveMessage: (
+    message: string,
+    threadId: string,
+    role: "user" | "assistant" | "system",
+    workspace?: MessageWorkspace[],
+    runId?: string | null,
+    routingMetadata?: object | null
+  ) => Promise<Message>;
 
   const defaultMockMessage: Message = {
     id: "default-message-id",

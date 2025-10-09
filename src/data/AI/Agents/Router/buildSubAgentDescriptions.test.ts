@@ -1,5 +1,6 @@
 import { test, expect, describe } from "bun:test";
 import type { AIAgentDefinition } from "../../types";
+import { RouterType } from "../../types";
 import type { TrustedModel } from "../../modelList";
 
 import { buildSubAgentDescriptions } from "./buildSubAgentDescriptions";
@@ -17,7 +18,7 @@ describe("buildSubAgentDescriptions", () => {
     description: "Test agent description",
     specialization: "test specialization",
     systemMessage: "Test system message",
-    routerType: "simple",
+    routerType: RouterType.Simple,
   };
 
   test("Unit -> buildSubAgentDescriptions returns empty string for empty sub-agents array", () => {

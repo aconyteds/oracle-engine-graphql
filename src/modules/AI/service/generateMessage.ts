@@ -5,6 +5,7 @@ import {
   getModelDefinition,
   generateMessageWithRouter,
   generateMessageWithStandardWorkflow,
+  RouterType,
 } from "../../../data/AI";
 import type { GenerateMessagePayload } from "../../../generated/graphql";
 import { DBClient } from "../../../data/MongoDB";
@@ -51,7 +52,7 @@ export async function* generateMessage(
 
   // Route to appropriate workflow based on agent type
   switch (currAgent.routerType) {
-    case "router":
+    case RouterType.Router:
       // Use router workflow for router agents
       yield* generateMessageWithRouter({
         threadId,
@@ -60,7 +61,7 @@ export async function* generateMessage(
         runId,
       });
       break;
-    case "simple":
+    case RouterType.Simple:
     default:
       // Use standard workflow for leaf agents
       yield* generateMessageWithStandardWorkflow({

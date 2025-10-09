@@ -14,7 +14,15 @@ describe("generateMessageWithRouter", () => {
   let mockRunRouterWorkflow: ReturnType<typeof mock>;
   let mockSaveMessage: ReturnType<typeof mock>;
   let mockTranslateMessage: ReturnType<typeof mock>;
-  let generateMessageWithRouter: any;
+  let generateMessageWithRouter: (params: {
+    threadId: string;
+    agent: AIAgentDefinition;
+    messageHistory: BaseMessage[];
+    runId: string;
+  }) => AsyncGenerator<{
+    responseType: string;
+    content: string;
+  }>;
 
   const defaultThread = {
     userId: "507f1f77bcf86cd799439011",

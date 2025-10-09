@@ -4,6 +4,11 @@ import type { BaseMessage } from "@langchain/core/messages";
 
 import type { TrustedModel } from "./modelList";
 
+export enum RouterType {
+  Simple = "simple",
+  Router = "router",
+}
+
 export type AIAgentDefinition = {
   name: string;
   model: TrustedModel;
@@ -21,7 +26,7 @@ export type AIAgentDefinition = {
   retryDelayMs?: number;
   maxToolCalls?: number;
   maxToolCallTimeMs?: number;
-  routerType: "simple" | "router";
+  routerType: RouterType;
 };
 
 // Tool call interface definition

@@ -1,5 +1,6 @@
 import { test, expect, describe } from "bun:test";
 import type { AIAgentDefinition, RoutingExample } from "../../types";
+import { RouterType } from "../../types";
 import type { TrustedModel } from "../../modelList";
 
 import { generateRoutingExamples } from "./generateRoutingExamples";
@@ -18,7 +19,7 @@ describe("generateRoutingExamples", () => {
     description: "Test agent description",
     specialization: "test specialization",
     systemMessage: "Test system message",
-    routerType: "simple",
+    routerType: RouterType.Simple,
   };
 
   const defaultRoutingExample: RoutingExample = {

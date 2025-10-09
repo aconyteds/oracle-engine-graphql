@@ -1,5 +1,5 @@
 import { test, expect, beforeEach, mock, describe, afterEach } from "bun:test";
-import {
+import type {
   HumanMessage,
   SystemMessage,
   AIMessage,
@@ -8,7 +8,9 @@ import type { ToolEnabledGraphState } from "../Workflows/toolEnabledWorkflow";
 import type { AIAgentDefinition } from "../types";
 
 // Mock variables
-let generateWithTools: typeof import("./generateWithTools").generateWithTools;
+let generateWithTools: (
+  state: typeof ToolEnabledGraphState.State
+) => Promise<Partial<typeof ToolEnabledGraphState.State>>;
 let MockSystemMessage: typeof SystemMessage;
 let MockHumanMessage: typeof HumanMessage;
 let MockAIMessage: typeof AIMessage;

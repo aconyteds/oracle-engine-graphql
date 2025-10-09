@@ -1,4 +1,5 @@
 import type { AIAgentDefinition } from "../../types";
+import { RouterType } from "../../types";
 import { routeToAgent, analyzeConversationContext } from "../../Tools/routing";
 import { buildRouterSystemMessage } from "./buildRouterSystemMessage";
 
@@ -16,7 +17,7 @@ export function buildRouterAgent(agent: AIAgentDefinition): AIAgentDefinition {
   if (!agent.availableSubAgents?.length) {
     return {
       ...agent,
-      routerType: "simple",
+      routerType: RouterType.Simple,
     };
   }
 
@@ -34,6 +35,6 @@ export function buildRouterAgent(agent: AIAgentDefinition): AIAgentDefinition {
     availableTools: [routeToAgent, analyzeConversationContext],
     specialization:
       agent.specialization || "intelligent request routing and delegation",
-    routerType: "router",
+    routerType: RouterType.Router,
   };
 }

@@ -6,7 +6,9 @@ describe("analyzeAndRoute", () => {
   let mockGetModelDefinition: ReturnType<typeof mock>;
   let mockRunToolEnabledWorkflow: ReturnType<typeof mock>;
   let mockGetAgentByName: ReturnType<typeof mock>;
-  let analyzeAndRoute: typeof import("./analyzeAndRoute").analyzeAndRoute;
+  let analyzeAndRoute: (
+    state: typeof RouterGraphState.State
+  ) => Promise<Partial<typeof RouterGraphState.State>>;
 
   const mockRouterAgent = {
     name: "router-agent",

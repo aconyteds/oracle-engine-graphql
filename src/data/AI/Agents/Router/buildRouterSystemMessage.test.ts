@@ -1,9 +1,14 @@
 import { test, expect, describe, beforeEach } from "bun:test";
 import type { AIAgentDefinition } from "../../types";
+import { RouterType } from "../../types";
 import type { TrustedModel } from "../../modelList";
 
 describe("buildRouterSystemMessage", () => {
-  let buildRouterSystemMessage: typeof import("./buildRouterSystemMessage").buildRouterSystemMessage;
+  let buildRouterSystemMessage: (
+    routerName: string,
+    routerDescription: string,
+    subAgents: AIAgentDefinition[]
+  ) => string;
 
   beforeEach(async () => {
     const module = await import("./buildRouterSystemMessage");
@@ -23,7 +28,7 @@ describe("buildRouterSystemMessage", () => {
     description: "Test agent description",
     specialization: "test specialization",
     systemMessage: "Test system message",
-    routerType: "simple",
+    routerType: RouterType.Simple,
   };
 
   const defaultSubAgent: AIAgentDefinition = {
@@ -35,7 +40,7 @@ describe("buildRouterSystemMessage", () => {
     description: "Sub agent description",
     specialization: "sub specialization",
     systemMessage: "Sub agent system message",
-    routerType: "simple",
+    routerType: RouterType.Simple,
   };
 
   test("Unit -> buildRouterSystemMessage includes router name and description", () => {

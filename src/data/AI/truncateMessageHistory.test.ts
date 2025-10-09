@@ -1,10 +1,16 @@
 import { test, expect, beforeEach, mock, describe, afterEach } from "bun:test";
 import type { AIAgentDefinition } from "./types";
+import { RouterType } from "./types";
 import type { Message } from "../MongoDB";
 
 describe("truncateMessageHistory", () => {
   let mockCalculateTokenCount: ReturnType<typeof mock>;
-  let truncateMessageHistory: typeof import("./truncateMessageHistory").truncateMessageHistory;
+  let truncateMessageHistory: (params: {
+    messageList: Message[];
+    agent: AIAgentDefinition;
+    truncationStrategy?: "latest" | "alternate";
+    maxContextPercentage?: number;
+  }) => Message[];
 
   // Default mock data - reusable across tests
   const defaultAgent: AIAgentDefinition = {
@@ -18,7 +24,7 @@ describe("truncateMessageHistory", () => {
     systemMessage: "You are a helpful assistant.",
     availableTools: [],
     specialization: "general",
-    routerType: "simple",
+    routerType: RouterType.Simple,
   };
 
   const createMessage = (

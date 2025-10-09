@@ -43,9 +43,9 @@ export const getContext = async ({
 
   if (token) {
     try {
-      const user = await verifyUser(token);
-      if (user && user.user) {
-        context.user = user.user;
+      const verifyUserResult = await verifyUser(token);
+      if (verifyUserResult && verifyUserResult.user) {
+        context.user = verifyUserResult.user;
       }
     } catch (error) {
       console.error("Error verifying token:", error);

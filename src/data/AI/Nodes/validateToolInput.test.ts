@@ -1,17 +1,14 @@
 import { test, expect, beforeEach, describe, afterEach, mock } from "bun:test";
+import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import type { ToolEnabledGraphState } from "../Workflows/toolEnabledWorkflow";
 
 describe("validateToolInput", () => {
-  let HumanMessage: any;
-  let SystemMessage: any;
-  let validateToolInput: typeof import("./validateToolInput").validateToolInput;
+  let validateToolInput: (
+    state: typeof ToolEnabledGraphState.State
+  ) => Promise<Partial<typeof ToolEnabledGraphState.State>>;
 
   beforeEach(async () => {
     mock.restore();
-
-    const messagesModule = await import("@langchain/core/messages");
-    HumanMessage = messagesModule.HumanMessage;
-    SystemMessage = messagesModule.SystemMessage;
 
     const module = await import("./validateToolInput");
     validateToolInput = module.validateToolInput;
@@ -60,7 +57,7 @@ describe("validateToolInput", () => {
     const defaultTool = { name: "test-tool", description: "Test tool" };
 
     const state = {
-      messages: undefined as unknown as any[],
+      messages: undefined as unknown as never[],
       tools: [defaultTool],
       metadata: { existingData: true },
     } as typeof ToolEnabledGraphState.State;

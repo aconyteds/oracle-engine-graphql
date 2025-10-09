@@ -1,13 +1,13 @@
 import { test, expect, beforeEach, mock, describe, afterEach } from "bun:test";
+import { HumanMessage, AIMessage, ToolMessage } from "@langchain/core/messages";
 import type { ToolEnabledGraphState } from "../Workflows/toolEnabledWorkflow";
 
 describe("generateFinalResponse", () => {
   // Mock dependencies - recreated for each test
   let mockInvoke: ReturnType<typeof mock>;
-  let HumanMessage: any;
-  let AIMessage: any;
-  let ToolMessage: any;
-  let generateFinalResponse: typeof import("./generateFinalResponse").generateFinalResponse;
+  let generateFinalResponse: (
+    state: typeof ToolEnabledGraphState.State
+  ) => Promise<Partial<typeof ToolEnabledGraphState.State>>;
 
   beforeEach(async () => {
     // Restore all mocks before each test
@@ -15,45 +15,6 @@ describe("generateFinalResponse", () => {
 
     // Create fresh mock
     mockInvoke = mock();
-
-    const mockModel = {
-      invoke: mockInvoke,
-    };
-
-    // Set up module mocks
-    mock.module("@langchain/core/messages", () => ({
-      HumanMessage: class MockHumanMessage {
-        constructor(public content: string) {}
-        id = "HumanMessage_1";
-      },
-      AIMessage: class MockAIMessage {
-        constructor(public content: string) {}
-        id = "AIMessage_1";
-      },
-      ToolMessage: class MockToolMessage {
-        public content: string;
-        public tool_call_id: string;
-        id = "ToolMessage_1";
-
-        constructor(
-          contentOrConfig: string | { content: string; tool_call_id: string }
-        ) {
-          if (typeof contentOrConfig === "string") {
-            this.content = contentOrConfig;
-            this.tool_call_id = "mock-tool-call-id";
-          } else {
-            this.content = contentOrConfig.content;
-            this.tool_call_id = contentOrConfig.tool_call_id;
-          }
-        }
-      },
-    }));
-
-    // Import the module under test after mocks are set up
-    const messagesModule = await import("@langchain/core/messages");
-    HumanMessage = messagesModule.HumanMessage;
-    AIMessage = messagesModule.AIMessage;
-    ToolMessage = messagesModule.ToolMessage;
 
     const module = await import("./generateFinalResponse");
     generateFinalResponse = module.generateFinalResponse;
@@ -72,7 +33,12 @@ describe("generateFinalResponse", () => {
     const defaultMessages = [
       new HumanMessage("User question"),
       new AIMessage("AI response with tool calls"),
-      new ToolMessage("Tool result"),
+      new ToolMessage(
+        {
+          content: "Tool result content",
+        },
+        "test-tool-result-id"
+      ),
     ];
 
     const defaultState = {
@@ -92,7 +58,7 @@ describe("generateFinalResponse", () => {
     });
     expect(result.messages).toHaveLength(1);
     expect(result.messages![0]).toBe(defaultResponse);
-    expect(result.currentResponse).toBe(defaultResponse.content);
+    expect(result.currentResponse).toBe("Final response content");
     expect(result.isComplete).toBe(true);
     expect(result.metadata?.finalResponseGenerated).toBe(true);
     expect(result.metadata?.toolsExecuted).toBe(true);
@@ -116,7 +82,12 @@ describe("generateFinalResponse", () => {
     const defaultMessages = [
       new HumanMessage("User question"),
       new AIMessage("AI response with tool calls"),
-      new ToolMessage("Tool result"),
+      new ToolMessage(
+        {
+          content: "Tool result content",
+        },
+        "test-tool-result-id"
+      ),
     ];
 
     const customRunId = "custom-run-789";
@@ -142,7 +113,12 @@ describe("generateFinalResponse", () => {
     const defaultMessages = [
       new HumanMessage("User question"),
       new AIMessage("AI response with tool calls"),
-      new ToolMessage("Tool result"),
+      new ToolMessage(
+        {
+          content: "Tool result content",
+        },
+        "test-tool-result-id"
+      ),
     ];
 
     const state = {
@@ -172,7 +148,12 @@ describe("generateFinalResponse", () => {
     const defaultMessages = [
       new HumanMessage("User question"),
       new AIMessage("AI response with tool calls"),
-      new ToolMessage("Tool result"),
+      new ToolMessage(
+        {
+          content: "Tool result content",
+        },
+        "test-tool-result-id"
+      ),
     ];
 
     const customMetadata = {
@@ -199,7 +180,12 @@ describe("generateFinalResponse", () => {
     const defaultMessages = [
       new HumanMessage("User question"),
       new AIMessage("AI response with tool calls"),
-      new ToolMessage("Tool result"),
+      new ToolMessage(
+        {
+          content: "Tool result content",
+        },
+        "test-tool-result-id"
+      ),
     ];
 
     const state = {
@@ -235,7 +221,12 @@ describe("generateFinalResponse", () => {
     const defaultMessages = [
       new HumanMessage("User question"),
       new AIMessage("AI response with tool calls"),
-      new ToolMessage("Tool result"),
+      new ToolMessage(
+        {
+          content: "Tool result content",
+        },
+        "test-tool-result-id"
+      ),
     ];
 
     const state = {
@@ -258,9 +249,19 @@ describe("generateFinalResponse", () => {
     const complexMessages = [
       new HumanMessage("User question"),
       new AIMessage("AI response with tool call"),
-      new ToolMessage("Calculator result: 42"),
+      new ToolMessage(
+        {
+          content: "Calculator result: 42",
+        },
+        "test-tool-result-id"
+      ),
       new AIMessage("Tool interpretation"),
-      new ToolMessage("Weather result: sunny"),
+      new ToolMessage(
+        {
+          content: "Weather result content",
+        },
+        "test-tool-result-id-2"
+      ),
     ];
     const state = {
       messages: complexMessages,

@@ -1,5 +1,6 @@
 import { test, expect, beforeEach, mock, describe, afterEach } from "bun:test";
 import type { AIAgentDefinition } from "../../types";
+import { RouterType } from "../../types";
 import type { TrustedModel } from "../../modelList";
 import type { ClientOptions } from "@langchain/openai";
 import type { Tool } from "@langchain/core/dist/tools";
@@ -9,7 +10,7 @@ describe("buildRouterAgent", () => {
   let mockRouteToAgent: { name: string };
   let mockAnalyzeConversationContext: { name: string };
   let mockBuildRouterSystemMessage: ReturnType<typeof mock>;
-  let buildRouterAgent: typeof import("./buildRouterAgent").buildRouterAgent;
+  let buildRouterAgent: (agent: AIAgentDefinition) => AIAgentDefinition;
 
   const defaultModel: TrustedModel = {
     modelName: "gpt-4",
@@ -24,7 +25,7 @@ describe("buildRouterAgent", () => {
     description: "Test agent description",
     specialization: "test specialization",
     systemMessage: "Original system message",
-    routerType: "simple",
+    routerType: RouterType.Simple,
   };
 
   const defaultSubAgent: AIAgentDefinition = {
@@ -36,7 +37,7 @@ describe("buildRouterAgent", () => {
     description: "Sub agent description",
     specialization: "sub specialization",
     systemMessage: "Sub agent system message",
-    routerType: "simple",
+    routerType: RouterType.Simple,
   };
 
   const defaultRouterSystemMessage = "Generated router system message";
@@ -80,7 +81,7 @@ describe("buildRouterAgent", () => {
 
     expect(result).toEqual({
       ...agent,
-      routerType: "simple",
+      routerType: RouterType.Simple,
     });
     expect(mockBuildRouterSystemMessage).not.toHaveBeenCalled();
   });
@@ -92,7 +93,7 @@ describe("buildRouterAgent", () => {
 
     expect(result).toEqual({
       ...agent,
-      routerType: "simple",
+      routerType: RouterType.Simple,
     });
     expect(mockBuildRouterSystemMessage).not.toHaveBeenCalled();
   });
@@ -117,7 +118,7 @@ describe("buildRouterAgent", () => {
         mockAnalyzeConversationContext,
       ] as unknown[] as Tool[],
       specialization: agent.specialization,
-      routerType: "router",
+      routerType: RouterType.Router,
     });
   });
 
@@ -182,7 +183,7 @@ describe("buildRouterAgent", () => {
       subAgents
     );
 
-    expect(result.routerType).toBe("router");
+    expect(result.routerType).toBe(RouterType.Router);
     expect(result.availableTools).toHaveLength(2);
   });
 

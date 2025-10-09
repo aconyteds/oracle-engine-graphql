@@ -8,5 +8,6 @@ export * from "./agentList";
 export * from "./Workflows";
 export * from "./generateMessageWithRouter";
 export * from "./generateMessageWithStandardWorkflow";
+export { RouterType } from "./types";
 
 export type RoleTypes = "user" | "assistant" | "system";

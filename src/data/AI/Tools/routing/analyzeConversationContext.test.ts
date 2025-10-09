@@ -5,7 +5,12 @@ import type {
 } from "./analyzeConversationContext";
 
 describe("analyzeConversationContext", () => {
-  let analyzeConversationContext: typeof import("./analyzeConversationContext").analyzeConversationContext;
+  let analyzeConversationContext: {
+    func: (input: {
+      messageCount?: number;
+      messages?: AnalysisMessage[];
+    }) => Promise<string>;
+  };
 
   // Default mock data - reusable across tests
   const createMessage = (

@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { test, expect, beforeEach, mock, describe, afterEach } from "bun:test";
 import { HumanMessage } from "@langchain/core/messages";
 import type { RouterGraphState } from "../Workflows/routerWorkflow";
@@ -7,7 +5,9 @@ import type { AIAgentDefinition } from "../types";
 
 let mockGetModelDefinition: ReturnType<typeof mock>;
 let mockRunToolEnabledWorkflow: ReturnType<typeof mock>;
-let executeTargetAgent: any;
+let executeTargetAgent: (
+  state: typeof RouterGraphState.State
+) => Promise<Partial<typeof RouterGraphState.State>>;
 
 const mockTargetAgent = {
   name: "target-agent",
@@ -17,7 +17,7 @@ const mockTargetAgent = {
 
 const mockModel = {
   invoke: mock(),
-} as any;
+};
 
 describe("executeTargetAgent", () => {
   const defaultState = {
@@ -66,7 +66,7 @@ describe("executeTargetAgent", () => {
     metadata: undefined,
     toolCallsForDB: undefined,
     toolResultsForDB: undefined,
-  } as typeof RouterGraphState.State;
+  } as unknown as typeof RouterGraphState.State;
 
   const defaultWorkflowResult = {
     currentResponse: "Target agent response",
@@ -133,7 +133,7 @@ describe("executeTargetAgent", () => {
     const stateWithoutTarget = {
       ...defaultState,
       routingDecision: {
-        targetAgent: null as any,
+        targetAgent: null as unknown as AIAgentDefinition,
         confidence: 0,
         reasoning: "",
         fallbackAgent: mockTargetAgent,

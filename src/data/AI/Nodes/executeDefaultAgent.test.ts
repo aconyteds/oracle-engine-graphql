@@ -5,7 +5,9 @@ import type { AIAgentDefinition } from "../types";
 describe("executeDefaultAgent", () => {
   let mockRunToolEnabledWorkflow: ReturnType<typeof mock>;
   let mockCheapestAgent: AIAgentDefinition;
-  let executeDefaultAgent: typeof import("./executeDefaultAgent").executeDefaultAgent;
+  let executeDefaultAgent: (
+    state: typeof RouterGraphState.State
+  ) => Promise<Partial<typeof RouterGraphState.State>>;
 
   const defaultState = {
     messages: [{ content: "Test message" }],

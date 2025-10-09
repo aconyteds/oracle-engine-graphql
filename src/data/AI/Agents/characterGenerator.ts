@@ -1,10 +1,11 @@
 import { getModelByName } from "../modelList";
 import { characterStatsGenerator, nameGenerator } from "../Tools";
 import type { AIAgentDefinition } from "../types";
+import { RouterType } from "../types";
 
 export const characterGenerator: AIAgentDefinition = {
   name: "Character Generator",
-  routerType: "simple",
+  routerType: RouterType.Simple,
   model: getModelByName("gpt-4.1-nano"),
   description: "An Agent which has the ability to create characters.",
   systemMessage:
