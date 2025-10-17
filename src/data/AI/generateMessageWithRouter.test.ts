@@ -1,6 +1,6 @@
-import { test, expect, beforeEach, mock, describe, afterEach } from "bun:test";
-import type { AIAgentDefinition } from "./types";
+import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 import type { BaseMessage } from "@langchain/core/messages";
+import type { AIAgentDefinition } from "./types";
 
 describe("generateMessageWithRouter", () => {
   let mockFindUnique: ReturnType<typeof mock>;

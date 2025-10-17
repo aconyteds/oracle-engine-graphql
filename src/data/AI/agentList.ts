@@ -1,4 +1,4 @@
-import { cheapest, characterGenerator, defaultRouter } from "./Agents";
+import { characterGenerator, cheapest, defaultRouter } from "./Agents";
 import type { AIAgentDefinition } from "./types";
 
 // Initialize traditional agent list

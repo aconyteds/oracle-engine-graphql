@@ -1,4 +1,4 @@
-import { test, expect, beforeEach, describe } from "bun:test";
+import { beforeEach, describe, expect, test } from "bun:test";
 import type { RouterGraphState } from "../Workflows/routerWorkflow";
 
 import { validateRouting } from "./validateRouting";

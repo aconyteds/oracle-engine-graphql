@@ -8,10 +8,28 @@ declare module "bun" {
     FIREBASE_CONFIG_BASE64?: string;
     // the WEBAPIKEY for Firebase
     FIREBASE_WEB_API_KEY: string;
+    // The Sentry DSN for error tracking
+    SENTRY_DSN?: string;
+    // The environment the app is running in
+    NODE_ENV?: string; // 'development' | 'production' | 'test'
   }
 }
 
+import * as Sentry from "@sentry/bun";
 import GraphQLServer from "./server";
+import { logger } from "./utils/logger";
+
+// Initialize Sentry
+if (process.env.SENTRY_DSN) {
+  const isProduction = process.env.NODE_ENV === "production";
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    serverName: "oracle-engine-graphql",
+    environment: process.env.NODE_ENV || "development",
+    enableLogs: !isProduction,
+    tracesSampleRate: isProduction ? 0.1 : 1.0, // We can adjust this value in the future so that we don't get spammed
+  });
+}
 
 const startServer = async () => {
   const port = parseInt(process.env.PORT || "4000", 10);
@@ -20,15 +38,15 @@ const startServer = async () => {
 
   await new Promise<void>((resolve) => httpServer.listen({ port }, resolve));
 
-  console.log(`🚀 Server is running on http://localhost:${port}${path}`);
+  logger.success(`Server is running on http://localhost:${port}${path}`);
 };
 
 startServer().catch((error: unknown) => {
-  console.error("Failed to start GraphQL server:", error);
+  logger.error("Failed to start GraphQL server:", error);
   process.exit(1);
 });
 
 process.on("SIGINT", () => {
-  console.log("🚀 Server is shutting down...");
+  logger.info("Server is shutting down...");
   process.exit(0);
 });

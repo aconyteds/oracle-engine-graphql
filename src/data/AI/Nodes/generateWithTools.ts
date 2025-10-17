@@ -1,6 +1,7 @@
 import { SystemMessage } from "@langchain/core/messages";
-import type { ToolEnabledGraphState } from "../Workflows/toolEnabledWorkflow";
+import { logger } from "../../../utils/logger";
 import type { ToolCall, ToolCallForDB } from "../types";
+import type { ToolEnabledGraphState } from "../Workflows/toolEnabledWorkflow";
 
 /**
  * Node that generates a response from the AI model with tool calling capability
@@ -61,7 +62,7 @@ export async function generateWithTools(
       },
     };
   } catch (error) {
-    console.error("Error generating response with tools:", error);
+    logger.error("Error generating response with tools:", error);
     throw error;
   }
 }

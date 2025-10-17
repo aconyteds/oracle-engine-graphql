@@ -1,5 +1,5 @@
-import { test, expect, beforeEach, mock, describe, afterEach } from "bun:test";
-import { HumanMessage, AIMessage, ToolMessage } from "@langchain/core/messages";
+import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
+import { AIMessage, HumanMessage, ToolMessage } from "@langchain/core/messages";
 import type { ToolEnabledGraphState } from "../Workflows/toolEnabledWorkflow";
 
 describe("generateFinalResponse", () => {
@@ -136,7 +136,7 @@ describe("generateFinalResponse", () => {
         "Model invocation failed"
       );
       expect(mockConsoleError).toHaveBeenCalledWith(
-        "Error generating final response:",
+        "ERROR: Error generating final response:",
         testError
       );
     } finally {

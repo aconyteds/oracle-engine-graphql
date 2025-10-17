@@ -1,7 +1,7 @@
-import { test, expect, beforeEach, mock, describe, afterEach } from "bun:test";
+import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 import { HumanMessage } from "@langchain/core/messages";
-import type { RouterGraphState } from "../Workflows/routerWorkflow";
 import type { AIAgentDefinition } from "../types";
+import type { RouterGraphState } from "../Workflows/routerWorkflow";
 
 let mockGetModelDefinition: ReturnType<typeof mock>;
 let mockRunToolEnabledWorkflow: ReturnType<typeof mock>;
@@ -152,7 +152,7 @@ describe("executeTargetAgent", () => {
       );
       expect(result.routingMetadata?.success).toBe(false);
       expect(mockConsoleError).toHaveBeenCalledWith(
-        "Failed to execute target agent unknown:",
+        "ERROR: Failed to execute target agent unknown:",
         expect.any(Error)
       );
     } finally {
@@ -214,7 +214,7 @@ describe("executeTargetAgent", () => {
       const result = await executeTargetAgent(defaultState);
 
       expect(mockConsoleError).toHaveBeenCalledWith(
-        `Failed to execute target agent ${mockTargetAgent.name}:`,
+        `ERROR: Failed to execute target agent ${mockTargetAgent.name}:`,
         expect.any(Error)
       );
       expect(result.currentResponse).toBe(
@@ -238,7 +238,7 @@ describe("executeTargetAgent", () => {
       const result = await executeTargetAgent(defaultState);
 
       expect(mockConsoleError).toHaveBeenCalledWith(
-        `Failed to execute target agent ${mockTargetAgent.name}:`,
+        `ERROR: Failed to execute target agent ${mockTargetAgent.name}:`,
         testError
       );
       expect(result.routingMetadata?.success).toBe(false);

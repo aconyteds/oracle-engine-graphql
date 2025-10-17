@@ -1,7 +1,7 @@
-import { test, expect, describe } from "bun:test";
+import { describe, expect, test } from "bun:test";
+import type { TrustedModel } from "../../modelList";
 import type { AIAgentDefinition } from "../../types";
 import { RouterType } from "../../types";
-import type { TrustedModel } from "../../modelList";
 
 import { buildSubAgentDescriptions } from "./buildSubAgentDescriptions";
 

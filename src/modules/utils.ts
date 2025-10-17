@@ -2,14 +2,13 @@ import type {
   AIMessageChunk,
   MessageContentComplex,
 } from "@langchain/core/messages";
-
-import type { Message, Thread } from "../data/MongoDB";
-import type { MessageRoles } from "../data/MongoDB";
+import type { Campaign, Message, MessageRoles, Thread } from "../data/MongoDB";
 import type {
-  Role as GraphQLRole,
-  Message as GraphQLMessage,
-  Thread as GraphQLThread,
   GenerateMessagePayload,
+  Campaign as GraphQLCampaign,
+  Message as GraphQLMessage,
+  Role as GraphQLRole,
+  Thread as GraphQLThread,
 } from "../generated/graphql";
 
 export const TranslateRole = (role: MessageRoles): GraphQLRole => {
@@ -72,5 +71,18 @@ export const TranslateAIChunk = (
   return {
     responseType: "Content",
     content,
+  };
+};
+
+export const TranslateCampaign = (campaign: Campaign): GraphQLCampaign => {
+  return {
+    id: campaign.id,
+    ownerId: campaign.ownerId,
+    name: campaign.name,
+    setting: campaign.setting,
+    tone: campaign.tone,
+    ruleset: campaign.ruleset,
+    createdAt: campaign.createdAt.toISOString(),
+    updatedAt: campaign.updatedAt.toISOString(),
   };
 };

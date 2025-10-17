@@ -84,6 +84,7 @@ model Campaign {
   SessionEvent  SessionEvent[]
   user          User            @relation(fields: [ownerId], references: [id])
 
+  @@unique([ownerId, name])
   @@index([ownerId])
 }
 

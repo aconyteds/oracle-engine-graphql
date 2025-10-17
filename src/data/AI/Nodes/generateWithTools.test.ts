@@ -1,11 +1,11 @@
-import { test, expect, beforeEach, mock, describe, afterEach } from "bun:test";
+import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 import type {
+  AIMessage,
   HumanMessage,
   SystemMessage,
-  AIMessage,
 } from "@langchain/core/messages";
-import type { ToolEnabledGraphState } from "../Workflows/toolEnabledWorkflow";
 import type { AIAgentDefinition } from "../types";
+import type { ToolEnabledGraphState } from "../Workflows/toolEnabledWorkflow";
 
 // Mock variables
 let generateWithTools: (
@@ -220,7 +220,7 @@ describe("generateWithTools", () => {
         "Model generation failed"
       );
       expect(mockConsoleError).toHaveBeenCalledWith(
-        "Error generating response with tools:",
+        "ERROR: Error generating response with tools:",
         testError
       );
     } finally {

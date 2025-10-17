@@ -1,8 +1,9 @@
 import type { DynamicTool } from "@langchain/core/tools";
-import type { RouterGraphState } from "../Workflows/routerWorkflow";
-import { getModelDefinition } from "../getModelDefinition";
-import { runToolEnabledWorkflow } from "../Workflows/toolEnabledWorkflow";
+import { logger } from "../../../utils/logger";
 import { cheapest } from "../Agents";
+import { getModelDefinition } from "../getModelDefinition";
+import type { RouterGraphState } from "../Workflows/routerWorkflow";
+import { runToolEnabledWorkflow } from "../Workflows/toolEnabledWorkflow";
 
 export async function executeFallback(state: typeof RouterGraphState.State) {
   try {
@@ -37,7 +38,7 @@ export async function executeFallback(state: typeof RouterGraphState.State) {
       },
     };
   } catch (error) {
-    console.error(`Failed to execute fallback agent:`, error);
+    logger.error(`Failed to execute fallback agent:`, error);
 
     return {
       ...state,

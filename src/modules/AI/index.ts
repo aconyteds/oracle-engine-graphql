@@ -1,6 +1,6 @@
+import { loadFilesSync } from "@graphql-tools/load-files";
 import type { Module } from "graphql-modules";
 import { createModule } from "graphql-modules";
-import { loadFilesSync } from "@graphql-tools/load-files";
 
 import AIResolvers from "./AI.resolver";
 

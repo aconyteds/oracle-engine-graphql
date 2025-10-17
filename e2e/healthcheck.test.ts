@@ -1,6 +1,6 @@
-import request from "supertest";
-import { test, expect, describe, beforeAll, afterAll } from "bun:test";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import type { Server } from "http";
+import request from "supertest";
 
 import { setupTestServer, teardownTestServer } from "./setup";
 

@@ -1,5 +1,6 @@
 import { DynamicStructuredTool } from "@langchain/core/tools";
 import { z } from "zod";
+import { logger } from "../../../../utils/logger";
 
 /**
  * A dynamic structured tool for routing user requests to the most appropriate specialized agent.
@@ -60,10 +61,8 @@ export const routeToAgent = new DynamicStructuredTool({
       timestamp: new Date().toISOString(),
     };
 
-    console.log(
-      `🎯 Routing Decision: ${targetAgent} (${confidence} confidence)`
-    );
-    console.log(`📝 Reasoning: ${reasoning}`);
+    logger.debug(`Routing Decision: ${targetAgent} (${confidence} confidence)`);
+    logger.debug(`Reasoning: ${reasoning}`);
 
     return Promise.resolve(JSON.stringify(routingDecision));
   },

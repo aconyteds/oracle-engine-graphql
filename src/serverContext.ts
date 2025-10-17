@@ -1,6 +1,7 @@
-import type { User } from "./data/MongoDB";
 import { initializeFirebase, verifyUser } from "./data/Firebase";
+import type { User } from "./data/MongoDB";
 import PubSub from "./graphql/topics";
+import { logger } from "./utils/logger";
 
 export interface ServerContext {
   // The Firebase Auth token, if available.
@@ -48,7 +49,7 @@ export const getContext = async ({
         context.user = verifyUserResult.user;
       }
     } catch (error) {
-      console.error("Error verifying token:", error);
+      logger.error("Error verifying token:", error);
       // Do not throw error here; we'll handle it in graphql-shield
     }
   }

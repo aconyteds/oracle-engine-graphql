@@ -1,5 +1,5 @@
-import { GraphQLError } from "graphql";
 import { ApolloServerErrorCode } from "@apollo/server/errors";
+import { GraphQLError } from "graphql";
 
 import type { UserModule } from "./generated";
 import { getCurrentUser, login } from "./service";

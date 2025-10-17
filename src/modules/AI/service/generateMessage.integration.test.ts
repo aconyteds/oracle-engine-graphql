@@ -1,4 +1,4 @@
-import { test, expect, beforeEach, mock, describe, afterEach } from "bun:test";
+import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 
 describe("generateMessage", () => {
   let mockGenerateMessageWithRouter: ReturnType<typeof mock>;

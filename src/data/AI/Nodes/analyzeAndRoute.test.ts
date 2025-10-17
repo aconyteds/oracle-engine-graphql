@@ -1,6 +1,6 @@
-import { test, expect, beforeEach, mock, afterEach, describe } from "bun:test";
-import type { RouterGraphState } from "../Workflows/routerWorkflow";
+import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 import type { AIAgentDefinition } from "../types";
+import type { RouterGraphState } from "../Workflows/routerWorkflow";
 
 describe("analyzeAndRoute", () => {
   let mockGetModelDefinition: ReturnType<typeof mock>;
@@ -187,7 +187,7 @@ describe("analyzeAndRoute", () => {
       const result = await analyzeAndRoute(defaultState);
 
       expect(mockConsoleError).toHaveBeenCalledWith(
-        "Router analysis failed:",
+        "ERROR: Router analysis failed:",
         testError
       );
       expect(result.routingDecision?.targetAgent).toBe(mockCheapestAgent);
@@ -220,7 +220,7 @@ describe("analyzeAndRoute", () => {
       expect(result.routingMetadata?.success).toBe(false);
       expect(result.routingMetadata?.fallbackUsed).toBe(false);
       expect(mockConsoleError).toHaveBeenCalledWith(
-        "Failed to extract routing decision:",
+        "ERROR: Failed to extract routing decision:",
         expect.any(Error)
       );
     } finally {
@@ -266,7 +266,7 @@ describe("analyzeAndRoute", () => {
       expect(result.routingMetadata?.success).toBe(false);
       expect(result.routingMetadata?.fallbackUsed).toBe(false);
       expect(mockConsoleError).toHaveBeenCalledWith(
-        "Failed to extract routing decision:",
+        "ERROR: Failed to extract routing decision:",
         expect.any(Error)
       );
     } finally {
@@ -314,7 +314,7 @@ describe("analyzeAndRoute", () => {
       expect(result.routingMetadata?.success).toBe(false);
       expect(result.routingMetadata?.fallbackUsed).toBe(false);
       expect(mockConsoleError).toHaveBeenCalledWith(
-        "Failed to extract routing decision:",
+        "ERROR: Failed to extract routing decision:",
         expect.any(Error)
       );
     } finally {

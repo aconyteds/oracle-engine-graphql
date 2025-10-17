@@ -1,13 +1,13 @@
-import { GraphQLError } from "graphql";
 import { ApolloServerErrorCode } from "@apollo/server/errors";
+import { GraphQLError } from "graphql";
 
 import type { Message } from "../../../data/MongoDB";
-import type { MessageModule } from "../generated";
 import {
-  saveMessage,
   createThread,
+  saveMessage,
   verifyThreadOwnership,
 } from "../../../data/MongoDB";
+import type { MessageModule } from "../generated";
 
 type CreateMessageResponse = {
   // The Message that was added to the DB

@@ -1,6 +1,6 @@
-import { test, expect, beforeEach, afterEach, mock, describe } from "bun:test";
-import type { RouterGraphState } from "../Workflows/routerWorkflow";
+import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 import type { AIAgentDefinition } from "../types";
+import type { RouterGraphState } from "../Workflows/routerWorkflow";
 
 describe("executeFallback", () => {
   let mockGetModelDefinition: ReturnType<typeof mock>;
@@ -127,7 +127,7 @@ describe("executeFallback", () => {
       const result = await executeFallback(defaultState);
 
       expect(mockConsoleError).toHaveBeenCalledWith(
-        "Failed to execute fallback agent:",
+        "ERROR: Failed to execute fallback agent:",
         expect.any(Error)
       );
       expect(result.currentResponse).toBe(
@@ -153,7 +153,7 @@ describe("executeFallback", () => {
       const result = await executeFallback(defaultState);
 
       expect(mockConsoleError).toHaveBeenCalledWith(
-        "Failed to execute fallback agent:",
+        "ERROR: Failed to execute fallback agent:",
         testError
       );
       expect(result.currentResponse).toBe(

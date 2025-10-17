@@ -1,6 +1,6 @@
-import { test, expect, beforeEach, mock, describe, afterEach } from "bun:test";
-import type { RouterGraphState } from "../Workflows/routerWorkflow";
+import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 import type { AIAgentDefinition } from "../types";
+import type { RouterGraphState } from "../Workflows/routerWorkflow";
 
 describe("executeDefaultAgent", () => {
   let mockRunToolEnabledWorkflow: ReturnType<typeof mock>;
@@ -108,7 +108,7 @@ describe("executeDefaultAgent", () => {
       const result = await executeDefaultAgent(defaultState);
 
       expect(mockConsoleError).toHaveBeenCalledWith(
-        "Failed to execute default agent:",
+        "ERROR: Failed to execute default agent:",
         testError
       );
       expect(result.currentResponse).toBe(

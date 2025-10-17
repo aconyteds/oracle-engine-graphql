@@ -1,6 +1,6 @@
+import { analyzeConversationContext, routeToAgent } from "../../Tools/routing";
 import type { AIAgentDefinition } from "../../types";
 import { RouterType } from "../../types";
-import { routeToAgent, analyzeConversationContext } from "../../Tools/routing";
 import { buildRouterSystemMessage } from "./buildRouterSystemMessage";
 
 /**

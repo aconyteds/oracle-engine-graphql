@@ -1,17 +1,17 @@
-import { StateGraph, START, END, Annotation } from "@langchain/langgraph";
 import type { BaseMessage } from "@langchain/core/messages";
-import { ToolEnabledGraphState } from "./toolEnabledWorkflow";
-import type {
-  RoutingDecision,
-  RoutingMetadata,
-  AIAgentDefinition,
-} from "../types";
+import { Annotation, END, START, StateGraph } from "@langchain/langgraph";
 // Import the nodes that will be implemented
 import { analyzeAndRoute } from "../Nodes/analyzeAndRoute";
+import { executeDefaultAgent } from "../Nodes/executeDefaultAgent";
+import { executeFallback } from "../Nodes/executeFallback";
 import { executeTargetAgent } from "../Nodes/executeTargetAgent";
 import { validateRouting } from "../Nodes/validateRouting";
-import { executeFallback } from "../Nodes/executeFallback";
-import { executeDefaultAgent } from "../Nodes/executeDefaultAgent";
+import type {
+  AIAgentDefinition,
+  RoutingDecision,
+  RoutingMetadata,
+} from "../types";
+import { ToolEnabledGraphState } from "./toolEnabledWorkflow";
 
 // Enhanced workflow state that includes routing capabilities
 export const RouterGraphState = Annotation.Root({

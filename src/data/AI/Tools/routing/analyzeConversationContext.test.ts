@@ -1,7 +1,7 @@
-import { test, expect, beforeEach, describe } from "bun:test";
+import { beforeEach, describe, expect, test } from "bun:test";
 import type {
-  ConversationAnalysis,
   AnalysisMessage,
+  ConversationAnalysis,
 } from "./analyzeConversationContext";
 
 describe("analyzeConversationContext", () => {

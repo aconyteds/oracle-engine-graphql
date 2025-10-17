@@ -1,5 +1,5 @@
-import { GraphQLError } from "graphql";
 import { ApolloServerErrorCode } from "@apollo/server/errors";
+import { GraphQLError } from "graphql";
 
 import { DBClient } from "../../../data/MongoDB";
 import type { UserModule } from "../generated";
