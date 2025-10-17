@@ -32,6 +32,11 @@ extend type Mutation {
   Sets the selected campaign for the current user
   """
   selectCampaign(input: SelectCampaignInput!): SelectCampaignPayload
+
+  """
+  Deletes a campaign and all associated data
+  """
+  deleteCampaign(input: DeleteCampaignInput!): DeleteCampaignPayload
 }
 
 input GetCampaignInput {
@@ -142,6 +147,25 @@ type SelectCampaignPayload {
   The updated user with the new lastSelectedCampaign
   """
   user: User
+}
+
+input DeleteCampaignInput {
+  """
+  The ID of the campaign to delete
+  """
+  campaignId: ID!
+}
+
+type DeleteCampaignPayload {
+  """
+  Whether the deletion was successful
+  """
+  success: Boolean!
+
+  """
+  The ID of the deleted campaign
+  """
+  campaignId: ID!
 }
 
 type Campaign {

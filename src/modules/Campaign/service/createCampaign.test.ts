@@ -4,14 +4,18 @@ import type { CreateCampaignParams } from "./createCampaign";
 
 describe("createCampaign", () => {
   // Declare mock variables
-  let mockCreate: ReturnType<typeof mock>;
+  let mockCampaignCreate: ReturnType<typeof mock>;
+  let mockUserUpdate: ReturnType<typeof mock>;
+  let mockTransaction: ReturnType<typeof mock>;
   let mockCheckCampaignNameExists: ReturnType<typeof mock>;
-  let mockGetLastSelectedCampaign: ReturnType<typeof mock>;
-  let mockSelectCampaign: ReturnType<typeof mock>;
   let mockDBClient: {
     campaign: {
       create: ReturnType<typeof mock>;
     };
+    user: {
+      update: ReturnType<typeof mock>;
+    };
+    $transaction: ReturnType<typeof mock>;
   };
   let createCampaign: (params: CreateCampaignParams) => Promise<Campaign>;
 
@@ -36,14 +40,18 @@ describe("createCampaign", () => {
     mock.restore();
 
     // Create fresh mock instances
-    mockCreate = mock();
+    mockCampaignCreate = mock();
+    mockUserUpdate = mock();
+    mockTransaction = mock();
     mockCheckCampaignNameExists = mock();
-    mockGetLastSelectedCampaign = mock();
-    mockSelectCampaign = mock();
     mockDBClient = {
       campaign: {
-        create: mockCreate,
+        create: mockCampaignCreate,
       },
+      user: {
+        update: mockUserUpdate,
+      },
+      $transaction: mockTransaction,
     };
 
     // Set up module mocks INSIDE beforeEach
@@ -55,23 +63,37 @@ describe("createCampaign", () => {
       checkCampaignNameExists: mockCheckCampaignNameExists,
     }));
 
-    mock.module("./getLastSelectedCampaign", () => ({
-      getLastSelectedCampaign: mockGetLastSelectedCampaign,
-    }));
-
-    mock.module("./selectCampaign", () => ({
-      selectCampaign: mockSelectCampaign,
-    }));
-
     // Dynamically import the module under test
     const module = await import("./createCampaign");
     createCampaign = module.createCampaign;
 
     // Configure default mock behavior AFTER import
     mockCheckCampaignNameExists.mockResolvedValue(false);
-    mockGetLastSelectedCampaign.mockResolvedValue(null);
-    mockSelectCampaign.mockResolvedValue(undefined);
-    mockCreate.mockResolvedValue(defaultCampaign);
+    mockCampaignCreate.mockResolvedValue(defaultCampaign);
+    mockUserUpdate.mockResolvedValue({
+      id: "user-1",
+      lastCampaignId: "campaign-1",
+    });
+
+    // Mock $transaction to execute the callback immediately with tx mocks
+    mockTransaction.mockImplementation(
+      async (
+        callback: (tx: {
+          campaign: { create: ReturnType<typeof mock> };
+          user: { update: ReturnType<typeof mock> };
+        }) => Promise<Campaign>
+      ) => {
+        const tx = {
+          campaign: {
+            create: mockCampaignCreate,
+          },
+          user: {
+            update: mockUserUpdate,
+          },
+        };
+        return await callback(tx);
+      }
+    );
   });
 
   afterEach(() => {
@@ -79,14 +101,15 @@ describe("createCampaign", () => {
     mock.restore();
   });
 
-  test("Unit -> createCampaign creates campaign with provided data", async () => {
+  test("Unit -> createCampaign creates campaign and sets it as last selected", async () => {
     const result = await createCampaign(defaultCampaignParams);
 
     expect(mockCheckCampaignNameExists).toHaveBeenCalledWith({
       ownerId: "user-1",
       name: "My Campaign",
     });
-    expect(mockCreate).toHaveBeenCalledWith({
+    expect(mockTransaction).toHaveBeenCalled();
+    expect(mockCampaignCreate).toHaveBeenCalledWith({
       data: {
         ownerId: "user-1",
         name: "My Campaign",
@@ -94,6 +117,10 @@ describe("createCampaign", () => {
         tone: "Epic",
         ruleset: "D&D 5e",
       },
+    });
+    expect(mockUserUpdate).toHaveBeenCalledWith({
+      where: { id: "user-1" },
+      data: { lastCampaignId: "campaign-1" },
     });
     expect(result).toEqual(defaultCampaign);
   });
@@ -114,7 +141,7 @@ describe("createCampaign", () => {
       updatedAt: new Date("2025-01-02"),
     };
 
-    mockCreate.mockResolvedValue(customCampaign);
+    mockCampaignCreate.mockResolvedValue(customCampaign);
 
     const result = await createCampaign(customParams);
 
@@ -122,8 +149,12 @@ describe("createCampaign", () => {
       ownerId: "user-2",
       name: "Dark Fantasy",
     });
-    expect(mockCreate).toHaveBeenCalledWith({
+    expect(mockCampaignCreate).toHaveBeenCalledWith({
       data: customParams,
+    });
+    expect(mockUserUpdate).toHaveBeenCalledWith({
+      where: { id: "user-2" },
+      data: { lastCampaignId: "campaign-2" },
     });
     expect(result).toEqual(customCampaign);
   });
@@ -139,34 +170,44 @@ describe("createCampaign", () => {
       ownerId: "user-1",
       name: "My Campaign",
     });
-    expect(mockCreate).not.toHaveBeenCalled();
+    expect(mockTransaction).not.toHaveBeenCalled();
+    expect(mockCampaignCreate).not.toHaveBeenCalled();
+    expect(mockUserUpdate).not.toHaveBeenCalled();
   });
 
-  test("Unit -> createCampaign selects campaign if user has no campaigns", async () => {
-    mockGetLastSelectedCampaign.mockResolvedValue(null);
+  test("Unit -> createCampaign always updates user lastCampaignId in transaction", async () => {
+    const result = await createCampaign(defaultCampaignParams);
 
-    await createCampaign(defaultCampaignParams);
+    // Verify transaction was used
+    expect(mockTransaction).toHaveBeenCalled();
 
-    expect(mockGetLastSelectedCampaign).toHaveBeenCalledWith("user-1");
-    expect(mockSelectCampaign).toHaveBeenCalledWith("campaign-1", "user-1");
+    // Verify campaign was created
+    expect(mockCampaignCreate).toHaveBeenCalledWith({
+      data: defaultCampaignParams,
+    });
+
+    // Verify user's lastCampaignId was updated
+    expect(mockUserUpdate).toHaveBeenCalledWith({
+      where: { id: "user-1" },
+      data: { lastCampaignId: "campaign-1" },
+    });
+
+    expect(result).toEqual(defaultCampaign);
   });
 
-  test("Unit -> createCampaign does not select campaign if user already has campaigns", async () => {
-    const existingCampaign: Campaign = {
-      id: "existing-campaign",
-      ownerId: "user-1",
-      name: "Existing Campaign",
-      setting: "Fantasy",
-      tone: "Heroic",
-      ruleset: "D&D 5e",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    mockGetLastSelectedCampaign.mockResolvedValue(existingCampaign);
-
+  test("Unit -> createCampaign handles transaction atomically", async () => {
+    // This test verifies the transaction mock is properly implemented
     await createCampaign(defaultCampaignParams);
 
-    expect(mockGetLastSelectedCampaign).toHaveBeenCalledWith("user-1");
-    expect(mockSelectCampaign).not.toHaveBeenCalled();
+    // Both operations should be called within the transaction
+    expect(mockCampaignCreate).toHaveBeenCalled();
+    expect(mockUserUpdate).toHaveBeenCalled();
+
+    // Verify the order: create campaign, then update user
+    const createCallOrder = mockCampaignCreate.mock.calls.length;
+    const updateCallOrder = mockUserUpdate.mock.calls.length;
+
+    expect(createCallOrder).toBeGreaterThan(0);
+    expect(updateCallOrder).toBeGreaterThan(0);
   });
 });

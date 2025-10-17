@@ -5,6 +5,7 @@ import type { CampaignModule } from "./generated";
 import {
   checkCampaignNameExists,
   createCampaign,
+  deleteCampaign,
   getCampaign,
   getLastSelectedCampaign,
   getUserCampaigns,
@@ -111,6 +112,20 @@ const CampaignResolvers: CampaignModule.Resolvers = {
           name: updatedUser.name,
         },
       };
+    },
+    deleteCampaign: async (
+      _,
+      { input: { campaignId } },
+      { user }
+    ): Promise<CampaignModule.DeleteCampaignPayload> => {
+      if (!user) {
+        throw InvalidUserCredentials();
+      }
+      const result = await deleteCampaign({
+        campaignId,
+        ownerId: user.id,
+      });
+      return result;
     },
   },
   User: {

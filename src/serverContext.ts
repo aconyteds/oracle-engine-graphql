@@ -10,6 +10,8 @@ export interface ServerContext {
   user: User | null;
   // The PubSub instance for publishing and subscribing to events.
   pubsub: typeof PubSub;
+  // The campaign ID the user has selected, if any.
+  selectedCampaignId?: string;
 }
 
 // Initialize Firebase Admin SDK
@@ -23,12 +25,19 @@ export const getContext = async ({
   connectionParams?: Record<string, unknown>;
 }): Promise<ServerContext> => {
   let token = "";
+  let selectedCampaignId: string | undefined;
 
   if (req && req.headers) {
     const headers = normalizeKeys(req.headers);
     const authorizationHeader = headers.authorization;
     if (typeof authorizationHeader === "string") {
       token = authorizationHeader.replace("Bearer ", "");
+    }
+    if (
+      req.headers["x-selected-campaign-id"] &&
+      typeof req.headers["x-selected-campaign-id"] === "string"
+    ) {
+      selectedCampaignId = req.headers["x-selected-campaign-id"];
     }
   }
 
@@ -40,7 +49,12 @@ export const getContext = async ({
     }
   }
 
-  const context: ServerContext = { token, pubsub: PubSub, user: null };
+  const context: ServerContext = {
+    token,
+    pubsub: PubSub,
+    user: null,
+    selectedCampaignId,
+  };
 
   if (token) {
     try {

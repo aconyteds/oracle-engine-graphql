@@ -2,8 +2,6 @@ import type { Campaign } from "../../../data/MongoDB";
 import { DBClient } from "../../../data/MongoDB";
 import { InvalidInput } from "../../../graphql/errors";
 import { checkCampaignNameExists } from "./checkCampaignNameExists";
-import { getLastSelectedCampaign } from "./getLastSelectedCampaign";
-import { selectCampaign } from "./selectCampaign";
 
 export interface CreateCampaignParams {
   ownerId: string;
@@ -28,23 +26,27 @@ export const createCampaign = async (
     );
   }
 
-  const campaign = await DBClient.campaign.create({
-    data: {
-      ownerId: params.ownerId,
-      name: params.name,
-      setting: params.setting,
-      tone: params.tone,
-      ruleset: params.ruleset,
-    },
+  // Use a transaction to create campaign and update user's lastCampaignId atomically
+  const campaign = await DBClient.$transaction(async (tx) => {
+    // Create the campaign
+    const newCampaign = await tx.campaign.create({
+      data: {
+        ownerId: params.ownerId,
+        name: params.name,
+        setting: params.setting,
+        tone: params.tone,
+        ruleset: params.ruleset,
+      },
+    });
+
+    // Always set the newly created campaign as the last selected campaign
+    await tx.user.update({
+      where: { id: params.ownerId },
+      data: { lastCampaignId: newCampaign.id },
+    });
+
+    return newCampaign;
   });
-
-  // Check if the user has a selected campaign
-  const hasCampaign = await getLastSelectedCampaign(params.ownerId);
-
-  if (!hasCampaign) {
-    // If not, set this campaign as the selected campaign
-    await selectCampaign(campaign.id, params.ownerId);
-  }
 
   return campaign;
 };
