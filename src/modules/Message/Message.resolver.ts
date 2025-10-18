@@ -1,4 +1,3 @@
-import { verifyThreadOwnership } from "../../data/MongoDB";
 import { UnauthorizedError } from "../../graphql/errors";
 import { TranslateMessage } from "../utils";
 import type { MessageModule } from "./generated";
@@ -9,16 +8,21 @@ const MessageResolvers: MessageModule.Resolvers = {
     createMessage: async (
       _,
       { input },
-      { user, pubsub }
+      { user, pubsub, selectedCampaignId }
     ): Promise<MessageModule.CreateMessagePayload> => {
       if (!user) {
         throw UnauthorizedError();
       }
-      if (input.threadId) {
-        // Verify that the user has access to the thread
-        await verifyThreadOwnership(input.threadId, user.id);
+      if (!selectedCampaignId) {
+        throw new Error(
+          "Campaign selection required. Please provide x-selected-campaign-id header."
+        );
       }
-      const { message, threadId } = await createMessage(input, user.id);
+      const { message, threadId } = await createMessage(
+        input,
+        user.id,
+        selectedCampaignId
+      );
 
       const translatedMessage = TranslateMessage(message);
 

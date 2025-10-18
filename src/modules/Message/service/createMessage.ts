@@ -18,7 +18,8 @@ type CreateMessageResponse = {
 
 export async function createMessage(
   input: MessageModule.CreateMessageInput,
-  userId: string
+  userId: string,
+  campaignId: string
 ): Promise<CreateMessageResponse> {
   if (!input || !input.content) {
     throw new GraphQLError("Invalid user credentials", {
@@ -34,11 +35,11 @@ export async function createMessage(
     // Create a new thread in the DB
     threadId = await createThread({
       message: input.content,
-      userId,
+      campaignId,
     });
   } else {
     // Verify that the user has access to the thread
-    await verifyThreadOwnership(threadId, userId);
+    await verifyThreadOwnership(threadId, userId, campaignId);
   }
 
   const message = await saveMessage({

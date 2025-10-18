@@ -45,6 +45,7 @@ export const TranslateThread = (thread: Thread): GraphQLThread => {
     id: thread.id,
     title: thread.title,
     lastUsed: thread.updatedAt.toISOString(),
+    campaignId: thread.campaignId,
     messages: [],
   };
 };

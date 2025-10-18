@@ -3,18 +3,34 @@ import { DBClient } from "./client";
 
 export const verifyThreadOwnership = async (
   threadId: string,
-  userId: string
+  userId: string,
+  campaignId?: string
 ): Promise<true> => {
   try {
-    await DBClient.thread.findUniqueOrThrow({
+    const thread = await DBClient.thread.findUniqueOrThrow({
       where: {
         id: threadId,
-        userId,
+      },
+      include: {
+        campaign: true,
       },
     });
 
+    // Verify the user owns the campaign
+    if (thread.campaign.ownerId !== userId) {
+      throw UnauthorizedError();
+    }
+
+    // If campaignId is provided, verify thread belongs to that campaign
+    if (campaignId && thread.campaignId !== campaignId) {
+      throw new Error("Thread does not belong to the selected campaign.");
+    }
+
     return true;
-  } catch {
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("selected campaign")) {
+      throw error;
+    }
     throw UnauthorizedError();
   }
 };

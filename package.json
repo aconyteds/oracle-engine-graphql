@@ -46,6 +46,7 @@
     "@prisma/client": "^6.17.1",
     "@sentry/bun": "^10.20.0",
     "cors": "^2.8.5",
+    "dataloader": "^2.2.3",
     "express": "^4.21.2",
     "firebase-admin": "^12.7.0",
     "graphql": "^16.11.0",

@@ -69,34 +69,33 @@ describe("verifyCampaignOwnership", () => {
     expect(mockFindUniqueOrThrow).toHaveBeenCalledWith({
       where: {
         id: "campaign-1",
-        ownerId: "user-1",
       },
     });
     expect(result).toBe(true);
   });
 
-  test("Unit -> verifyCampaignOwnership throws UnauthorizedError when campaign not found", () => {
+  test("Unit -> verifyCampaignOwnership throws UnauthorizedError when campaign not found", async () => {
     mockFindUniqueOrThrow.mockRejectedValue(new Error("Not found"));
 
-    expect(verifyCampaignOwnership("campaign-1", "wrong-user")).rejects.toThrow(
-      "Unauthorized"
-    );
+    await expect(
+      verifyCampaignOwnership("campaign-nonexistent", "user-1")
+    ).rejects.toThrow("Unauthorized");
 
     expect(mockFindUniqueOrThrow).toHaveBeenCalledWith({
       where: {
-        id: "campaign-1",
-        ownerId: "wrong-user",
+        id: "campaign-nonexistent",
       },
     });
     expect(mockUnauthorizedError).toHaveBeenCalled();
   });
 
-  test("Unit -> verifyCampaignOwnership throws UnauthorizedError when user is not owner", () => {
-    mockFindUniqueOrThrow.mockRejectedValue(new Error("Not found"));
+  test("Unit -> verifyCampaignOwnership throws UnauthorizedError when user is not owner", async () => {
+    const wrongUserCampaign = { ...defaultCampaign, ownerId: "user-2" };
+    mockFindUniqueOrThrow.mockResolvedValue(wrongUserCampaign);
 
-    expect(verifyCampaignOwnership("campaign-1", "user-2")).rejects.toThrow(
-      "Unauthorized"
-    );
+    await expect(
+      verifyCampaignOwnership("campaign-1", "user-1")
+    ).rejects.toThrow("Unauthorized");
 
     expect(mockUnauthorizedError).toHaveBeenCalled();
   });

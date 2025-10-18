@@ -6,15 +6,24 @@ export const verifyCampaignOwnership = async (
   userId: string
 ): Promise<true> => {
   try {
-    await DBClient.campaign.findUniqueOrThrow({
+    const campaign = await DBClient.campaign.findUniqueOrThrow({
       where: {
         id: campaignId,
-        ownerId: userId,
       },
     });
 
+    // Verify the user owns the campaign
+    if (campaign.ownerId !== userId) {
+      throw UnauthorizedError();
+    }
+
     return true;
-  } catch {
+  } catch (error) {
+    // If it's already an UnauthorizedError, rethrow it
+    if (error instanceof Error && error.message.includes("Unauthorized")) {
+      throw error;
+    }
+    // Otherwise, throw a generic unauthorized error
     throw UnauthorizedError();
   }
 };
