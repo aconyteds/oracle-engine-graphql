@@ -31,5 +31,6 @@ export const getCurrentUser = async (
     id: user.id,
     email: user.email,
     name: user.name,
+    isActive: user.active,
   };
 };
