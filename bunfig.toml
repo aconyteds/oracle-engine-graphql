@@ -1,0 +1,3 @@
+[test]
+# Preload shared test environment (initializes MongoDB testcontainer once for all E2E tests)
+preload = ["./e2e/infrastructure/sharedTestEnvironment.ts"]

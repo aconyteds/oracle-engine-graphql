@@ -61,6 +61,8 @@ export const permissions = shield(
     },
     // Allow all fields in LoginPayload to be accessed by anyone, needed for login
     LoginPayload: allow,
+    // Allow User fields to be read (needed for login response and currentUser query)
+    User: allow,
   },
   {
     // If an operation is not specified, deny access

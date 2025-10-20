@@ -5,6 +5,7 @@
 # See: https://github.com/oven-sh/bun/issues/6040
 
 set -e
+set -o pipefail
 
 # Colors for output
 RED='\033[0;31m'
@@ -33,9 +34,9 @@ if [ "$TEST_PATTERN" = "E2E" ]; then
   TEST_FILES=$(find e2e -name '*.test.ts' 2>/dev/null | sort)
   echo -e "${BLUE}Searching for E2E tests in: e2e/${NC}"
 else
-  # Unit tests are in src folder (excluding integration tests)
-  TEST_FILES=$(find src -name '*.test.ts' -not -name '*.integration.test.ts' 2>/dev/null | sort)
-  echo -e "${BLUE}Searching for Unit tests in: src/ (excluding *.integration.test.ts)${NC}"
+  # Unit tests are in src folder (all tests in src/ are unit tests)
+  TEST_FILES=$(find src -name '*.test.ts' 2>/dev/null | sort)
+  echo -e "${BLUE}Searching for Unit tests in: src/${NC}"
 fi
 
 # Count total files
@@ -55,7 +56,7 @@ for test_file in $TEST_FILES; do
   echo -e "${BLUE}Running: ${test_file}${NC}"
 
   # Run the test and capture output
-  if bun test "$test_file" --test-name-pattern "$TEST_PATTERN" 2>&1 | tee /tmp/test-output.txt; then
+  if bun test "$test_file" 2>&1 | tee /tmp/test-output.txt; then
     echo -e "${GREEN}✓ PASSED: ${test_file}${NC}"
     PASSED_FILES=$((PASSED_FILES + 1))
   else

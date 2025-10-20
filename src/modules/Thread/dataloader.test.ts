@@ -54,6 +54,9 @@ describe("createThreadsByCampaignIdLoader", () => {
       },
     };
 
+    // Configure default mock behavior BEFORE setting up module mocks
+    mockFindMany.mockResolvedValue(defaultThreads);
+
     // Set up module mocks INSIDE beforeEach
     mock.module("../../data/MongoDB", () => ({
       DBClient: mockDBClient,
@@ -62,9 +65,6 @@ describe("createThreadsByCampaignIdLoader", () => {
     // Dynamically import the module under test
     const module = await import("./dataloader");
     createThreadsByCampaignIdLoader = module.createThreadsByCampaignIdLoader;
-
-    // Configure default mock behavior AFTER import
-    mockFindMany.mockResolvedValue(defaultThreads);
   });
 
   afterEach(() => {

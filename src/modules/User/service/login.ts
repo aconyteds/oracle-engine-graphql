@@ -28,6 +28,7 @@ export const login = async (
         id: userCredential.id,
         email: userCredential.email,
         name: userCredential.name,
+        isActive: userCredential.active,
       },
     };
   } catch (error) {

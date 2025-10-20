@@ -8,6 +8,11 @@ describe("deleteCampaign", () => {
   let mockCampaignFindUnique: ReturnType<typeof mock>;
   let mockUserFindUnique: ReturnType<typeof mock>;
   let mockUserUpdate: ReturnType<typeof mock>;
+  let mockThreadFindMany: ReturnType<typeof mock>;
+  let mockThreadDeleteMany: ReturnType<typeof mock>;
+  let mockMessageDeleteMany: ReturnType<typeof mock>;
+  let mockSessionEventDeleteMany: ReturnType<typeof mock>;
+  let mockCampaignAssetDeleteMany: ReturnType<typeof mock>;
   let mockTransaction: ReturnType<typeof mock>;
   let mockDBClient: {
     campaign: {
@@ -17,6 +22,19 @@ describe("deleteCampaign", () => {
     user: {
       findUnique: ReturnType<typeof mock>;
       update: ReturnType<typeof mock>;
+    };
+    thread: {
+      findMany: ReturnType<typeof mock>;
+      deleteMany: ReturnType<typeof mock>;
+    };
+    message: {
+      deleteMany: ReturnType<typeof mock>;
+    };
+    sessionEvent: {
+      deleteMany: ReturnType<typeof mock>;
+    };
+    campaignAsset: {
+      deleteMany: ReturnType<typeof mock>;
     };
     $transaction: ReturnType<typeof mock>;
   };
@@ -54,6 +72,11 @@ describe("deleteCampaign", () => {
     mockCampaignFindUnique = mock();
     mockUserFindUnique = mock();
     mockUserUpdate = mock();
+    mockThreadFindMany = mock();
+    mockThreadDeleteMany = mock();
+    mockMessageDeleteMany = mock();
+    mockSessionEventDeleteMany = mock();
+    mockCampaignAssetDeleteMany = mock();
     mockTransaction = mock();
     mockDBClient = {
       campaign: {
@@ -63,6 +86,19 @@ describe("deleteCampaign", () => {
       user: {
         findUnique: mockUserFindUnique,
         update: mockUserUpdate,
+      },
+      thread: {
+        findMany: mockThreadFindMany,
+        deleteMany: mockThreadDeleteMany,
+      },
+      message: {
+        deleteMany: mockMessageDeleteMany,
+      },
+      sessionEvent: {
+        deleteMany: mockSessionEventDeleteMany,
+      },
+      campaignAsset: {
+        deleteMany: mockCampaignAssetDeleteMany,
       },
       $transaction: mockTransaction,
     };
@@ -81,6 +117,11 @@ describe("deleteCampaign", () => {
     mockUserFindUnique.mockResolvedValue(defaultUser);
     mockUserUpdate.mockResolvedValue({ ...defaultUser, lastCampaignId: null });
     mockCampaignDelete.mockResolvedValue(defaultCampaign);
+    mockThreadFindMany.mockResolvedValue([]);
+    mockThreadDeleteMany.mockResolvedValue({ count: 0 });
+    mockMessageDeleteMany.mockResolvedValue({ count: 0 });
+    mockSessionEventDeleteMany.mockResolvedValue({ count: 0 });
+    mockCampaignAssetDeleteMany.mockResolvedValue({ count: 0 });
 
     // Mock $transaction to execute the callback immediately with tx mocks
     mockTransaction.mockImplementation(
@@ -88,6 +129,13 @@ describe("deleteCampaign", () => {
         callback: (tx: {
           campaign: { delete: ReturnType<typeof mock> };
           user: { update: ReturnType<typeof mock> };
+          thread: {
+            findMany: ReturnType<typeof mock>;
+            deleteMany: ReturnType<typeof mock>;
+          };
+          message: { deleteMany: ReturnType<typeof mock> };
+          sessionEvent: { deleteMany: ReturnType<typeof mock> };
+          campaignAsset: { deleteMany: ReturnType<typeof mock> };
         }) => Promise<void>
       ) => {
         const tx = {
@@ -96,6 +144,19 @@ describe("deleteCampaign", () => {
           },
           user: {
             update: mockUserUpdate,
+          },
+          thread: {
+            findMany: mockThreadFindMany,
+            deleteMany: mockThreadDeleteMany,
+          },
+          message: {
+            deleteMany: mockMessageDeleteMany,
+          },
+          sessionEvent: {
+            deleteMany: mockSessionEventDeleteMany,
+          },
+          campaignAsset: {
+            deleteMany: mockCampaignAssetDeleteMany,
           },
         };
         return await callback(tx);

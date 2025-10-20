@@ -6,12 +6,13 @@ import { setupTestServer, teardownTestServer } from "./setup";
 
 describe("E2E -> GraphQL Health Check", () => {
   let server: Server;
+
   beforeAll(async () => {
     server = await setupTestServer();
   });
 
-  afterAll(() => {
-    teardownTestServer(server);
+  afterAll(async () => {
+    await teardownTestServer(server);
   });
 
   test("healthCheck query returns true", async () => {

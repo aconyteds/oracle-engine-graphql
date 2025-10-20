@@ -38,6 +38,7 @@ describe("getContext", () => {
     mock.module("./data/Firebase", () => ({
       initializeFirebase: mock(),
       verifyUser: mockVerifyUser,
+      loginWithEmailAndPassword: mock(),
     }));
 
     mock.module("./modules/Thread/dataloader", () => ({

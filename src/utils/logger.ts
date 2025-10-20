@@ -35,7 +35,11 @@ class Logger {
     const extraArgs =
       errorOrArgs instanceof Error ? args : [errorOrArgs, ...args];
 
-    console.error(`ERROR: ${message}`, error, ...extraArgs);
+    // In test environment, don't log errors to console (reduces noise)
+    // Tests can still catch and verify errors through the GraphQL response
+    if (process.env.NODE_ENV !== "test") {
+      console.error(`ERROR: ${message}`, error, ...extraArgs);
+    }
 
     if (sentryEnabled) {
       Sentry.captureException(error, {
@@ -49,9 +53,10 @@ class Logger {
   }
 
   static debug(message: string, ...args: unknown[]) {
-    const isTestEnvironment =
-      process.env.NODE_ENV === "test" || process.env.VITEST;
-    if (process.env.NODE_ENV !== "production" && !isTestEnvironment) {
+    if (
+      process.env.NODE_ENV !== "production" &&
+      process.env.NODE_ENV !== "test"
+    ) {
       console.debug(`DEBUG: ${message}`, ...args);
     }
   }
