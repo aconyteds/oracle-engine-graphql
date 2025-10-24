@@ -1,16 +1,17 @@
+import type { BaseMessage } from "@langchain/core/messages";
 import type { DynamicTool } from "@langchain/core/tools";
 import type { GenerateMessagePayload } from "../../generated/graphql";
-import { runToolEnabledWorkflow, getModelDefinition } from ".";
-import { saveMessage } from "../MongoDB";
+import { ServerError } from "../../graphql/errors";
 import { TranslateMessage } from "../../modules/utils";
+import { logger } from "../../utils/logger";
 import type { MessageWorkspace } from "../MongoDB";
+import { saveMessage } from "../MongoDB";
+import { getModelDefinition, runToolEnabledWorkflow } from ".";
 import type {
+  AIAgentDefinition,
   ToolCallForDB,
   ToolResultForDB,
-  AIAgentDefinition,
 } from "./types";
-import { ServerError } from "../../graphql/errors";
-import type { BaseMessage } from "@langchain/core/messages";
 
 // Type definition for the workflow result
 interface WorkflowResult {
@@ -122,7 +123,7 @@ export async function* generateMessageWithStandardWorkflow({
     };
     yield finalPayload;
   } catch (error) {
-    console.error("Error in standard workflow generation:", error);
+    logger.error("Error in standard workflow generation:", error);
     throw ServerError("Error generating message with tools.");
   }
 }

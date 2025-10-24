@@ -1,7 +1,14 @@
 extend type Query {
-  # returns all threads for the current user
+  """
+  Returns all threads for the currently selected campaign.
+  Requires x-selected-campaign-id header.
+  """
   threads: [Thread!]
-  # returns a single thread
+
+  """
+  Returns a single thread by ID.
+  Requires x-selected-campaign-id header and thread must belong to selected campaign.
+  """
   getThread(input: GetThreadInput!): GetThreadPayload
 }
 
@@ -18,8 +25,23 @@ type Thread {
   title: String!
   lastUsed: DateTime!
   messages: [Message!]
+  """
+  The ID of the campaign this thread belongs to
+  """
+  campaignId: ID!
 }
 
 extend type User {
+  """
+  Returns all threads for the currently selected campaign.
+  Requires x-selected-campaign-id header.
+  """
+  threads: [Thread!]
+}
+
+extend type Campaign {
+  """
+  All threads belonging to this campaign
+  """
   threads: [Thread!]
 }

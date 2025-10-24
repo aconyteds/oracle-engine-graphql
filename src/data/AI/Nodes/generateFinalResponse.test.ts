@@ -1,10 +1,11 @@
-import { test, expect, beforeEach, mock, describe, afterEach } from "bun:test";
-import { HumanMessage, AIMessage, ToolMessage } from "@langchain/core/messages";
+import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
+import { AIMessage, HumanMessage, ToolMessage } from "@langchain/core/messages";
 import type { ToolEnabledGraphState } from "../Workflows/toolEnabledWorkflow";
 
 describe("generateFinalResponse", () => {
   // Mock dependencies - recreated for each test
   let mockInvoke: ReturnType<typeof mock>;
+  let mockLoggerError: ReturnType<typeof mock>;
   let generateFinalResponse: (
     state: typeof ToolEnabledGraphState.State
   ) => Promise<Partial<typeof ToolEnabledGraphState.State>>;
@@ -13,8 +14,20 @@ describe("generateFinalResponse", () => {
     // Restore all mocks before each test
     mock.restore();
 
-    // Create fresh mock
+    // Create fresh mocks
     mockInvoke = mock();
+    mockLoggerError = mock();
+
+    // Mock logger module
+    mock.module("../../../utils/logger", () => ({
+      logger: {
+        error: mockLoggerError,
+        info: mock(),
+        warn: mock(),
+        debug: mock(),
+        success: mock(),
+      },
+    }));
 
     const module = await import("./generateFinalResponse");
     generateFinalResponse = module.generateFinalResponse;
@@ -105,11 +118,7 @@ describe("generateFinalResponse", () => {
     });
   });
 
-  test("Unit -> generateFinalResponse handles model error", () => {
-    const originalConsoleError = console.error;
-    const mockConsoleError = mock();
-    console.error = mockConsoleError;
-
+  test("Unit -> generateFinalResponse handles model error", async () => {
     const defaultMessages = [
       new HumanMessage("User question"),
       new AIMessage("AI response with tool calls"),
@@ -131,17 +140,13 @@ describe("generateFinalResponse", () => {
     const testError = new Error("Model invocation failed");
     mockInvoke.mockRejectedValue(testError);
 
-    try {
-      expect(generateFinalResponse(state)).rejects.toThrow(
-        "Model invocation failed"
-      );
-      expect(mockConsoleError).toHaveBeenCalledWith(
-        "Error generating final response:",
-        testError
-      );
-    } finally {
-      console.error = originalConsoleError;
-    }
+    await expect(generateFinalResponse(state)).rejects.toThrow(
+      "Model invocation failed"
+    );
+    expect(mockLoggerError).toHaveBeenCalledWith(
+      "Error generating final response:",
+      testError
+    );
   });
 
   test("Unit -> generateFinalResponse preserves existing metadata", async () => {

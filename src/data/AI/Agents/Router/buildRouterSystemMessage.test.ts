@@ -1,7 +1,7 @@
-import { test, expect, describe, beforeEach } from "bun:test";
+import { beforeEach, describe, expect, test } from "bun:test";
+import type { TrustedModel } from "../../modelList";
 import type { AIAgentDefinition } from "../../types";
 import { RouterType } from "../../types";
-import type { TrustedModel } from "../../modelList";
 
 describe("buildRouterSystemMessage", () => {
   let buildRouterSystemMessage: (

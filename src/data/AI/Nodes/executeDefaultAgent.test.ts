@@ -1,9 +1,10 @@
-import { test, expect, beforeEach, mock, describe, afterEach } from "bun:test";
-import type { RouterGraphState } from "../Workflows/routerWorkflow";
+import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 import type { AIAgentDefinition } from "../types";
+import type { RouterGraphState } from "../Workflows/routerWorkflow";
 
 describe("executeDefaultAgent", () => {
   let mockRunToolEnabledWorkflow: ReturnType<typeof mock>;
+  let mockLoggerError: ReturnType<typeof mock>;
   let mockCheapestAgent: AIAgentDefinition;
   let executeDefaultAgent: (
     state: typeof RouterGraphState.State
@@ -30,6 +31,7 @@ describe("executeDefaultAgent", () => {
     mock.restore();
 
     mockRunToolEnabledWorkflow = mock();
+    mockLoggerError = mock();
     mockCheapestAgent = {
       name: "cheapest",
       description: "Cheapest AI agent",
@@ -42,6 +44,16 @@ describe("executeDefaultAgent", () => {
 
     mock.module("../Agents", () => ({
       cheapest: mockCheapestAgent,
+    }));
+
+    mock.module("../../../utils/logger", () => ({
+      logger: {
+        error: mockLoggerError,
+        info: mock(),
+        warn: mock(),
+        debug: mock(),
+        success: mock(),
+      },
     }));
 
     const module = await import("./executeDefaultAgent");
@@ -97,29 +109,21 @@ describe("executeDefaultAgent", () => {
   });
 
   test("Unit -> executeDefaultAgent handles workflow error gracefully", async () => {
-    const originalConsoleError = console.error;
-    const mockConsoleError = mock();
-    console.error = mockConsoleError;
-
     const testError = new Error("Workflow execution failed");
     mockRunToolEnabledWorkflow.mockRejectedValue(testError);
 
-    try {
-      const result = await executeDefaultAgent(defaultState);
+    const result = await executeDefaultAgent(defaultState);
 
-      expect(mockConsoleError).toHaveBeenCalledWith(
-        "Failed to execute default agent:",
-        testError
-      );
-      expect(result.currentResponse).toBe(
-        "I apologize, but I'm experiencing technical difficulties. Please try again."
-      );
-      expect(result.isComplete).toBe(true);
-      expect(result.routingMetadata?.success).toBe(false);
-      expect(result.routingMetadata?.fallbackUsed).toBe(true);
-    } finally {
-      console.error = originalConsoleError;
-    }
+    expect(mockLoggerError).toHaveBeenCalledWith(
+      "Failed to execute default agent:",
+      testError
+    );
+    expect(result.currentResponse).toBe(
+      "I apologize, but I'm experiencing technical difficulties. Please try again."
+    );
+    expect(result.isComplete).toBe(true);
+    expect(result.routingMetadata?.success).toBe(false);
+    expect(result.routingMetadata?.fallbackUsed).toBe(true);
   });
 
   test("Unit -> executeDefaultAgent preserves existing routing metadata", async () => {
@@ -158,19 +162,12 @@ describe("executeDefaultAgent", () => {
   });
 
   test("Unit -> executeDefaultAgent preserves workflow error in error case", async () => {
-    const originalConsoleError = console.error;
-    console.error = mock();
-
     mockRunToolEnabledWorkflow.mockRejectedValue(new Error("Network timeout"));
 
-    try {
-      const result = await executeDefaultAgent(defaultState);
+    const result = await executeDefaultAgent(defaultState);
 
-      expect(result.isComplete).toBe(true);
-      expect(result.targetAgent).toBeUndefined();
-    } finally {
-      console.error = originalConsoleError;
-    }
+    expect(result.isComplete).toBe(true);
+    expect(result.targetAgent).toBeUndefined();
   });
 
   test("Unit -> executeDefaultAgent uses correct thread ID", async () => {

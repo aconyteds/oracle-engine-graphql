@@ -1,10 +1,11 @@
-import { test, expect, beforeEach, afterEach, mock, describe } from "bun:test";
-import type { RouterGraphState } from "../Workflows/routerWorkflow";
+import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 import type { AIAgentDefinition } from "../types";
+import type { RouterGraphState } from "../Workflows/routerWorkflow";
 
 describe("executeFallback", () => {
   let mockGetModelDefinition: ReturnType<typeof mock>;
   let mockRunToolEnabledWorkflow: ReturnType<typeof mock>;
+  let mockLoggerError: ReturnType<typeof mock>;
   let executeFallback: (
     state: typeof RouterGraphState.State
   ) => Promise<Partial<typeof RouterGraphState.State>>;
@@ -51,6 +52,7 @@ describe("executeFallback", () => {
 
     mockGetModelDefinition = mock();
     mockRunToolEnabledWorkflow = mock();
+    mockLoggerError = mock();
 
     void mock.module("../getModelDefinition", () => ({
       getModelDefinition: mockGetModelDefinition,
@@ -62,6 +64,16 @@ describe("executeFallback", () => {
 
     void mock.module("../Agents", () => ({
       cheapest: mockCheapestAgent,
+    }));
+
+    void mock.module("../../../utils/logger", () => ({
+      logger: {
+        error: mockLoggerError,
+        info: mock(),
+        warn: mock(),
+        debug: mock(),
+        success: mock(),
+      },
     }));
 
     const module = await import("./executeFallback");
@@ -117,52 +129,36 @@ describe("executeFallback", () => {
   });
 
   test("Unit -> executeFallback handles model configuration error", async () => {
-    const originalConsoleError = console.error;
-    const mockConsoleError = mock();
-    console.error = mockConsoleError;
-
     mockGetModelDefinition.mockReturnValue(null);
 
-    try {
-      const result = await executeFallback(defaultState);
+    const result = await executeFallback(defaultState);
 
-      expect(mockConsoleError).toHaveBeenCalledWith(
-        "Failed to execute fallback agent:",
-        expect.any(Error)
-      );
-      expect(result.currentResponse).toBe(
-        "I apologize, but I'm experiencing technical difficulties. Please try again."
-      );
-      expect(result.routingAttempts).toBe(2);
-      expect(result.routingMetadata?.success).toBe(false);
-      expect(result.routingMetadata?.fallbackUsed).toBe(true);
-    } finally {
-      console.error = originalConsoleError;
-    }
+    expect(mockLoggerError).toHaveBeenCalledWith(
+      "Failed to execute fallback agent:",
+      expect.any(Error)
+    );
+    expect(result.currentResponse).toBe(
+      "I apologize, but I'm experiencing technical difficulties. Please try again."
+    );
+    expect(result.routingAttempts).toBe(2);
+    expect(result.routingMetadata?.success).toBe(false);
+    expect(result.routingMetadata?.fallbackUsed).toBe(true);
   });
 
   test("Unit -> executeFallback handles workflow execution error", async () => {
-    const originalConsoleError = console.error;
-    const mockConsoleError = mock();
-    console.error = mockConsoleError;
-
     const testError = new Error("Workflow execution failed");
     mockRunToolEnabledWorkflow.mockRejectedValue(testError);
 
-    try {
-      const result = await executeFallback(defaultState);
+    const result = await executeFallback(defaultState);
 
-      expect(mockConsoleError).toHaveBeenCalledWith(
-        "Failed to execute fallback agent:",
-        testError
-      );
-      expect(result.currentResponse).toBe(
-        "I apologize, but I'm experiencing technical difficulties. Please try again."
-      );
-      expect(result.routingMetadata?.success).toBe(false);
-    } finally {
-      console.error = originalConsoleError;
-    }
+    expect(mockLoggerError).toHaveBeenCalledWith(
+      "Failed to execute fallback agent:",
+      testError
+    );
+    expect(result.currentResponse).toBe(
+      "I apologize, but I'm experiencing technical difficulties. Please try again."
+    );
+    expect(result.routingMetadata?.success).toBe(false);
   });
 
   test("Unit -> executeFallback merges workflow result with state", async () => {

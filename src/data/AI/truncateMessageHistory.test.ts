@@ -1,7 +1,7 @@
-import { test, expect, beforeEach, mock, describe, afterEach } from "bun:test";
+import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
+import type { Message } from "../MongoDB";
 import type { AIAgentDefinition } from "./types";
 import { RouterType } from "./types";
-import type { Message } from "../MongoDB";
 
 describe("truncateMessageHistory", () => {
   let mockCalculateTokenCount: ReturnType<typeof mock>;

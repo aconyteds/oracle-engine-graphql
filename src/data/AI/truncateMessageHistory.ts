@@ -1,8 +1,8 @@
 import type { BaseMessage } from "@langchain/core/messages";
-import { HumanMessage, AIMessage } from "@langchain/core/messages";
+import { AIMessage, HumanMessage } from "@langchain/core/messages";
+import type { Message } from "../MongoDB";
 import { calculateTokenCount } from "./calculateTokenCount";
 import type { AIAgentDefinition } from "./types";
-import type { Message } from "../MongoDB";
 
 type TruncationStrategy = "alternate" | "latest";
 

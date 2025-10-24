@@ -1,32 +1,32 @@
-import { ServerError } from "../../../graphql/errors";
+import { randomUUID } from "crypto";
 import {
-  truncateMessageHistory,
-  getAgentByName,
-  getModelDefinition,
   generateMessageWithRouter,
   generateMessageWithStandardWorkflow,
+  getAgentByName,
+  getModelDefinition,
   RouterType,
+  truncateMessageHistory,
 } from "../../../data/AI";
-import type { GenerateMessagePayload } from "../../../generated/graphql";
 import { DBClient } from "../../../data/MongoDB";
-import { randomUUID } from "crypto";
+import type { GenerateMessagePayload } from "../../../generated/graphql";
+import { ServerError } from "../../../graphql/errors";
 
 export async function* generateMessage(
   threadId: string
 ): AsyncGenerator<GenerateMessagePayload> {
   // Get the Thread
   const thread = await DBClient.thread.findUnique({
-    where: {
-      id: threadId,
-    },
     select: {
-      userId: true,
-      selectedAgent: true,
       messages: {
         orderBy: {
           createdAt: "asc",
         },
       },
+      selectedAgent: true,
+      userId: true,
+    },
+    where: {
+      id: threadId,
     },
   });
 

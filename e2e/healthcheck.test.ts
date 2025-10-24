@@ -1,17 +1,18 @@
-import request from "supertest";
-import { test, expect, describe, beforeAll, afterAll } from "bun:test";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import type { Server } from "http";
+import request from "supertest";
 
 import { setupTestServer, teardownTestServer } from "./setup";
 
 describe("E2E -> GraphQL Health Check", () => {
   let server: Server;
+
   beforeAll(async () => {
     server = await setupTestServer();
   });
 
-  afterAll(() => {
-    teardownTestServer(server);
+  afterAll(async () => {
+    await teardownTestServer(server);
   });
 
   test("healthCheck query returns true", async () => {

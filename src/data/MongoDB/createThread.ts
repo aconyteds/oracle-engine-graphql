@@ -4,13 +4,13 @@ import { DBClient } from "./client";
 type CreateThreadInput = {
   // The message being used to create the thread
   message: string;
-  // The user ID from the DB to tie the thread to
-  userId: string;
+  // The campaign ID to tie the thread to
+  campaignId: string;
 };
 
 export const createThread = async ({
   message,
-  userId,
+  campaignId,
 }: CreateThreadInput): Promise<string> => {
   // Create a title using the AI
   const title = await createTitle(message);
@@ -19,7 +19,7 @@ export const createThread = async ({
   const thread = await DBClient.thread.create({
     data: {
       title,
-      userId,
+      campaignId,
       // TODO:: Make this more dynamic
       selectedAgent: "Default Router",
       // selectedAgent: "Cheapest",

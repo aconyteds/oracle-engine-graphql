@@ -1,6 +1,6 @@
+import type { BaseMessage } from "@langchain/core/messages";
 import type { DynamicStructuredTool, Tool } from "@langchain/core/tools";
 import type { ClientOptions } from "@langchain/openai";
-import type { BaseMessage } from "@langchain/core/messages";
 
 import type { TrustedModel } from "./modelList";
 

@@ -1,0 +1,223 @@
+extend type Query {
+  """
+  Returns all campaigns for the current user
+  """
+  campaigns: [Campaign!]
+
+  """
+  Returns a single campaign by ID
+  """
+  getCampaign(input: GetCampaignInput!): GetCampaignPayload
+
+  """
+  Checks if a campaign name already exists for the current user
+  """
+  checkCampaignNameExists(
+    input: CheckCampaignNameExistsInput!
+  ): CheckCampaignNameExistsPayload
+}
+
+extend type Mutation {
+  """
+  Creates a new campaign for the current user
+  """
+  createCampaign(input: CreateCampaignInput!): CreateCampaignPayload
+
+  """
+  Updates an existing campaign
+  """
+  updateCampaign(input: UpdateCampaignInput!): UpdateCampaignPayload
+
+  """
+  Sets the selected campaign for the current user
+  """
+  selectCampaign(input: SelectCampaignInput!): SelectCampaignPayload
+
+  """
+  Deletes a campaign and all associated data
+  """
+  deleteCampaign(input: DeleteCampaignInput!): DeleteCampaignPayload
+}
+
+input GetCampaignInput {
+  """
+  The ID of the campaign to retrieve
+  """
+  campaignId: ID!
+}
+
+type GetCampaignPayload {
+  """
+  The requested campaign
+  """
+  campaign: Campaign
+}
+
+input CheckCampaignNameExistsInput {
+  """
+  The campaign name to check
+  """
+  name: String!
+}
+
+type CheckCampaignNameExistsPayload {
+  """
+  Whether the campaign name already exists for this user
+  """
+  exists: Boolean!
+}
+
+input CreateCampaignInput {
+  """
+  The name of the campaign
+  """
+  name: String!
+
+  """
+  The campaign setting or world
+  """
+  setting: String!
+
+  """
+  The tone of the campaign (e.g., heroic, gritty, comedic)
+  """
+  tone: String!
+
+  """
+  The ruleset being used (e.g., D&D 5e, Pathfinder 2e)
+  """
+  ruleset: String!
+}
+
+type CreateCampaignPayload {
+  """
+  The newly created campaign
+  """
+  campaign: Campaign
+}
+
+input UpdateCampaignInput {
+  """
+  The ID of the campaign to update
+  """
+  campaignId: ID!
+
+  """
+  The updated name of the campaign
+  """
+  name: String
+
+  """
+  The updated campaign setting or world
+  """
+  setting: String
+
+  """
+  The updated tone of the campaign
+  """
+  tone: String
+
+  """
+  The updated ruleset
+  """
+  ruleset: String
+}
+
+type UpdateCampaignPayload {
+  """
+  The updated campaign
+  """
+  campaign: Campaign
+}
+
+input SelectCampaignInput {
+  """
+  The ID of the campaign to select
+  """
+  campaignId: ID!
+}
+
+type SelectCampaignPayload {
+  """
+  The selected campaign
+  """
+  campaign: Campaign
+
+  """
+  The updated user with the new lastSelectedCampaign
+  """
+  user: User
+}
+
+input DeleteCampaignInput {
+  """
+  The ID of the campaign to delete
+  """
+  campaignId: ID!
+}
+
+type DeleteCampaignPayload {
+  """
+  Whether the deletion was successful
+  """
+  success: Boolean!
+
+  """
+  The ID of the deleted campaign
+  """
+  campaignId: ID!
+}
+
+type Campaign {
+  """
+  The unique identifier for the campaign
+  """
+  id: ID!
+
+  """
+  The ID of the user who owns this campaign
+  """
+  ownerId: ID!
+
+  """
+  The name of the campaign
+  """
+  name: String!
+
+  """
+  The campaign setting or world
+  """
+  setting: String!
+
+  """
+  The tone of the campaign
+  """
+  tone: String!
+
+  """
+  The ruleset being used
+  """
+  ruleset: String!
+
+  """
+  When the campaign was created
+  """
+  createdAt: DateTime!
+
+  """
+  When the campaign was last updated
+  """
+  updatedAt: DateTime!
+}
+
+extend type User {
+  """
+  All campaigns owned by this user
+  """
+  campaigns: [Campaign!]
+
+  """
+  The last selected campaign for this user
+  """
+  lastSelectedCampaign: Campaign
+}

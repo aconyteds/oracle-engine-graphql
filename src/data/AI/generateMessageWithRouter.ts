@@ -1,10 +1,11 @@
 import type { BaseMessage } from "@langchain/core/messages";
 import type { GenerateMessagePayload } from "../../generated/graphql";
-import { runRouterWorkflow } from "./Workflows/routerWorkflow";
-import { saveMessage } from "../MongoDB";
 import { TranslateMessage } from "../../modules/utils";
+import { logger } from "../../utils/logger";
 import type { MessageWorkspace } from "../MongoDB";
+import { saveMessage } from "../MongoDB";
 import type { AIAgentDefinition, RoutingMetadata } from "./types";
+import { runRouterWorkflow } from "./Workflows/routerWorkflow";
 
 export type GenerateMessageWithRouterProps = {
   threadId: string;
@@ -96,7 +97,7 @@ export async function* generateMessageWithRouter({
       };
     }
   } catch (error) {
-    console.error("Router workflow error:", error);
+    logger.error("Router workflow error:", error);
 
     // Fallback to a basic error response
     yield {

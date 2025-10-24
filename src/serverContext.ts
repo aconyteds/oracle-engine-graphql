@@ -1,6 +1,9 @@
-import type { User } from "./data/MongoDB";
+import type DataLoader from "dataloader";
 import { initializeFirebase, verifyUser } from "./data/Firebase";
+import type { Thread, User } from "./data/MongoDB";
 import PubSub from "./graphql/topics";
+import { createThreadsByCampaignIdLoader } from "./modules/Thread/dataloader";
+import { logger } from "./utils/logger";
 
 export interface ServerContext {
   // The Firebase Auth token, if available.
@@ -9,6 +12,12 @@ export interface ServerContext {
   user: User | null;
   // The PubSub instance for publishing and subscribing to events.
   pubsub: typeof PubSub;
+  // The campaign ID the user has selected, if any.
+  selectedCampaignId?: string;
+  // DataLoaders for batching database queries
+  loaders: {
+    threadsByCampaignId: DataLoader<string, Thread[]>;
+  };
 }
 
 // Initialize Firebase Admin SDK
@@ -22,24 +31,54 @@ export const getContext = async ({
   connectionParams?: Record<string, unknown>;
 }): Promise<ServerContext> => {
   let token = "";
+  let selectedCampaignId: string | undefined;
 
+  // Extract from HTTP headers
   if (req && req.headers) {
     const headers = normalizeKeys(req.headers);
     const authorizationHeader = headers.authorization;
     if (typeof authorizationHeader === "string") {
       token = authorizationHeader.replace("Bearer ", "");
     }
-  }
-
-  if (connectionParams && !token) {
-    const params = normalizeKeys(connectionParams);
-    const authorizationParam = params.authorization;
-    if (typeof authorizationParam === "string") {
-      token = authorizationParam.replace("Bearer ", "");
+    if (
+      headers["x-selected-campaign-id"] &&
+      typeof headers["x-selected-campaign-id"] === "string"
+    ) {
+      selectedCampaignId = headers["x-selected-campaign-id"] as string;
     }
   }
 
-  const context: ServerContext = { token, pubsub: PubSub, user: null };
+  // Extract from WebSocket connection params
+  if (connectionParams) {
+    const params = normalizeKeys(connectionParams);
+
+    // Get authorization token if not already set
+    if (!token) {
+      const authorizationParam = params.authorization;
+      if (typeof authorizationParam === "string") {
+        token = authorizationParam.replace("Bearer ", "");
+      }
+    }
+
+    // Get selected campaign ID from connection params
+    if (!selectedCampaignId) {
+      const campaignIdParam = params["x-selected-campaign-id"];
+      if (typeof campaignIdParam === "string") {
+        selectedCampaignId = campaignIdParam;
+      }
+    }
+  }
+
+  const context: ServerContext = {
+    token,
+    pubsub: PubSub,
+    user: null,
+    selectedCampaignId,
+    // Create fresh DataLoader instances for each request
+    loaders: {
+      threadsByCampaignId: createThreadsByCampaignIdLoader(),
+    },
+  };
 
   if (token) {
     try {
@@ -48,7 +87,7 @@ export const getContext = async ({
         context.user = verifyUserResult.user;
       }
     } catch (error) {
-      console.error("Error verifying token:", error);
+      logger.warn("Error verifying token, likely it is expired.", error);
       // Do not throw error here; we'll handle it in graphql-shield
     }
   }

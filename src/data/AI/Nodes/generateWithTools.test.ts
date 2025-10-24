@@ -1,16 +1,17 @@
-import { test, expect, beforeEach, mock, describe, afterEach } from "bun:test";
+import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 import type {
+  AIMessage,
   HumanMessage,
   SystemMessage,
-  AIMessage,
 } from "@langchain/core/messages";
-import type { ToolEnabledGraphState } from "../Workflows/toolEnabledWorkflow";
 import type { AIAgentDefinition } from "../types";
+import type { ToolEnabledGraphState } from "../Workflows/toolEnabledWorkflow";
 
 // Mock variables
 let generateWithTools: (
   state: typeof ToolEnabledGraphState.State
 ) => Promise<Partial<typeof ToolEnabledGraphState.State>>;
+let mockLoggerError: ReturnType<typeof mock>;
 let MockSystemMessage: typeof SystemMessage;
 let MockHumanMessage: typeof HumanMessage;
 let MockAIMessage: typeof AIMessage;
@@ -43,6 +44,8 @@ describe("generateWithTools", () => {
   beforeEach(async () => {
     mock.restore();
 
+    mockLoggerError = mock();
+
     // Mock @langchain/core/messages
     void mock.module("@langchain/core/messages", () => ({
       SystemMessage: class {
@@ -56,6 +59,17 @@ describe("generateWithTools", () => {
       AIMessage: class {
         constructor(public content: string) {}
         id = "AIMessage_1";
+      },
+    }));
+
+    // Mock logger module
+    mock.module("../../../utils/logger", () => ({
+      logger: {
+        error: mockLoggerError,
+        info: mock(),
+        warn: mock(),
+        debug: mock(),
+        success: mock(),
       },
     }));
 
@@ -207,25 +221,17 @@ describe("generateWithTools", () => {
     expect(result.metadata?.toolCallCount).toBe(2);
   });
 
-  test("Unit -> generateWithTools handles error during generation", () => {
-    const originalConsoleError = console.error;
-    const mockConsoleError = mock();
-    console.error = mockConsoleError;
-
+  test("Unit -> generateWithTools handles error during generation", async () => {
     const testError = new Error("Model generation failed");
     mockModelWithTools.invoke.mockRejectedValue(testError);
 
-    try {
-      expect(generateWithTools(defaultState)).rejects.toThrow(
-        "Model generation failed"
-      );
-      expect(mockConsoleError).toHaveBeenCalledWith(
-        "Error generating response with tools:",
-        testError
-      );
-    } finally {
-      console.error = originalConsoleError;
-    }
+    await expect(generateWithTools(defaultState)).rejects.toThrow(
+      "Model generation failed"
+    );
+    expect(mockLoggerError).toHaveBeenCalledWith(
+      "Error generating response with tools:",
+      testError
+    );
   });
 
   test("Unit -> generateWithTools preserves existing metadata", async () => {

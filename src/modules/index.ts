@@ -5,10 +5,11 @@ import {
 } from "graphql-scalars";
 
 import BaseModule from "./_base";
-import UserModule from "./User";
+import AIModule from "./AI";
+import CampaignModule from "./Campaign";
 import MessageModule from "./Message";
 import ThreadModule from "./Thread";
-import AIModule from "./AI";
+import UserModule from "./User";
 
 const combinedTypeDefs = `${scalarTypeDefs.join("\n")}\n\n  type Query {\n    _empty: String\n  }\n\n  type Mutation {\n    _empty: String\n  }\n\n  type Subscription {\n    _empty: String\n  }\n\n  schema {\n    query: Query\n    mutation: Mutation\n  }`;
 
@@ -31,6 +32,7 @@ const application = createApplication({
     MessageModule,
     ThreadModule,
     AIModule,
+    CampaignModule,
   ],
 });
 

@@ -1,22 +1,26 @@
 import { ApolloServer } from "@apollo/server";
 import { expressMiddleware } from "@apollo/server/express4";
 import { ApolloServerPluginDrainHttpServer } from "@apollo/server/plugin/drainHttpServer";
-import express, { json } from "express";
-import http from "http";
+import { setupExpressErrorHandler } from "@sentry/bun";
 import cors from "cors";
-import { WebSocketServer } from "ws";
-import { useServer } from "graphql-ws/lib/use/ws";
+import express, { json } from "express";
 import type { GraphQLFormattedError } from "graphql";
 import { applyMiddleware } from "graphql-middleware";
-
+import { useServer } from "graphql-ws/lib/use/ws";
+import http from "http";
+import { WebSocketServer } from "ws";
+import { permissions } from "./graphql/permissions";
+import GraphQLApplication from "./modules";
 import type { ServerContext } from "./serverContext";
 import { getContext } from "./serverContext";
-import GraphQLApplication from "./modules";
-import { permissions } from "./graphql/permissions";
+import { logger } from "./utils/logger";
 
 const graphqlServer = async (path: string = "/graphql") => {
   const isProd = process.env.NODE_ENV === "production";
   const app = express();
+  if (process.env.SENTRY_DSN && isProd) {
+    setupExpressErrorHandler(app);
+  }
   app.use(cors());
   const httpServer = http.createServer(app);
 
@@ -72,8 +76,15 @@ const graphqlServer = async (path: string = "/graphql") => {
         },
       },
     ],
-    formatError: (formattedError: GraphQLFormattedError, _error: unknown) => {
-      console.error("FORMATTED ERROR -----> ", formattedError);
+    formatError: (formattedError: GraphQLFormattedError, error: unknown) => {
+      logger.error(
+        "GraphQL Error",
+        error instanceof Error
+          ? error
+          : new Error(String(formattedError.message)),
+        { formattedError }
+      );
+
       return formattedError;
     },
     introspection: !isProd,

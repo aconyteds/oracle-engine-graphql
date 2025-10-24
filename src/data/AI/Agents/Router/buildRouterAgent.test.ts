@@ -1,9 +1,9 @@
-import { test, expect, beforeEach, mock, describe, afterEach } from "bun:test";
+import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
+import type { Tool } from "@langchain/core/dist/tools";
+import type { ClientOptions } from "@langchain/openai";
+import type { TrustedModel } from "../../modelList";
 import type { AIAgentDefinition } from "../../types";
 import { RouterType } from "../../types";
-import type { TrustedModel } from "../../modelList";
-import type { ClientOptions } from "@langchain/openai";
-import type { Tool } from "@langchain/core/dist/tools";
 
 describe("buildRouterAgent", () => {
   // Mock dependencies - recreated for each test

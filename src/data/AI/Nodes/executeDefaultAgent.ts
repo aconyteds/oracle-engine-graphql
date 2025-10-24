@@ -1,7 +1,8 @@
 import type { DynamicTool } from "@langchain/core/tools";
-import { runToolEnabledWorkflow } from "../Workflows/toolEnabledWorkflow";
-import type { RouterGraphState } from "../Workflows/routerWorkflow";
+import { logger } from "../../../utils/logger";
 import { cheapest } from "../Agents";
+import type { RouterGraphState } from "../Workflows/routerWorkflow";
+import { runToolEnabledWorkflow } from "../Workflows/toolEnabledWorkflow";
 
 export async function executeDefaultAgent(
   state: typeof RouterGraphState.State
@@ -29,7 +30,7 @@ export async function executeDefaultAgent(
       },
     };
   } catch (error) {
-    console.error("Failed to execute default agent:", error);
+    logger.error("Failed to execute default agent:", error);
 
     return {
       ...state,

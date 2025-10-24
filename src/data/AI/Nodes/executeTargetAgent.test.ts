@@ -1,10 +1,11 @@
-import { test, expect, beforeEach, mock, describe, afterEach } from "bun:test";
+import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 import { HumanMessage } from "@langchain/core/messages";
-import type { RouterGraphState } from "../Workflows/routerWorkflow";
 import type { AIAgentDefinition } from "../types";
+import type { RouterGraphState } from "../Workflows/routerWorkflow";
 
 let mockGetModelDefinition: ReturnType<typeof mock>;
 let mockRunToolEnabledWorkflow: ReturnType<typeof mock>;
+let mockLoggerError: ReturnType<typeof mock>;
 let executeTargetAgent: (
   state: typeof RouterGraphState.State
 ) => Promise<Partial<typeof RouterGraphState.State>>;
@@ -79,6 +80,7 @@ describe("executeTargetAgent", () => {
 
     mockGetModelDefinition = mock();
     mockRunToolEnabledWorkflow = mock();
+    mockLoggerError = mock();
 
     void mock.module("../getModelDefinition", () => ({
       getModelDefinition: mockGetModelDefinition,
@@ -86,6 +88,16 @@ describe("executeTargetAgent", () => {
 
     void mock.module("../Workflows/toolEnabledWorkflow", () => ({
       runToolEnabledWorkflow: mockRunToolEnabledWorkflow,
+    }));
+
+    void mock.module("../../../utils/logger", () => ({
+      logger: {
+        error: mockLoggerError,
+        info: mock(),
+        warn: mock(),
+        debug: mock(),
+        success: mock(),
+      },
     }));
 
     const module = await import("./executeTargetAgent");
@@ -126,10 +138,6 @@ describe("executeTargetAgent", () => {
   });
 
   test("Unit -> executeTargetAgent handles missing target agent gracefully", async () => {
-    const originalConsoleError = console.error;
-    const mockConsoleError = mock();
-    console.error = mockConsoleError;
-
     const stateWithoutTarget = {
       ...defaultState,
       routingDecision: {
@@ -144,20 +152,16 @@ describe("executeTargetAgent", () => {
       },
     };
 
-    try {
-      const result = await executeTargetAgent(stateWithoutTarget);
+    const result = await executeTargetAgent(stateWithoutTarget);
 
-      expect(result.currentResponse).toContain(
-        "I apologize, but I encountered an issue"
-      );
-      expect(result.routingMetadata?.success).toBe(false);
-      expect(mockConsoleError).toHaveBeenCalledWith(
-        "Failed to execute target agent unknown:",
-        expect.any(Error)
-      );
-    } finally {
-      console.error = originalConsoleError;
-    }
+    expect(result.currentResponse).toContain(
+      "I apologize, but I encountered an issue"
+    );
+    expect(result.routingMetadata?.success).toBe(false);
+    expect(mockLoggerError).toHaveBeenCalledWith(
+      "Failed to execute target agent unknown:",
+      expect.any(Error)
+    );
   });
 
   test("Unit -> executeTargetAgent uses prepared messages when available", async () => {
@@ -204,47 +208,31 @@ describe("executeTargetAgent", () => {
   });
 
   test("Unit -> executeTargetAgent handles model configuration error", async () => {
-    const originalConsoleError = console.error;
-    const mockConsoleError = mock();
-    console.error = mockConsoleError;
-
     mockGetModelDefinition.mockReturnValue(null);
 
-    try {
-      const result = await executeTargetAgent(defaultState);
+    const result = await executeTargetAgent(defaultState);
 
-      expect(mockConsoleError).toHaveBeenCalledWith(
-        `Failed to execute target agent ${mockTargetAgent.name}:`,
-        expect.any(Error)
-      );
-      expect(result.currentResponse).toBe(
-        `I apologize, but I encountered an issue while processing your request with the ${mockTargetAgent.name} agent. Let me try a different approach.`
-      );
-      expect(result.routingMetadata?.success).toBe(false);
-    } finally {
-      console.error = originalConsoleError;
-    }
+    expect(mockLoggerError).toHaveBeenCalledWith(
+      `Failed to execute target agent ${mockTargetAgent.name}:`,
+      expect.any(Error)
+    );
+    expect(result.currentResponse).toBe(
+      `I apologize, but I encountered an issue while processing your request with the ${mockTargetAgent.name} agent. Let me try a different approach.`
+    );
+    expect(result.routingMetadata?.success).toBe(false);
   });
 
   test("Unit -> executeTargetAgent handles workflow execution error", async () => {
-    const originalConsoleError = console.error;
-    const mockConsoleError = mock();
-    console.error = mockConsoleError;
-
     const testError = new Error("Workflow execution failed");
     mockRunToolEnabledWorkflow.mockRejectedValue(testError);
 
-    try {
-      const result = await executeTargetAgent(defaultState);
+    const result = await executeTargetAgent(defaultState);
 
-      expect(mockConsoleError).toHaveBeenCalledWith(
-        `Failed to execute target agent ${mockTargetAgent.name}:`,
-        testError
-      );
-      expect(result.routingMetadata?.success).toBe(false);
-    } finally {
-      console.error = originalConsoleError;
-    }
+    expect(mockLoggerError).toHaveBeenCalledWith(
+      `Failed to execute target agent ${mockTargetAgent.name}:`,
+      testError
+    );
+    expect(result.routingMetadata?.success).toBe(false);
   });
 
   test("Unit -> executeTargetAgent merges workflow result with state", async () => {

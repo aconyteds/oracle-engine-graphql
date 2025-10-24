@@ -1,10 +1,11 @@
 import type { DynamicTool } from "@langchain/core/tools";
-import { getModelDefinition } from "../getModelDefinition";
-import { runToolEnabledWorkflow } from "../Workflows/toolEnabledWorkflow";
-import type { RouterGraphState } from "../Workflows/routerWorkflow";
-import type { RoutingDecision } from "../types";
-import { getAgentByName } from "../agentList";
+import { logger } from "../../../utils/logger";
 import { cheapest } from "../Agents";
+import { getAgentByName } from "../agentList";
+import { getModelDefinition } from "../getModelDefinition";
+import type { RoutingDecision } from "../types";
+import type { RouterGraphState } from "../Workflows/routerWorkflow";
+import { runToolEnabledWorkflow } from "../Workflows/toolEnabledWorkflow";
 
 export async function analyzeAndRoute(state: typeof RouterGraphState.State) {
   const startTime = Date.now();
@@ -46,7 +47,7 @@ export async function analyzeAndRoute(state: typeof RouterGraphState.State) {
       },
     };
   } catch (error) {
-    console.error("Router analysis failed:", error);
+    logger.error("Router analysis failed:", error);
 
     // Create fallback routing decision
     const fallbackDecision: RoutingDecision = {
@@ -139,7 +140,7 @@ function extractRoutingDecision(
     }
     return null;
   } catch (error) {
-    console.error("Failed to extract routing decision:", error);
+    logger.error("Failed to extract routing decision:", error);
     return null;
   }
 }

@@ -1,3 +1,4 @@
+import { logger } from "../../../utils/logger";
 import type { ToolEnabledGraphState } from "../Workflows/toolEnabledWorkflow";
 
 /**
@@ -27,7 +28,7 @@ export async function generateFinalResponse(
       },
     };
   } catch (error) {
-    console.error("Error generating final response:", error);
+    logger.error("Error generating final response:", error);
     throw error;
   }
 }

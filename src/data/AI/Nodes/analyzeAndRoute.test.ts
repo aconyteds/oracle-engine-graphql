@@ -1,11 +1,12 @@
-import { test, expect, beforeEach, mock, afterEach, describe } from "bun:test";
-import type { RouterGraphState } from "../Workflows/routerWorkflow";
+import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 import type { AIAgentDefinition } from "../types";
+import type { RouterGraphState } from "../Workflows/routerWorkflow";
 
 describe("analyzeAndRoute", () => {
   let mockGetModelDefinition: ReturnType<typeof mock>;
   let mockRunToolEnabledWorkflow: ReturnType<typeof mock>;
   let mockGetAgentByName: ReturnType<typeof mock>;
+  let mockLoggerError: ReturnType<typeof mock>;
   let analyzeAndRoute: (
     state: typeof RouterGraphState.State
   ) => Promise<Partial<typeof RouterGraphState.State>>;
@@ -61,6 +62,7 @@ describe("analyzeAndRoute", () => {
     mockGetModelDefinition = mock();
     mockRunToolEnabledWorkflow = mock();
     mockGetAgentByName = mock();
+    mockLoggerError = mock();
 
     mock.module("../getModelDefinition", () => ({
       getModelDefinition: mockGetModelDefinition,
@@ -76,6 +78,16 @@ describe("analyzeAndRoute", () => {
 
     mock.module("../Agents", () => ({
       cheapest: mockCheapestAgent,
+    }));
+
+    mock.module("../../../utils/logger", () => ({
+      logger: {
+        error: mockLoggerError,
+        info: mock(),
+        warn: mock(),
+        debug: mock(),
+        success: mock(),
+      },
     }));
 
     const module = await import("./analyzeAndRoute");
@@ -129,110 +141,74 @@ describe("analyzeAndRoute", () => {
   });
 
   test("Unit -> analyzeAndRoute creates fallback decision when no router agent provided", async () => {
-    const originalConsoleError = console.error;
-    const mockConsoleError = mock();
-    console.error = mockConsoleError;
-
     const stateWithoutRouter = {
       ...defaultState,
       routerAgent: null,
     };
 
-    try {
-      const result = await analyzeAndRoute(stateWithoutRouter);
+    const result = await analyzeAndRoute(stateWithoutRouter);
 
-      expect(result.routingDecision?.targetAgent).toBe(mockCheapestAgent);
-      expect(result.routingDecision?.confidence).toBe(50);
-      expect(result.routingDecision?.reasoning).toBe(
-        "Router analysis failed, using default agent"
-      );
-      expect(result.routingMetadata?.success).toBe(false);
-      expect(result.routingMetadata?.fallbackUsed).toBe(true);
-    } finally {
-      console.error = originalConsoleError;
-    }
+    expect(result.routingDecision?.targetAgent).toBe(mockCheapestAgent);
+    expect(result.routingDecision?.confidence).toBe(50);
+    expect(result.routingDecision?.reasoning).toBe(
+      "Router analysis failed, using default agent"
+    );
+    expect(result.routingMetadata?.success).toBe(false);
+    expect(result.routingMetadata?.fallbackUsed).toBe(true);
   });
 
   test("Unit -> analyzeAndRoute creates fallback decision when router model not configured", async () => {
-    const originalConsoleError = console.error;
-    const mockConsoleError = mock();
-    console.error = mockConsoleError;
-
     mockGetModelDefinition.mockReturnValue(null);
 
-    try {
-      const result = await analyzeAndRoute(defaultState);
+    const result = await analyzeAndRoute(defaultState);
 
-      expect(result.routingDecision?.targetAgent).toBe(mockCheapestAgent);
-      expect(result.routingDecision?.confidence).toBe(50);
-      expect(result.routingDecision?.reasoning).toBe(
-        "Router analysis failed, using default agent"
-      );
-      expect(result.routingMetadata?.success).toBe(false);
-      expect(result.routingMetadata?.fallbackUsed).toBe(true);
-    } finally {
-      console.error = originalConsoleError;
-    }
+    expect(result.routingDecision?.targetAgent).toBe(mockCheapestAgent);
+    expect(result.routingDecision?.confidence).toBe(50);
+    expect(result.routingDecision?.reasoning).toBe(
+      "Router analysis failed, using default agent"
+    );
+    expect(result.routingMetadata?.success).toBe(false);
+    expect(result.routingMetadata?.fallbackUsed).toBe(true);
   });
 
   test("Unit -> analyzeAndRoute handles router analysis failure", async () => {
-    const originalConsoleError = console.error;
-    const mockConsoleError = mock();
-    console.error = mockConsoleError;
-
     const testError = new Error("Router execution failed");
     mockRunToolEnabledWorkflow.mockRejectedValue(testError);
 
-    try {
-      const result = await analyzeAndRoute(defaultState);
+    const result = await analyzeAndRoute(defaultState);
 
-      expect(mockConsoleError).toHaveBeenCalledWith(
-        "Router analysis failed:",
-        testError
-      );
-      expect(result.routingDecision?.targetAgent).toBe(mockCheapestAgent);
-      expect(result.routingDecision?.confidence).toBe(50);
-      expect(result.routingDecision?.reasoning).toBe(
-        "Router analysis failed, using default agent"
-      );
-      expect(result.routingMetadata?.success).toBe(false);
-      expect(result.routingMetadata?.fallbackUsed).toBe(true);
-    } finally {
-      console.error = originalConsoleError;
-    }
+    expect(mockLoggerError).toHaveBeenCalledWith(
+      "Router analysis failed:",
+      testError
+    );
+    expect(result.routingDecision?.targetAgent).toBe(mockCheapestAgent);
+    expect(result.routingDecision?.confidence).toBe(50);
+    expect(result.routingDecision?.reasoning).toBe(
+      "Router analysis failed, using default agent"
+    );
+    expect(result.routingMetadata?.success).toBe(false);
+    expect(result.routingMetadata?.fallbackUsed).toBe(true);
   });
 
   test("Unit -> analyzeAndRoute handles missing target agent", async () => {
-    const originalConsoleError = console.error;
-    const mockConsoleError = mock();
-    console.error = mockConsoleError;
-
     mockGetAgentByName.mockImplementation((name: string) => {
       if (name === "target-agent") return null; // Agent not found
       if (name === "cheapest") return mockCheapestAgent;
       return null;
     });
 
-    try {
-      const result = await analyzeAndRoute(defaultState);
+    const result = await analyzeAndRoute(defaultState);
 
-      expect(result.routingDecision).toBeNull();
-      expect(result.routingMetadata?.success).toBe(false);
-      expect(result.routingMetadata?.fallbackUsed).toBe(false);
-      expect(mockConsoleError).toHaveBeenCalledWith(
-        "Failed to extract routing decision:",
-        expect.any(Error)
-      );
-    } finally {
-      console.error = originalConsoleError;
-    }
+    expect(result.routingDecision).toBeNull();
+    expect(result.routingMetadata?.success).toBe(false);
+    expect(result.routingMetadata?.fallbackUsed).toBe(false);
+    expect(mockLoggerError).toHaveBeenCalledWith(
+      "Failed to extract routing decision:",
+      expect.any(Error)
+    );
   });
 
   test("Unit -> analyzeAndRoute handles missing fallback agent", async () => {
-    const originalConsoleError = console.error;
-    const mockConsoleError = mock();
-    console.error = mockConsoleError;
-
     mockGetAgentByName.mockImplementation((name: string) => {
       if (name === "target-agent") return mockTargetAgent;
       if (name === "cheapest") return mockCheapestAgent;
@@ -259,19 +235,15 @@ describe("analyzeAndRoute", () => {
     };
     mockRunToolEnabledWorkflow.mockResolvedValue(workflowWithBadFallback);
 
-    try {
-      const result = await analyzeAndRoute(defaultState);
+    const result = await analyzeAndRoute(defaultState);
 
-      expect(result.routingDecision).toBeNull();
-      expect(result.routingMetadata?.success).toBe(false);
-      expect(result.routingMetadata?.fallbackUsed).toBe(false);
-      expect(mockConsoleError).toHaveBeenCalledWith(
-        "Failed to extract routing decision:",
-        expect.any(Error)
-      );
-    } finally {
-      console.error = originalConsoleError;
-    }
+    expect(result.routingDecision).toBeNull();
+    expect(result.routingMetadata?.success).toBe(false);
+    expect(result.routingMetadata?.fallbackUsed).toBe(false);
+    expect(mockLoggerError).toHaveBeenCalledWith(
+      "Failed to extract routing decision:",
+      expect.any(Error)
+    );
   });
 
   test("Unit -> analyzeAndRoute handles no routing tool results", async () => {
@@ -293,10 +265,6 @@ describe("analyzeAndRoute", () => {
   });
 
   test("Unit -> analyzeAndRoute handles invalid JSON in tool results", async () => {
-    const originalConsoleError = console.error;
-    const mockConsoleError = mock();
-    console.error = mockConsoleError;
-
     const workflowWithInvalidJSON = {
       toolResultsForDB: [
         {
@@ -307,19 +275,15 @@ describe("analyzeAndRoute", () => {
     };
     mockRunToolEnabledWorkflow.mockResolvedValue(workflowWithInvalidJSON);
 
-    try {
-      const result = await analyzeAndRoute(defaultState);
+    const result = await analyzeAndRoute(defaultState);
 
-      expect(result.routingDecision).toBeNull();
-      expect(result.routingMetadata?.success).toBe(false);
-      expect(result.routingMetadata?.fallbackUsed).toBe(false);
-      expect(mockConsoleError).toHaveBeenCalledWith(
-        "Failed to extract routing decision:",
-        expect.any(Error)
-      );
-    } finally {
-      console.error = originalConsoleError;
-    }
+    expect(result.routingDecision).toBeNull();
+    expect(result.routingMetadata?.success).toBe(false);
+    expect(result.routingMetadata?.fallbackUsed).toBe(false);
+    expect(mockLoggerError).toHaveBeenCalledWith(
+      "Failed to extract routing decision:",
+      expect.any(Error)
+    );
   });
 
   test("Unit -> analyzeAndRoute measures execution time", async () => {

@@ -1,8 +1,8 @@
-import { cheapest } from "./cheapest";
-import { characterGenerator } from "./characterGenerator";
+import { getModelByName } from "../modelList";
 import type { AIAgentDefinition } from "../types";
 import { RouterType } from "../types";
-import { getModelByName } from "../modelList";
+import { characterGenerator } from "./characterGenerator";
+import { cheapest } from "./cheapest";
 // Reuse the router builder to ensure the default router is properly configured
 import { buildRouterAgent } from "./Router";
 

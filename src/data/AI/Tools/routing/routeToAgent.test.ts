@@ -1,4 +1,4 @@
-import { test, expect, beforeEach, mock, describe, afterAll } from "bun:test";
+import { afterAll, beforeEach, describe, expect, mock, test } from "bun:test";
 import { routeToAgent } from "./routeToAgent";
 
 describe("routeToAgent", () => {
@@ -60,7 +60,7 @@ describe("routeToAgent", () => {
     expect(parsed.fallbackAgent).toBeUndefined();
   });
 
-  test("Unit -> routeToAgent logs routing decisions", async () => {
+  test("Unit -> routeToAgent returns routing decision without errors", async () => {
     const input = {
       targetAgent: "Character Generator",
       confidence: 4.5,
@@ -68,14 +68,14 @@ describe("routeToAgent", () => {
       intentKeywords: ["character"],
     };
 
-    await routeToAgent.call(input);
+    const result = await routeToAgent.call(input);
+    const parsed = JSON.parse(result) as {
+      targetAgent: string;
+      confidence: number;
+    };
 
-    expect(mockConsoleLog).toHaveBeenCalledWith(
-      "🎯 Routing Decision: Character Generator (4.5 confidence)"
-    );
-    expect(mockConsoleLog).toHaveBeenCalledWith(
-      "📝 Reasoning: Clear character creation intent"
-    );
+    expect(parsed.targetAgent).toBe("Character Generator");
+    expect(parsed.confidence).toBe(4.5);
   });
 
   test("Unit -> routeToAgent handles context factors", async () => {
