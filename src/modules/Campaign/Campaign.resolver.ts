@@ -122,6 +122,7 @@ const CampaignResolvers: CampaignModule.Resolvers = {
       if (!user) {
         throw InvalidUserCredentials();
       }
+      await verifyCampaignOwnership(campaignId, user.id);
       const result = await deleteCampaign({
         campaignId,
         ownerId: user.id,
