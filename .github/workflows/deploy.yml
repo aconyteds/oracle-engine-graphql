@@ -30,11 +30,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # - name: Set up Docker for Testcontainers
-      #   run: |
-      #     # Ensure Docker daemon is accessible
-      #     sudo chmod 666 /var/run/docker.sock
-
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
         with:
