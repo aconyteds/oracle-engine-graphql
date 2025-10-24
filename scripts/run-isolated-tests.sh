@@ -51,12 +51,20 @@ fi
 echo -e "${BLUE}Found ${TOTAL_FILES} test file(s) to run${NC}"
 echo ""
 
+# Set timeout based on test type
+# E2E tests need longer timeout for Docker container startup
+if [ "$TEST_PATTERN" = "E2E" ]; then
+  TIMEOUT_FLAG="--timeout 30000"
+else
+  TIMEOUT_FLAG=""
+fi
+
 # Run each test file individually
 for test_file in $TEST_FILES; do
   echo -e "${BLUE}Running: ${test_file}${NC}"
 
   # Run the test and capture output
-  if bun test "$test_file" 2>&1 | tee /tmp/test-output.txt; then
+  if bun test $TIMEOUT_FLAG "$test_file" 2>&1 | tee /tmp/test-output.txt; then
     echo -e "${GREEN}✓ PASSED: ${test_file}${NC}"
     PASSED_FILES=$((PASSED_FILES + 1))
   else
