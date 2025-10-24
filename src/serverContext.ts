@@ -41,10 +41,10 @@ export const getContext = async ({
       token = authorizationHeader.replace("Bearer ", "");
     }
     if (
-      req.headers["x-selected-campaign-id"] &&
-      typeof req.headers["x-selected-campaign-id"] === "string"
+      headers["x-selected-campaign-id"] &&
+      typeof headers["x-selected-campaign-id"] === "string"
     ) {
-      selectedCampaignId = req.headers["x-selected-campaign-id"];
+      selectedCampaignId = headers["x-selected-campaign-id"] as string;
     }
   }
 

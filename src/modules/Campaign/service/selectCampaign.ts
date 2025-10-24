@@ -1,5 +1,4 @@
-import type { User } from "../../../data/MongoDB";
-import { DBClient } from "../../../data/MongoDB";
+import { DBClient, type User } from "../../../data/MongoDB";
 
 export const selectCampaign = async (
   userId: string,

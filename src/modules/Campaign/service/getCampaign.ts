@@ -11,7 +11,7 @@ export const getCampaign = async (
   });
 
   if (!campaign) {
-    throw new Error(`Campaign with ID ${campaignId} not found`);
+    return null;
   }
 
   return campaign;

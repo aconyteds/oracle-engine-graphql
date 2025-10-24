@@ -64,12 +64,11 @@ describe("getCampaign", () => {
     expect(result).toEqual(defaultCampaign);
   });
 
-  test("Unit -> getCampaign throws error when campaign not found", () => {
+  test("Unit -> getCampaign returns null when campaign not found", async () => {
     mockFindUnique.mockResolvedValue(null);
 
-    expect(getCampaign("non-existent")).rejects.toThrow(
-      "Campaign with ID non-existent not found"
-    );
+    const result = await getCampaign("non-existent");
+    expect(result).toBeNull();
 
     expect(mockFindUnique).toHaveBeenCalledWith({
       where: {

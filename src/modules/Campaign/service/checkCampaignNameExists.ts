@@ -1,4 +1,4 @@
-import { DBClient } from "../../../data/MongoDB/client";
+import { DBClient } from "../../../data/MongoDB";
 
 export interface CheckCampaignNameExistsParams {
   ownerId: string;

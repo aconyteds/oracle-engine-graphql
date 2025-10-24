@@ -1,5 +1,5 @@
 import { verifyThreadOwnership } from "../../data/MongoDB";
-import { InvalidUserCredentials } from "../../graphql/errors";
+import { InvalidInput, InvalidUserCredentials } from "../../graphql/errors";
 import { TranslateMessage, TranslateThread } from "../utils";
 import type { ThreadModule } from "./generated";
 import { getCampaignThreads, getThread, getThreadMessages } from "./service";
@@ -15,7 +15,7 @@ const ThreadResolvers: ThreadModule.Resolvers = {
         throw InvalidUserCredentials();
       }
       if (!selectedCampaignId) {
-        throw new Error(
+        throw InvalidInput(
           "Campaign selection required. Please provide x-selected-campaign-id header."
         );
       }
@@ -31,7 +31,7 @@ const ThreadResolvers: ThreadModule.Resolvers = {
         throw InvalidUserCredentials();
       }
       if (!selectedCampaignId) {
-        throw new Error(
+        throw InvalidInput(
           "Campaign selection required. Please provide x-selected-campaign-id header."
         );
       }

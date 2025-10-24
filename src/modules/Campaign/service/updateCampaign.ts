@@ -1,5 +1,4 @@
-import type { Campaign } from "../../../data/MongoDB";
-import { DBClient } from "../../../data/MongoDB";
+import { type Campaign, DBClient } from "../../../data/MongoDB";
 import { InvalidInput } from "../../../graphql/errors";
 import { checkCampaignNameExists } from "./checkCampaignNameExists";
 

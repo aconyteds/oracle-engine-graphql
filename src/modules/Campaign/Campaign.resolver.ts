@@ -110,6 +110,7 @@ const CampaignResolvers: CampaignModule.Resolvers = {
           id: updatedUser.id,
           email: updatedUser.email,
           name: updatedUser.name,
+          isActive: updatedUser.active,
         },
       };
     },
