@@ -4,7 +4,8 @@ import type { RouterGraphState } from "../Workflows/routerWorkflow";
 
 describe("executeDefaultAgent", () => {
   let mockRunToolEnabledWorkflow: ReturnType<typeof mock>;
-  let mockLoggerError: ReturnType<typeof mock>;
+  let mockConsoleError: ReturnType<typeof mock>;
+  let originalConsoleError: typeof console.error;
   let mockCheapestAgent: AIAgentDefinition;
   let executeDefaultAgent: (
     state: typeof RouterGraphState.State
@@ -31,7 +32,9 @@ describe("executeDefaultAgent", () => {
     mock.restore();
 
     mockRunToolEnabledWorkflow = mock();
-    mockLoggerError = mock();
+    mockConsoleError = mock();
+    originalConsoleError = console.error;
+    console.error = mockConsoleError;
     mockCheapestAgent = {
       name: "cheapest",
       description: "Cheapest AI agent",
@@ -46,16 +49,6 @@ describe("executeDefaultAgent", () => {
       cheapest: mockCheapestAgent,
     }));
 
-    mock.module("../../../utils/logger", () => ({
-      logger: {
-        error: mockLoggerError,
-        info: mock(),
-        warn: mock(),
-        debug: mock(),
-        success: mock(),
-      },
-    }));
-
     const module = await import("./executeDefaultAgent");
     executeDefaultAgent = module.executeDefaultAgent;
 
@@ -63,6 +56,7 @@ describe("executeDefaultAgent", () => {
   });
 
   afterEach(() => {
+    console.error = originalConsoleError;
     mock.restore();
   });
 
@@ -114,7 +108,7 @@ describe("executeDefaultAgent", () => {
 
     const result = await executeDefaultAgent(defaultState);
 
-    expect(mockLoggerError).toHaveBeenCalledWith(
+    expect(mockConsoleError).toHaveBeenCalledWith(
       "Failed to execute default agent:",
       testError
     );

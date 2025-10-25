@@ -1,7 +1,6 @@
 import type { BaseMessage } from "@langchain/core/messages";
 import type { GenerateMessagePayload } from "../../generated/graphql";
 import { TranslateMessage } from "../../modules/utils";
-import { logger } from "../../utils/logger";
 import type { MessageWorkspace } from "../MongoDB";
 import { saveMessage } from "../MongoDB";
 import type { AIAgentDefinition, RoutingMetadata } from "./types";
@@ -97,7 +96,7 @@ export async function* generateMessageWithRouter({
       };
     }
   } catch (error) {
-    logger.error("Router workflow error:", error);
+    console.error("Router workflow error:", error);
 
     // Fallback to a basic error response
     yield {

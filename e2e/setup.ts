@@ -1,6 +1,5 @@
 import type { Server } from "http";
 import GraphQLServer from "../src/server";
-import { logger } from "../src/utils/logger";
 import { sharedTestEnvironment, testPrismaClient } from "./infrastructure";
 
 /**
@@ -9,7 +8,7 @@ import { sharedTestEnvironment, testPrismaClient } from "./infrastructure";
  */
 export const setupTestServer = async (): Promise<Server> => {
   try {
-    logger.info("Setting up test server...");
+    console.log("Setting up test server...");
 
     // Clean database before each test file
     await testPrismaClient.cleanup();
@@ -22,11 +21,11 @@ export const setupTestServer = async (): Promise<Server> => {
     // Listen on an ephemeral port for testing
     const server = httpServer.listen(0);
 
-    logger.success("Test server ready");
+    console.log("Test server ready");
 
     return server;
   } catch (error) {
-    logger.error("Failed to setup test server:", error);
+    console.error("Failed to setup test server:", error);
     throw error;
   }
 };
@@ -37,7 +36,7 @@ export const setupTestServer = async (): Promise<Server> => {
  */
 export const teardownTestServer = async (server: Server): Promise<void> => {
   try {
-    logger.info("Tearing down test server...");
+    console.log("Tearing down test server...");
 
     // Close server
     if (server) {
@@ -49,9 +48,9 @@ export const teardownTestServer = async (server: Server): Promise<void> => {
       });
     }
 
-    logger.success("Test server torn down");
+    console.log("Test server torn down");
   } catch (error) {
-    logger.error("Failed to teardown test server:", error);
+    console.error("Failed to teardown test server:", error);
     throw error;
   }
 };

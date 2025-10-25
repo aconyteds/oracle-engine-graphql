@@ -1,5 +1,4 @@
 import { SystemMessage } from "@langchain/core/messages";
-import { logger } from "../../../utils/logger";
 import type { ToolCall, ToolCallForDB } from "../types";
 import type { ToolEnabledGraphState } from "../Workflows/toolEnabledWorkflow";
 
@@ -62,7 +61,7 @@ export async function generateWithTools(
       },
     };
   } catch (error) {
-    logger.error("Error generating response with tools:", error);
+    console.error("Error generating response with tools:", error);
     throw error;
   }
 }

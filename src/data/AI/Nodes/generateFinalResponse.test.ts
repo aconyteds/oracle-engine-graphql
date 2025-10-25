@@ -5,7 +5,8 @@ import type { ToolEnabledGraphState } from "../Workflows/toolEnabledWorkflow";
 describe("generateFinalResponse", () => {
   // Mock dependencies - recreated for each test
   let mockInvoke: ReturnType<typeof mock>;
-  let mockLoggerError: ReturnType<typeof mock>;
+  let mockConsoleError: ReturnType<typeof mock>;
+  let originalConsoleError: typeof console.error;
   let generateFinalResponse: (
     state: typeof ToolEnabledGraphState.State
   ) => Promise<Partial<typeof ToolEnabledGraphState.State>>;
@@ -16,18 +17,9 @@ describe("generateFinalResponse", () => {
 
     // Create fresh mocks
     mockInvoke = mock();
-    mockLoggerError = mock();
-
-    // Mock logger module
-    mock.module("../../../utils/logger", () => ({
-      logger: {
-        error: mockLoggerError,
-        info: mock(),
-        warn: mock(),
-        debug: mock(),
-        success: mock(),
-      },
-    }));
+    mockConsoleError = mock();
+    originalConsoleError = console.error;
+    console.error = mockConsoleError;
 
     const module = await import("./generateFinalResponse");
     generateFinalResponse = module.generateFinalResponse;
@@ -38,6 +30,7 @@ describe("generateFinalResponse", () => {
   });
 
   afterEach(() => {
+    console.error = originalConsoleError;
     // Restore mocks after each test for complete isolation
     mock.restore();
   });
@@ -143,7 +136,7 @@ describe("generateFinalResponse", () => {
     await expect(generateFinalResponse(state)).rejects.toThrow(
       "Model invocation failed"
     );
-    expect(mockLoggerError).toHaveBeenCalledWith(
+    expect(mockConsoleError).toHaveBeenCalledWith(
       "Error generating final response:",
       testError
     );

@@ -1,4 +1,3 @@
-import { logger } from "../src/utils/logger";
 import { testDatabase, testPrismaClient } from "./infrastructure";
 
 /**
@@ -8,7 +7,7 @@ import { testDatabase, testPrismaClient } from "./infrastructure";
  */
 export default async function globalSetup(): Promise<void> {
   try {
-    logger.info("Running global E2E setup...");
+    console.log("Running global E2E setup...");
 
     // 1. Start MongoDB testcontainer (shared across all tests)
     await testDatabase.start();
@@ -19,9 +18,9 @@ export default async function globalSetup(): Promise<void> {
     // 3. Push Prisma schema to test database
     await testPrismaClient.pushSchema();
 
-    logger.success("Global E2E setup complete - MongoDB testcontainer ready");
+    console.log("Global E2E setup complete - MongoDB testcontainer ready");
   } catch (error) {
-    logger.error("Failed to run global E2E setup:", error);
+    console.error("Failed to run global E2E setup:", error);
     throw error;
   }
 }
