@@ -20,7 +20,6 @@ export const updateCampaign = async (
     Object.entries(updateData).filter(([_, value]) => value !== undefined)
   );
 
-  console.log("Update data:", data);
   // Get the current campaign to find the owner
   const currentCampaign = await DBClient.campaign.findUnique({
     where: { id: campaignId },
