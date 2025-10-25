@@ -1,5 +1,4 @@
 import type { DynamicTool } from "@langchain/core/tools";
-import { logger } from "../../../utils/logger";
 import { cheapest } from "../Agents";
 import { getAgentByName } from "../agentList";
 import { getModelDefinition } from "../getModelDefinition";
@@ -47,7 +46,7 @@ export async function analyzeAndRoute(state: typeof RouterGraphState.State) {
       },
     };
   } catch (error) {
-    logger.error("Router analysis failed:", error);
+    console.error("Router analysis failed:", error);
 
     // Create fallback routing decision
     const fallbackDecision: RoutingDecision = {
@@ -140,7 +139,7 @@ function extractRoutingDecision(
     }
     return null;
   } catch (error) {
-    logger.error("Failed to extract routing decision:", error);
+    console.error("Failed to extract routing decision:", error);
     return null;
   }
 }

@@ -1,6 +1,5 @@
 import { ApolloServerErrorCode } from "@apollo/server/errors";
 import { GraphQLError } from "graphql";
-import { logger } from "../utils/logger";
 
 export const ServerError = (
   message: string | Record<string, unknown>,
@@ -32,7 +31,7 @@ export const InvalidInput = (message: string) => {
 };
 
 export const UnauthorizedError = () => {
-  logger.warn("Unauthorized access attempt");
+  console.warn("Unauthorized access attempt");
   return new GraphQLError("You are not authorized to view this resource.", {
     extensions: {
       code: ApolloServerErrorCode.BAD_REQUEST,

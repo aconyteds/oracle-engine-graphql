@@ -20,17 +20,17 @@ export const updateCampaign = async (
     Object.entries(updateData).filter(([_, value]) => value !== undefined)
   );
 
+  // Get the current campaign to find the owner
+  const currentCampaign = await DBClient.campaign.findUnique({
+    where: { id: campaignId },
+  });
+
+  if (!currentCampaign) {
+    throw InvalidInput("Campaign not found");
+  }
+
   // If updating the name, check if it already exists for this user
-  if (data.name) {
-    // Get the current campaign to find the owner
-    const currentCampaign = await DBClient.campaign.findUnique({
-      where: { id: campaignId },
-    });
-
-    if (!currentCampaign) {
-      throw InvalidInput("Campaign not found");
-    }
-
+  if (data.name && data.name !== currentCampaign.name) {
     // Check if the new name already exists for this user
     const nameExists = await checkCampaignNameExists({
       ownerId: currentCampaign.ownerId,

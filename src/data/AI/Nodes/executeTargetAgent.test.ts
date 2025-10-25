@@ -5,7 +5,8 @@ import type { RouterGraphState } from "../Workflows/routerWorkflow";
 
 let mockGetModelDefinition: ReturnType<typeof mock>;
 let mockRunToolEnabledWorkflow: ReturnType<typeof mock>;
-let mockLoggerError: ReturnType<typeof mock>;
+let mockConsoleError: ReturnType<typeof mock>;
+let originalConsoleError: typeof console.error;
 let executeTargetAgent: (
   state: typeof RouterGraphState.State
 ) => Promise<Partial<typeof RouterGraphState.State>>;
@@ -80,7 +81,9 @@ describe("executeTargetAgent", () => {
 
     mockGetModelDefinition = mock();
     mockRunToolEnabledWorkflow = mock();
-    mockLoggerError = mock();
+    mockConsoleError = mock();
+    originalConsoleError = console.error;
+    console.error = mockConsoleError;
 
     void mock.module("../getModelDefinition", () => ({
       getModelDefinition: mockGetModelDefinition,
@@ -88,16 +91,6 @@ describe("executeTargetAgent", () => {
 
     void mock.module("../Workflows/toolEnabledWorkflow", () => ({
       runToolEnabledWorkflow: mockRunToolEnabledWorkflow,
-    }));
-
-    void mock.module("../../../utils/logger", () => ({
-      logger: {
-        error: mockLoggerError,
-        info: mock(),
-        warn: mock(),
-        debug: mock(),
-        success: mock(),
-      },
     }));
 
     const module = await import("./executeTargetAgent");
@@ -108,6 +101,7 @@ describe("executeTargetAgent", () => {
   });
 
   afterEach(() => {
+    console.error = originalConsoleError;
     mock.restore();
   });
 
@@ -158,7 +152,7 @@ describe("executeTargetAgent", () => {
       "I apologize, but I encountered an issue"
     );
     expect(result.routingMetadata?.success).toBe(false);
-    expect(mockLoggerError).toHaveBeenCalledWith(
+    expect(mockConsoleError).toHaveBeenCalledWith(
       "Failed to execute target agent unknown:",
       expect.any(Error)
     );
@@ -212,7 +206,7 @@ describe("executeTargetAgent", () => {
 
     const result = await executeTargetAgent(defaultState);
 
-    expect(mockLoggerError).toHaveBeenCalledWith(
+    expect(mockConsoleError).toHaveBeenCalledWith(
       `Failed to execute target agent ${mockTargetAgent.name}:`,
       expect.any(Error)
     );
@@ -228,7 +222,7 @@ describe("executeTargetAgent", () => {
 
     const result = await executeTargetAgent(defaultState);
 
-    expect(mockLoggerError).toHaveBeenCalledWith(
+    expect(mockConsoleError).toHaveBeenCalledWith(
       `Failed to execute target agent ${mockTargetAgent.name}:`,
       testError
     );

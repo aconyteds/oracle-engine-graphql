@@ -1,4 +1,3 @@
-import { logger } from "../../src/utils/logger";
 import { testDatabase } from "./testDatabase";
 import { testPrismaClient } from "./testPrismaClient";
 
@@ -23,13 +22,13 @@ class SharedTestEnvironment {
   async initialize(): Promise<void> {
     // If already initialized, return immediately
     if (this.initialized) {
-      logger.info("Test environment already initialized");
+      console.log("Test environment already initialized");
       return;
     }
 
     // If initialization is in progress, wait for it
     if (this.initPromise) {
-      logger.info("Test environment initialization in progress, waiting...");
+      console.log("Test environment initialization in progress, waiting...");
       return this.initPromise;
     }
 
@@ -42,7 +41,7 @@ class SharedTestEnvironment {
 
   private async doInitialize(): Promise<void> {
     try {
-      logger.info("Initializing shared test environment...");
+      console.log("Initializing shared test environment...");
 
       // 1. Start MongoDB testcontainer (shared across all tests)
       const connectionString = await testDatabase.start();
@@ -50,7 +49,7 @@ class SharedTestEnvironment {
       // 2. Override DATABASE_URL environment variable for all subsequent Prisma client instantiations
       // This ensures that any DBClient instances created during tests will connect to the test database
       process.env.DATABASE_URL = connectionString;
-      logger.info(`Set DATABASE_URL to test database for E2E tests`);
+      console.log(`Set DATABASE_URL to test database for E2E tests`);
 
       // 3. Initialize Prisma client with test database
       await testPrismaClient.initialize();
@@ -58,9 +57,9 @@ class SharedTestEnvironment {
       // 4. Push Prisma schema to test database
       await testPrismaClient.pushSchema();
 
-      logger.success("Shared test environment initialized");
+      console.log("Shared test environment initialized");
     } catch (error) {
-      logger.error("Failed to initialize shared test environment:", error);
+      console.error("Failed to initialize shared test environment:", error);
       this.initialized = false;
       this.initPromise = null;
       throw error;
@@ -69,12 +68,12 @@ class SharedTestEnvironment {
 
   async cleanup(): Promise<void> {
     if (!this.initialized) {
-      logger.info("Test environment not initialized, nothing to cleanup");
+      console.log("Test environment not initialized, nothing to cleanup");
       return;
     }
 
     try {
-      logger.info("Cleaning up shared test environment...");
+      console.log("Cleaning up shared test environment...");
 
       // 1. Disconnect Prisma client
       if (testPrismaClient.isInitialized()) {
@@ -87,9 +86,9 @@ class SharedTestEnvironment {
       }
 
       this.initialized = false;
-      logger.success("Shared test environment cleaned up");
+      console.log("Shared test environment cleaned up");
     } catch (error) {
-      logger.error("Failed to cleanup shared test environment:", error);
+      console.error("Failed to cleanup shared test environment:", error);
       throw error;
     }
   }

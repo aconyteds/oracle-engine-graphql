@@ -1,5 +1,4 @@
 import type { DynamicTool } from "@langchain/core/tools";
-import { logger } from "../../../utils/logger";
 import { getModelDefinition } from "../getModelDefinition";
 import type { RouterGraphState } from "../Workflows/routerWorkflow";
 import { runToolEnabledWorkflow } from "../Workflows/toolEnabledWorkflow";
@@ -46,7 +45,7 @@ export async function executeTargetAgent(state: typeof RouterGraphState.State) {
     };
   } catch (error) {
     const agentName = routingDecision.targetAgent?.name ?? "unknown";
-    logger.error(`Failed to execute target agent ${agentName}:`, error);
+    console.error(`Failed to execute target agent ${agentName}:`, error);
 
     return {
       ...state,

@@ -6,7 +6,8 @@ describe("analyzeAndRoute", () => {
   let mockGetModelDefinition: ReturnType<typeof mock>;
   let mockRunToolEnabledWorkflow: ReturnType<typeof mock>;
   let mockGetAgentByName: ReturnType<typeof mock>;
-  let mockLoggerError: ReturnType<typeof mock>;
+  let mockConsoleError: ReturnType<typeof mock>;
+  let originalConsoleError: typeof console.error;
   let analyzeAndRoute: (
     state: typeof RouterGraphState.State
   ) => Promise<Partial<typeof RouterGraphState.State>>;
@@ -27,10 +28,6 @@ describe("analyzeAndRoute", () => {
     description: "Cheapest agent",
   } as AIAgentDefinition;
 
-  const mockModel = {
-    invoke: mock(),
-  };
-
   const defaultState = {
     messages: [{ content: "Test message" }],
     runId: "test-run-123",
@@ -38,31 +35,15 @@ describe("analyzeAndRoute", () => {
     routerAgent: mockRouterAgent,
   } as typeof RouterGraphState.State;
 
-  const defaultWorkflowResult = {
-    toolResultsForDB: [
-      {
-        toolName: "routeToAgent",
-        result: JSON.stringify({
-          type: "routing_decision",
-          targetAgent: "target-agent",
-          confidence: 4.25,
-          reasoning: "Best match for request",
-          fallbackAgent: "cheapest",
-          intentKeywords: ["help", "question"],
-          contextFactors: ["user_intent"],
-          timestamp: "2024-01-01T12:00:00Z",
-        }),
-      },
-    ],
-  };
-
   beforeEach(async () => {
     mock.restore();
 
     mockGetModelDefinition = mock();
     mockRunToolEnabledWorkflow = mock();
     mockGetAgentByName = mock();
-    mockLoggerError = mock();
+    mockConsoleError = mock();
+    originalConsoleError = console.error;
+    console.error = mockConsoleError;
 
     mock.module("../getModelDefinition", () => ({
       getModelDefinition: mockGetModelDefinition,
@@ -80,25 +61,27 @@ describe("analyzeAndRoute", () => {
       cheapest: mockCheapestAgent,
     }));
 
-    mock.module("../../../utils/logger", () => ({
-      logger: {
-        error: mockLoggerError,
-        info: mock(),
-        warn: mock(),
-        debug: mock(),
-        success: mock(),
-      },
-    }));
-
     const module = await import("./analyzeAndRoute");
     analyzeAndRoute = module.analyzeAndRoute;
 
-    mockGetModelDefinition.mockClear();
-    mockRunToolEnabledWorkflow.mockClear();
-    mockGetAgentByName.mockClear();
-
-    mockGetModelDefinition.mockReturnValue(mockModel);
-    mockRunToolEnabledWorkflow.mockResolvedValue(defaultWorkflowResult);
+    mockGetModelDefinition.mockReturnValue({ invoke: mock() });
+    mockRunToolEnabledWorkflow.mockResolvedValue({
+      toolResultsForDB: [
+        {
+          toolName: "routeToAgent",
+          result: JSON.stringify({
+            type: "routing_decision",
+            targetAgent: "target-agent",
+            confidence: 4.25,
+            reasoning: "Best match for request",
+            fallbackAgent: "cheapest",
+            intentKeywords: ["help", "question"],
+            contextFactors: ["user_intent"],
+            timestamp: "2024-01-01T12:00:00Z",
+          }),
+        },
+      ],
+    });
     mockGetAgentByName.mockImplementation((name: string) => {
       if (name === "target-agent") return mockTargetAgent;
       if (name === "cheapest") return mockCheapestAgent;
@@ -107,6 +90,7 @@ describe("analyzeAndRoute", () => {
   });
 
   afterEach(() => {
+    console.error = originalConsoleError;
     mock.restore();
   });
 
@@ -177,7 +161,7 @@ describe("analyzeAndRoute", () => {
 
     const result = await analyzeAndRoute(defaultState);
 
-    expect(mockLoggerError).toHaveBeenCalledWith(
+    expect(mockConsoleError).toHaveBeenCalledWith(
       "Router analysis failed:",
       testError
     );
@@ -202,7 +186,7 @@ describe("analyzeAndRoute", () => {
     expect(result.routingDecision).toBeNull();
     expect(result.routingMetadata?.success).toBe(false);
     expect(result.routingMetadata?.fallbackUsed).toBe(false);
-    expect(mockLoggerError).toHaveBeenCalledWith(
+    expect(mockConsoleError).toHaveBeenCalledWith(
       "Failed to extract routing decision:",
       expect.any(Error)
     );
@@ -240,7 +224,7 @@ describe("analyzeAndRoute", () => {
     expect(result.routingDecision).toBeNull();
     expect(result.routingMetadata?.success).toBe(false);
     expect(result.routingMetadata?.fallbackUsed).toBe(false);
-    expect(mockLoggerError).toHaveBeenCalledWith(
+    expect(mockConsoleError).toHaveBeenCalledWith(
       "Failed to extract routing decision:",
       expect.any(Error)
     );
@@ -280,7 +264,7 @@ describe("analyzeAndRoute", () => {
     expect(result.routingDecision).toBeNull();
     expect(result.routingMetadata?.success).toBe(false);
     expect(result.routingMetadata?.fallbackUsed).toBe(false);
-    expect(mockLoggerError).toHaveBeenCalledWith(
+    expect(mockConsoleError).toHaveBeenCalledWith(
       "Failed to extract routing decision:",
       expect.any(Error)
     );

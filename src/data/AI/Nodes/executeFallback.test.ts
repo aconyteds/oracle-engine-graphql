@@ -5,7 +5,8 @@ import type { RouterGraphState } from "../Workflows/routerWorkflow";
 describe("executeFallback", () => {
   let mockGetModelDefinition: ReturnType<typeof mock>;
   let mockRunToolEnabledWorkflow: ReturnType<typeof mock>;
-  let mockLoggerError: ReturnType<typeof mock>;
+  let mockConsoleError: ReturnType<typeof mock>;
+  let originalConsoleError: typeof console.error;
   let executeFallback: (
     state: typeof RouterGraphState.State
   ) => Promise<Partial<typeof RouterGraphState.State>>;
@@ -52,7 +53,9 @@ describe("executeFallback", () => {
 
     mockGetModelDefinition = mock();
     mockRunToolEnabledWorkflow = mock();
-    mockLoggerError = mock();
+    mockConsoleError = mock();
+    originalConsoleError = console.error;
+    console.error = mockConsoleError;
 
     void mock.module("../getModelDefinition", () => ({
       getModelDefinition: mockGetModelDefinition,
@@ -66,16 +69,6 @@ describe("executeFallback", () => {
       cheapest: mockCheapestAgent,
     }));
 
-    void mock.module("../../../utils/logger", () => ({
-      logger: {
-        error: mockLoggerError,
-        info: mock(),
-        warn: mock(),
-        debug: mock(),
-        success: mock(),
-      },
-    }));
-
     const module = await import("./executeFallback");
     executeFallback = module.executeFallback;
 
@@ -84,6 +77,7 @@ describe("executeFallback", () => {
   });
 
   afterEach(() => {
+    console.error = originalConsoleError;
     mock.restore();
   });
 
@@ -133,7 +127,7 @@ describe("executeFallback", () => {
 
     const result = await executeFallback(defaultState);
 
-    expect(mockLoggerError).toHaveBeenCalledWith(
+    expect(mockConsoleError).toHaveBeenCalledWith(
       "Failed to execute fallback agent:",
       expect.any(Error)
     );
@@ -151,7 +145,7 @@ describe("executeFallback", () => {
 
     const result = await executeFallback(defaultState);
 
-    expect(mockLoggerError).toHaveBeenCalledWith(
+    expect(mockConsoleError).toHaveBeenCalledWith(
       "Failed to execute fallback agent:",
       testError
     );

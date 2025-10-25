@@ -13,7 +13,6 @@ import { permissions } from "./graphql/permissions";
 import GraphQLApplication from "./modules";
 import type { ServerContext } from "./serverContext";
 import { getContext } from "./serverContext";
-import { logger } from "./utils/logger";
 
 const graphqlServer = async (path: string = "/graphql") => {
   const isProd = process.env.NODE_ENV === "production";
@@ -77,12 +76,12 @@ const graphqlServer = async (path: string = "/graphql") => {
       },
     ],
     formatError: (formattedError: GraphQLFormattedError, error: unknown) => {
-      logger.error(
-        "GraphQL Error",
+      console.error(
+        "GraphQL Error:",
         error instanceof Error
           ? error
           : new Error(String(formattedError.message)),
-        { formattedError }
+        formattedError
       );
 
       return formattedError;

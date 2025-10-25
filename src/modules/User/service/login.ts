@@ -2,7 +2,6 @@ import { ApolloServerErrorCode } from "@apollo/server/errors";
 import { GraphQLError } from "graphql";
 import { loginWithEmailAndPassword } from "../../../data/Firebase";
 import { lookupUser } from "../../../data/MongoDB";
-import { logger } from "../../../utils/logger";
 import type { UserModule } from "../generated";
 
 export const login = async (
@@ -32,7 +31,7 @@ export const login = async (
       },
     };
   } catch (error) {
-    logger.error("Login error:", error);
+    console.error("Login error:", error);
     throw new GraphQLError("Login error occurred", {
       extensions: {
         code: ApolloServerErrorCode.INTERNAL_SERVER_ERROR,
