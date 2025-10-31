@@ -263,7 +263,9 @@ describe("updateCampaign", () => {
 
     const result = await updateCampaign(params);
 
-    expect(mockFindUnique).not.toHaveBeenCalled();
+    expect(mockFindUnique).toHaveBeenCalledWith({
+      where: { id: "campaign-1" },
+    });
     expect(mockCheckCampaignNameExists).not.toHaveBeenCalled();
     expect(mockUpdate).toHaveBeenCalledWith({
       where: {

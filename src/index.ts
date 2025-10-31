@@ -17,7 +17,6 @@ declare module "bun" {
 
 import * as Sentry from "@sentry/bun";
 import GraphQLServer from "./server";
-import { logger } from "./utils/logger";
 
 // Initialize Sentry
 if (process.env.SENTRY_DSN) {
@@ -26,7 +25,10 @@ if (process.env.SENTRY_DSN) {
     dsn: process.env.SENTRY_DSN,
     serverName: "oracle-engine-graphql",
     environment: process.env.NODE_ENV || "development",
-    enableLogs: !isProduction,
+    integrations: [
+      Sentry.consoleLoggingIntegration({ levels: ["error", "warn", "log"] }),
+    ],
+    enableLogs: isProduction,
     tracesSampleRate: isProduction ? 0.1 : 1.0, // We can adjust this value in the future so that we don't get spammed
   });
 }
@@ -38,15 +40,16 @@ const startServer = async () => {
 
   await new Promise<void>((resolve) => httpServer.listen({ port }, resolve));
 
-  logger.success(`Server is running on http://localhost:${port}${path}`);
+  console.log(`Server is running on http://localhost:${port}${path}`);
 };
 
 startServer().catch((error: unknown) => {
-  logger.error("Failed to start GraphQL server:", error);
+  Sentry.captureException(error);
+  console.error("Failed to start GraphQL server:", error);
   process.exit(1);
 });
 
 process.on("SIGINT", () => {
-  logger.info("Server is shutting down...");
+  console.log("Server is shutting down...");
   process.exit(0);
 });

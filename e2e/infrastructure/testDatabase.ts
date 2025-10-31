@@ -2,7 +2,6 @@ import {
   MongoDBContainer,
   type StartedMongoDBContainer,
 } from "@testcontainers/mongodb";
-import { logger } from "../../src/utils/logger";
 
 class TestDatabase {
   private static instance: TestDatabase;
@@ -20,12 +19,12 @@ class TestDatabase {
 
   async start(): Promise<string> {
     if (this.container && this.connectionString) {
-      logger.info("Test MongoDB container already running");
+      console.log("Test MongoDB container already running");
       return this.connectionString;
     }
 
     try {
-      logger.info("Starting MongoDB testcontainer...");
+      console.log("Starting MongoDB testcontainer...");
 
       // Start MongoDB container with latest version
       this.container = await new MongoDBContainer("mongo:7.0")
@@ -39,29 +38,29 @@ class TestDatabase {
         ? `${baseConnectionString}test?directConnection=true`
         : `${baseConnectionString}/test?directConnection=true`;
 
-      logger.success(`MongoDB testcontainer started: ${this.connectionString}`);
+      console.log(`MongoDB testcontainer started: ${this.connectionString}`);
 
       return this.connectionString;
     } catch (error) {
-      logger.error("Failed to start MongoDB testcontainer:", error);
+      console.error("Failed to start MongoDB testcontainer:", error);
       throw error;
     }
   }
 
   async stop(): Promise<void> {
     if (!this.container) {
-      logger.info("No test MongoDB container to stop");
+      console.log("No test MongoDB container to stop");
       return;
     }
 
     try {
-      logger.info("Stopping MongoDB testcontainer...");
+      console.log("Stopping MongoDB testcontainer...");
       await this.container.stop();
       this.container = null;
       this.connectionString = null;
-      logger.success("MongoDB testcontainer stopped");
+      console.log("MongoDB testcontainer stopped");
     } catch (error) {
-      logger.error("Failed to stop MongoDB testcontainer:", error);
+      console.error("Failed to stop MongoDB testcontainer:", error);
       throw error;
     }
   }
@@ -75,6 +74,13 @@ class TestDatabase {
 
   isRunning(): boolean {
     return this.container !== null && this.connectionString !== null;
+  }
+
+  async cleanup(): Promise<void> {
+    if (TestDatabase.instance.isRunning()) {
+      await TestDatabase.instance.stop();
+      await TestDatabase.instance.cleanup();
+    }
   }
 }
 

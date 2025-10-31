@@ -11,7 +11,8 @@ import type { ToolEnabledGraphState } from "../Workflows/toolEnabledWorkflow";
 let generateWithTools: (
   state: typeof ToolEnabledGraphState.State
 ) => Promise<Partial<typeof ToolEnabledGraphState.State>>;
-let mockLoggerError: ReturnType<typeof mock>;
+let mockConsoleError: ReturnType<typeof mock>;
+let originalConsoleError: typeof console.error;
 let MockSystemMessage: typeof SystemMessage;
 let MockHumanMessage: typeof HumanMessage;
 let MockAIMessage: typeof AIMessage;
@@ -44,7 +45,9 @@ describe("generateWithTools", () => {
   beforeEach(async () => {
     mock.restore();
 
-    mockLoggerError = mock();
+    mockConsoleError = mock();
+    originalConsoleError = console.error;
+    console.error = mockConsoleError;
 
     // Mock @langchain/core/messages
     void mock.module("@langchain/core/messages", () => ({
@@ -59,17 +62,6 @@ describe("generateWithTools", () => {
       AIMessage: class {
         constructor(public content: string) {}
         id = "AIMessage_1";
-      },
-    }));
-
-    // Mock logger module
-    mock.module("../../../utils/logger", () => ({
-      logger: {
-        error: mockLoggerError,
-        info: mock(),
-        warn: mock(),
-        debug: mock(),
-        success: mock(),
       },
     }));
 
@@ -106,6 +98,7 @@ describe("generateWithTools", () => {
   });
 
   afterEach(() => {
+    console.error = originalConsoleError;
     mock.restore();
   });
 
@@ -228,7 +221,7 @@ describe("generateWithTools", () => {
     await expect(generateWithTools(defaultState)).rejects.toThrow(
       "Model generation failed"
     );
-    expect(mockLoggerError).toHaveBeenCalledWith(
+    expect(mockConsoleError).toHaveBeenCalledWith(
       "Error generating response with tools:",
       testError
     );

@@ -3,7 +3,6 @@ import { initializeFirebase, verifyUser } from "./data/Firebase";
 import type { Thread, User } from "./data/MongoDB";
 import PubSub from "./graphql/topics";
 import { createThreadsByCampaignIdLoader } from "./modules/Thread/dataloader";
-import { logger } from "./utils/logger";
 
 export interface ServerContext {
   // The Firebase Auth token, if available.
@@ -87,7 +86,7 @@ export const getContext = async ({
         context.user = verifyUserResult.user;
       }
     } catch (error) {
-      logger.warn("Error verifying token, likely it is expired.", error);
+      console.warn("Error verifying token, likely it is expired.", error);
       // Do not throw error here; we'll handle it in graphql-shield
     }
   }

@@ -1,4 +1,3 @@
-import { logger } from "../src/utils/logger";
 import { testDatabase, testPrismaClient } from "./infrastructure";
 
 /**
@@ -8,7 +7,7 @@ import { testDatabase, testPrismaClient } from "./infrastructure";
  */
 export default async function globalTeardown(): Promise<void> {
   try {
-    logger.info("Running global E2E teardown...");
+    console.log("Running global E2E teardown...");
 
     // 1. Disconnect Prisma client if still connected
     if (testPrismaClient.isInitialized()) {
@@ -20,9 +19,11 @@ export default async function globalTeardown(): Promise<void> {
       await testDatabase.stop();
     }
 
-    logger.success("Global E2E teardown complete");
+    console.log("Global E2E teardown complete");
   } catch (error) {
-    logger.error("Failed to run global E2E teardown:", error);
+    console.error("Failed to run global E2E teardown:", error);
     throw error;
+  } finally {
+    await testDatabase.cleanup();
   }
 }

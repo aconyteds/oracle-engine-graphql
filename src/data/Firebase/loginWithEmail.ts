@@ -1,6 +1,5 @@
 import { ApolloServerErrorCode } from "@apollo/server/errors";
 import { GraphQLError } from "graphql";
-import { logger } from "../../utils/logger";
 import type { FirebaseAuthResponse } from "./models";
 
 const FIREBASE_WEB_API_KEY = process.env.FIREBASE_WEB_API_KEY;
@@ -27,10 +26,10 @@ export const loginWithEmailAndPassword = async (
     const errorData = (await response.json()) as {
       error?: { message?: string };
     };
-    logger.error(
+    console.error(
       "Error logging in:",
       new Error(errorData.error?.message || "Unknown Firebase error"),
-      { errorData }
+      errorData
     );
     throw new GraphQLError("Invalid email or password", {
       extensions: {
