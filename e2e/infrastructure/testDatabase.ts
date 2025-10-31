@@ -75,6 +75,13 @@ class TestDatabase {
   isRunning(): boolean {
     return this.container !== null && this.connectionString !== null;
   }
+
+  async cleanup(): Promise<void> {
+    if (TestDatabase.instance.isRunning()) {
+      await TestDatabase.instance.stop();
+      await TestDatabase.instance.cleanup();
+    }
+  }
 }
 
 export const testDatabase = TestDatabase.getInstance();

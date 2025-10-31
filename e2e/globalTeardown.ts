@@ -23,5 +23,7 @@ export default async function globalTeardown(): Promise<void> {
   } catch (error) {
     console.error("Failed to run global E2E teardown:", error);
     throw error;
+  } finally {
+    await testDatabase.cleanup();
   }
 }

@@ -81,6 +81,21 @@ for test_file in $TEST_FILES; do
   echo ""
 done
 
+# Run global teardown for E2E tests
+if [ "$TEST_PATTERN" = "E2E" ]; then
+  echo -e "${BLUE}======================================${NC}"
+  echo -e "${BLUE}Running Global E2E Teardown${NC}"
+  echo -e "${BLUE}======================================${NC}"
+  echo ""
+
+  if bun run e2e/globalTeardown.ts 2>&1; then
+    echo -e "${GREEN}✓ Global teardown completed successfully${NC}"
+  else
+    echo -e "${YELLOW}⚠ Global teardown encountered issues (non-fatal)${NC}"
+  fi
+  echo ""
+fi
+
 # Print summary
 echo -e "${BLUE}======================================${NC}"
 echo -e "${BLUE}Test Summary${NC}"
