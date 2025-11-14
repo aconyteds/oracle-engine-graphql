@@ -1,6 +1,6 @@
 import type { Server } from "http";
 import GraphQLServer from "../src/server";
-import { sharedTestEnvironment, testPrismaClient } from "./infrastructure";
+import { testPrismaClient } from "./infrastructure";
 
 /**
  * Setup a GraphQL server instance for a test file.

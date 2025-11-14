@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
+import type { BaseMessage } from "@langchain/core/messages";
 import type { Message } from "../MongoDB";
 import type { AIAgentDefinition } from "./types";
 import { RouterType } from "./types";
@@ -10,7 +11,7 @@ describe("truncateMessageHistory", () => {
     agent: AIAgentDefinition;
     truncationStrategy?: "latest" | "alternate";
     maxContextPercentage?: number;
-  }) => Message[];
+  }) => BaseMessage[];
 
   // Default mock data - reusable across tests
   const defaultAgent: AIAgentDefinition = {

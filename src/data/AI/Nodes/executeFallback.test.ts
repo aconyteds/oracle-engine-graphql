@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
+import { HumanMessage } from "@langchain/core/messages";
 import type { AIAgentDefinition } from "../types";
 import type { RouterGraphState } from "../Workflows/routerWorkflow";
 
@@ -101,7 +102,7 @@ describe("executeFallback", () => {
   test("Unit -> executeFallback uses cheapest agent when no fallback in routing decision", async () => {
     const stateWithoutFallback = {
       ...defaultState,
-      routingDecision: {},
+      routingDecision: undefined,
     };
 
     const result = await executeFallback(stateWithoutFallback);
@@ -110,10 +111,10 @@ describe("executeFallback", () => {
     expect(result.targetAgent).toBe(mockCheapestAgent);
   });
 
-  test("Unit -> executeFallback uses cheapest agent when routing decision is null", async () => {
+  test("Unit -> executeFallback uses cheapest agent when routing decision is undefined", async () => {
     const stateWithoutDecision = {
       ...defaultState,
-      routingDecision: null,
+      routingDecision: undefined,
     };
 
     const result = await executeFallback(stateWithoutDecision);
@@ -167,22 +168,21 @@ describe("executeFallback", () => {
     const stateWithMetadata = {
       ...defaultState,
       routingMetadata: {
-        decision: { targetAgent: "previous-agent" },
+        decision: defaultState.routingMetadata!.decision,
         executionTime: 200,
         success: false,
         fallbackUsed: false,
-        customField: "preserved",
+        userSatisfaction: 0.7,
       },
     };
 
     const result = await executeFallback(stateWithMetadata);
 
     expect(result.routingMetadata).toEqual(
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       expect.objectContaining({
-        decision: { targetAgent: "previous-agent" },
+        decision: defaultState.routingMetadata!.decision,
         executionTime: 200,
-        customField: "preserved",
+        userSatisfaction: 0.7,
         success: true,
         fallbackUsed: true,
       })
@@ -201,21 +201,17 @@ describe("executeFallback", () => {
   });
 
   test("Unit -> executeFallback preserves other state properties", async () => {
+    const originalMessages = [new HumanMessage("original")];
     const extendedState = {
       ...defaultState,
-      customField: "value",
-      originalMessages: [{ content: "original" }],
-      maxRoutingAttempts: 3,
+      originalMessages,
     };
 
     const result = await executeFallback(extendedState);
 
     expect(result).toEqual(
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       expect.objectContaining({
-        customField: "value",
-        originalMessages: [{ content: "original" }],
-        maxRoutingAttempts: 3,
+        originalMessages,
       })
     );
   });

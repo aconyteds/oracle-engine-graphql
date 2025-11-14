@@ -112,8 +112,13 @@ function extractTextForEmbedding(asset: CampaignAsset): string {
 
     case RecordType.Plot:
       if (asset.plotData) {
-        if (asset.plotData.summary) {
-          parts.push(`Plot Summary: ${asset.plotData.summary}`);
+        if (asset.plotData.dmNotes) {
+          parts.push(`DM Notes: ${asset.plotData.dmNotes}`);
+        }
+        if (asset.plotData.sharedWithPlayers) {
+          parts.push(
+            `Shared With Players: ${asset.plotData.sharedWithPlayers}`
+          );
         }
         if (asset.plotData.status) {
           parts.push(`Status: ${asset.plotData.status}`);
@@ -131,10 +136,6 @@ function extractTextForEmbedding(asset: CampaignAsset): string {
           parts.push(`Related Assets: ${relationships}`);
         }
       }
-      break;
-
-    case RecordType.SessionEvent:
-      // SessionEvent embeddings are not currently supported
       break;
   }
 

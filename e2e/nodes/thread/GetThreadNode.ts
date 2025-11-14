@@ -139,7 +139,7 @@ export class GetThreadNode extends BaseNode<GetThreadInput, GetThreadOutput> {
           this.nodeId,
           [
             {
-              message: `HTTP ${response.status}: ${response.statusText || "Unknown error"}`,
+              message: `HTTP ${response.status}`,
             },
           ],
           { statusCode: response.status }

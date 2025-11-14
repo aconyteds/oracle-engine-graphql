@@ -183,14 +183,6 @@ const CampaignAssetResolvers: CampaignAssetModule.Resolvers = {
     },
   },
 
-  // Resolve the union type
-  CampaignAssetData: {
-    __resolveType(obj: { __typename?: string }) {
-      // The __typename should be set by the translator
-      return obj.__typename || null;
-    },
-  },
-
   // Field resolver for the polymorphic data field
   CampaignAsset: {
     data: (parent) => {

@@ -28,7 +28,7 @@ describe("validateToolInput", () => {
       ],
       tools: [defaultTool, { name: "tool2", description: "Another tool" }],
       metadata: { existingData: true },
-    } as typeof ToolEnabledGraphState.State;
+    } as unknown as typeof ToolEnabledGraphState.State;
 
     const result = await validateToolInput(defaultState);
 
@@ -46,7 +46,7 @@ describe("validateToolInput", () => {
       messages: [],
       tools: [defaultTool],
       metadata: { existingData: true },
-    } as typeof ToolEnabledGraphState.State;
+    } as unknown as typeof ToolEnabledGraphState.State;
 
     expect(() => validateToolInput(state)).toThrow(
       "No messages provided for generation"
@@ -60,7 +60,7 @@ describe("validateToolInput", () => {
       messages: undefined as unknown as never[],
       tools: [defaultTool],
       metadata: { existingData: true },
-    } as typeof ToolEnabledGraphState.State;
+    } as unknown as typeof ToolEnabledGraphState.State;
 
     expect(() => validateToolInput(state)).toThrow(
       "No messages provided for generation"
@@ -75,7 +75,7 @@ describe("validateToolInput", () => {
       ],
       tools: [],
       metadata: { existingData: true },
-    } as typeof ToolEnabledGraphState.State;
+    } as unknown as typeof ToolEnabledGraphState.State;
 
     const result = await validateToolInput(state);
 
@@ -91,7 +91,7 @@ describe("validateToolInput", () => {
       messages: [new HumanMessage("Single message")],
       tools: [defaultTool],
       metadata: { existingData: true },
-    } as typeof ToolEnabledGraphState.State;
+    } as unknown as typeof ToolEnabledGraphState.State;
 
     const result = await validateToolInput(state);
 
@@ -109,7 +109,7 @@ describe("validateToolInput", () => {
       ],
       tools: [defaultTool],
       metadata: { customField: "value", count: 42 },
-    } as typeof ToolEnabledGraphState.State;
+    } as unknown as typeof ToolEnabledGraphState.State;
 
     const result = await validateToolInput(state);
 
@@ -128,7 +128,7 @@ describe("validateToolInput", () => {
       ],
       tools: [defaultTool, { name: "tool2", description: "Another tool" }],
       metadata: undefined,
-    } as typeof ToolEnabledGraphState.State;
+    } as unknown as typeof ToolEnabledGraphState.State;
 
     const result = await validateToolInput(state);
 
@@ -150,7 +150,7 @@ describe("validateToolInput", () => {
       ],
       tools: complexTools,
       metadata: { existingData: true },
-    } as typeof ToolEnabledGraphState.State;
+    } as unknown as typeof ToolEnabledGraphState.State;
 
     const result = await validateToolInput(state);
 

@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
-import type { ServerContext } from "./serverContext";
 
 describe("getContext", () => {
   // Declare mock variables

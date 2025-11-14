@@ -94,7 +94,7 @@ interface RoutingDecisionResult {
 
 function extractRoutingDecision(
   workflowResult: WorkflowResult
-): RoutingDecision | null {
+): RoutingDecision | undefined {
   try {
     // Parse tool calls to find routing decision
     if (workflowResult.toolResultsForDB) {
@@ -137,9 +137,9 @@ function extractRoutingDecision(
         }
       }
     }
-    return null;
+    return undefined;
   } catch (error) {
     console.error("Failed to extract routing decision:", error);
-    return null;
+    return undefined;
   }
 }

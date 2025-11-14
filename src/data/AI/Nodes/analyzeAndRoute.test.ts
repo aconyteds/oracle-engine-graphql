@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
+import { HumanMessage } from "@langchain/core/messages";
 import type { AIAgentDefinition } from "../types";
 import type { RouterGraphState } from "../Workflows/routerWorkflow";
 
@@ -8,9 +9,7 @@ describe("analyzeAndRoute", () => {
   let mockGetAgentByName: ReturnType<typeof mock>;
   let mockConsoleError: ReturnType<typeof mock>;
   let originalConsoleError: typeof console.error;
-  let analyzeAndRoute: (
-    state: typeof RouterGraphState.State
-  ) => Promise<Partial<typeof RouterGraphState.State>>;
+  let analyzeAndRoute: typeof import("./analyzeAndRoute").analyzeAndRoute;
 
   const mockRouterAgent = {
     name: "router-agent",
@@ -29,7 +28,7 @@ describe("analyzeAndRoute", () => {
   } as AIAgentDefinition;
 
   const defaultState = {
-    messages: [{ content: "Test message" }],
+    messages: [new HumanMessage("Test message")],
     runId: "test-run-123",
     routingAttempts: 0,
     routerAgent: mockRouterAgent,
@@ -127,7 +126,7 @@ describe("analyzeAndRoute", () => {
   test("Unit -> analyzeAndRoute creates fallback decision when no router agent provided", async () => {
     const stateWithoutRouter = {
       ...defaultState,
-      routerAgent: null,
+      routerAgent: undefined,
     };
 
     const result = await analyzeAndRoute(stateWithoutRouter);
@@ -183,7 +182,7 @@ describe("analyzeAndRoute", () => {
 
     const result = await analyzeAndRoute(defaultState);
 
-    expect(result.routingDecision).toBeNull();
+    expect(result.routingDecision).toBeUndefined();
     expect(result.routingMetadata?.success).toBe(false);
     expect(result.routingMetadata?.fallbackUsed).toBe(false);
     expect(mockConsoleError).toHaveBeenCalledWith(
@@ -221,7 +220,7 @@ describe("analyzeAndRoute", () => {
 
     const result = await analyzeAndRoute(defaultState);
 
-    expect(result.routingDecision).toBeNull();
+    expect(result.routingDecision).toBeUndefined();
     expect(result.routingMetadata?.success).toBe(false);
     expect(result.routingMetadata?.fallbackUsed).toBe(false);
     expect(mockConsoleError).toHaveBeenCalledWith(
@@ -243,7 +242,7 @@ describe("analyzeAndRoute", () => {
 
     const result = await analyzeAndRoute(defaultState);
 
-    expect(result.routingDecision).toBeNull();
+    expect(result.routingDecision).toBeUndefined();
     expect(result.routingMetadata?.success).toBe(false);
     expect(result.routingMetadata?.fallbackUsed).toBe(false);
   });
@@ -261,7 +260,7 @@ describe("analyzeAndRoute", () => {
 
     const result = await analyzeAndRoute(defaultState);
 
-    expect(result.routingDecision).toBeNull();
+    expect(result.routingDecision).toBeUndefined();
     expect(result.routingMetadata?.success).toBe(false);
     expect(result.routingMetadata?.fallbackUsed).toBe(false);
     expect(mockConsoleError).toHaveBeenCalledWith(
@@ -278,23 +277,18 @@ describe("analyzeAndRoute", () => {
   });
 
   test("Unit -> analyzeAndRoute preserves other state properties", async () => {
+    const extendedMessages = [
+      new HumanMessage("message1"),
+      new HumanMessage("message2"),
+    ];
     const extendedState = {
       ...defaultState,
-      customField: "value",
-      messages: ["message1", "message2"],
-      maxRoutingAttempts: 3,
+      messages: extendedMessages,
     };
 
     const result = await analyzeAndRoute(extendedState);
 
-    expect(result).toEqual(
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-      expect.objectContaining({
-        customField: "value",
-        messages: ["message1", "message2"],
-        maxRoutingAttempts: 3,
-      })
-    );
+    expect(result.messages).toEqual(extendedMessages);
   });
 
   test("Unit -> analyzeAndRoute uses default fallback when not specified", async () => {

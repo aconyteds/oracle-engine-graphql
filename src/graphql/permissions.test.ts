@@ -23,6 +23,15 @@ describe("permissions", () => {
     user: defaultUser,
     pubsub: {} as typeof import("../graphql/topics").default,
     selectedCampaignId: "campaign-1",
+    loaders: {
+      threadsByCampaignId: {
+        load: mock(),
+        loadMany: mock(),
+        clear: mock(),
+        clearAll: mock(),
+        prime: mock(),
+      } as unknown as ServerContext["loaders"]["threadsByCampaignId"],
+    },
   };
 
   beforeEach(async () => {
