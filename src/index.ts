@@ -19,11 +19,15 @@ import * as Sentry from "@sentry/bun";
 import GraphQLServer from "./server";
 
 // Initialize Sentry
-if (process.env.SENTRY_DSN) {
+// Use Bun.env for proper environment variable access in Bun runtime
+const sentryDsn = Bun.env.SENTRY_DSN || process.env.SENTRY_DSN;
+const nodeEnv = Bun.env.NODE_ENV || process.env.NODE_ENV || "development";
+console.log(`Starting server in ${nodeEnv} mode.`);
+if (sentryDsn) {
   Sentry.init({
-    dsn: process.env.SENTRY_DSN,
+    dsn: sentryDsn,
     serverName: "oracle-engine-graphql",
-    environment: process.env.NODE_ENV || "development",
+    environment: nodeEnv,
     integrations: [
       Sentry.consoleLoggingIntegration({ levels: ["error", "warn", "log"] }),
     ],
@@ -33,6 +37,7 @@ if (process.env.SENTRY_DSN) {
   // This needs to be here to verify Sentry is working in Bun
   Sentry.logger.info("Sentry initialized for oracle-engine-graphql", {
     action: "test_log",
+    environment: nodeEnv,
   });
 }
 
