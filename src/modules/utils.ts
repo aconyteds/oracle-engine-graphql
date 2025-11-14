@@ -2,11 +2,20 @@ import type {
   AIMessageChunk,
   MessageContentComplex,
 } from "@langchain/core/messages";
-import type { Campaign, Message, MessageRoles, Thread } from "../data/MongoDB";
+import type {
+  Campaign,
+  CampaignAsset,
+  Message,
+  MessageRoles,
+  Thread,
+} from "../data/MongoDB";
 import type {
   GenerateMessagePayload,
   Campaign as GraphQLCampaign,
+  Location as GraphQLLocation,
   Message as GraphQLMessage,
+  Npc as GraphQLNPC,
+  Plot as GraphQLPlot,
   Role as GraphQLRole,
   Thread as GraphQLThread,
 } from "../generated/graphql";
@@ -85,5 +94,71 @@ export const TranslateCampaign = (campaign: Campaign): GraphQLCampaign => {
     ruleset: campaign.ruleset,
     createdAt: campaign.createdAt.toISOString(),
     updatedAt: campaign.updatedAt.toISOString(),
+  };
+};
+
+export const TranslateLocation = (asset: CampaignAsset): GraphQLLocation => {
+  if (!asset.locationData) {
+    throw new Error("Asset is not a Location");
+  }
+
+  return {
+    id: asset.id,
+    campaignId: asset.campaignId,
+    name: asset.name,
+    summary: asset.summary,
+    playerSummary: asset.playerSummary,
+    imageUrl: asset.locationData.imageUrl,
+    description: asset.locationData.description,
+    condition: asset.locationData.condition,
+    pointsOfInterest: asset.locationData.pointsOfInterest,
+    characters: asset.locationData.characters,
+    dmNotes: asset.locationData.dmNotes,
+    sharedWithPlayers: asset.locationData.sharedWithPlayers,
+    createdAt: asset.createdAt.toISOString(),
+    updatedAt: asset.updatedAt.toISOString(),
+  };
+};
+
+export const TranslateNPC = (asset: CampaignAsset): GraphQLNPC => {
+  if (!asset.npcData) {
+    throw new Error("Asset is not an NPC");
+  }
+
+  return {
+    id: asset.id,
+    campaignId: asset.campaignId,
+    name: asset.name,
+    summary: asset.summary,
+    playerSummary: asset.playerSummary,
+    imageUrl: asset.npcData.imageUrl,
+    physicalDescription: asset.npcData.physicalDescription,
+    motivation: asset.npcData.motivation,
+    mannerisms: asset.npcData.mannerisms,
+    dmNotes: asset.npcData.dmNotes,
+    sharedWithPlayers: asset.npcData.sharedWithPlayers,
+    createdAt: asset.createdAt.toISOString(),
+    updatedAt: asset.updatedAt.toISOString(),
+  };
+};
+
+export const TranslatePlot = (asset: CampaignAsset): GraphQLPlot => {
+  if (!asset.plotData) {
+    throw new Error("Asset is not a Plot");
+  }
+
+  return {
+    id: asset.id,
+    campaignId: asset.campaignId,
+    name: asset.name,
+    summary: asset.plotData.summary,
+    status: asset.plotData.status,
+    urgency: asset.plotData.urgency,
+    relatedAssets: asset.plotData.relatedAssets.map((rel) => ({
+      relatedAssetId: rel.relatedAssetId,
+      relationshipSummary: rel.relationshipSummary,
+    })),
+    createdAt: asset.createdAt.toISOString(),
+    updatedAt: asset.updatedAt.toISOString(),
   };
 };

@@ -7,6 +7,7 @@ import {
 import BaseModule from "./_base";
 import AIModule from "./AI";
 import CampaignModule from "./Campaign";
+import CampaignAssetModule from "./CampaignAsset";
 import MessageModule from "./Message";
 import ThreadModule from "./Thread";
 import UserModule from "./User";
@@ -33,6 +34,7 @@ const application = createApplication({
     ThreadModule,
     AIModule,
     CampaignModule,
+    CampaignAssetModule,
   ],
 });
 

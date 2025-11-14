@@ -1,0 +1,541 @@
+extend type Query {
+  """
+  Returns a single campaign asset by ID
+  """
+  getCampaignAsset(input: GetCampaignAssetInput!): GetCampaignAssetPayload
+
+  """
+  Returns all campaign assets for a campaign
+  """
+  listCampaignAssets(input: ListCampaignAssetsInput!): ListCampaignAssetsPayload
+}
+
+extend type Mutation {
+  """
+  Creates a new campaign asset (Location, NPC, or Plot)
+  """
+  createCampaignAsset(
+    input: CreateCampaignAssetInput!
+  ): CreateCampaignAssetPayload
+
+  """
+  Updates an existing campaign asset
+  """
+  updateCampaignAsset(
+    input: UpdateCampaignAssetInput!
+  ): UpdateCampaignAssetPayload
+
+  """
+  Deletes a campaign asset
+  """
+  deleteCampaignAsset(
+    input: DeleteCampaignAssetInput!
+  ): DeleteCampaignAssetPayload
+}
+
+# Enums
+
+enum RecordType {
+  """
+  Non-player character
+  """
+  NPC
+
+  """
+  Location or place in the campaign world
+  """
+  Location
+
+  """
+  Plot point or story arc
+  """
+  Plot
+}
+
+enum PlotStatus {
+  """
+  Plot status is unknown
+  """
+  Unknown
+
+  """
+  Plot is rumored but not confirmed
+  """
+  Rumored
+
+  """
+  Plot is currently in progress
+  """
+  InProgress
+
+  """
+  Plot will not be pursued
+  """
+  WillNotDo
+
+  """
+  Plot has been completed or resolved
+  """
+  Closed
+}
+
+enum Urgency {
+  """
+  Plot is ongoing with no time pressure
+  """
+  Ongoing
+
+  """
+  Plot is time-sensitive
+  """
+  TimeSensitive
+
+  """
+  Plot is critical and urgent
+  """
+  Critical
+
+  """
+  Plot has been resolved
+  """
+  Resolved
+}
+
+# Input Types for Creation
+
+input CreateCampaignAssetInput {
+  """
+  The ID of the campaign this asset belongs to
+  """
+  campaignId: ID!
+
+  """
+  The type of asset to create
+  """
+  recordType: RecordType!
+
+  """
+  The name of the campaign asset
+  """
+  name: String!
+
+  """
+  A brief summary (used for quick linking)
+  """
+  summary: String
+
+  """
+  Player-friendly summary (only player knowledge)
+  """
+  playerSummary: String
+
+  """
+  Location-specific data (required if recordType is Location)
+  """
+  locationData: LocationDataInput
+
+  """
+  NPC-specific data (required if recordType is NPC)
+  """
+  npcData: NPCDataInput
+
+  """
+  Plot-specific data (required if recordType is Plot)
+  """
+  plotData: PlotDataInput
+}
+
+input LocationDataInput {
+  """
+  URL to an image of the location
+  """
+  imageUrl: String
+
+  """
+  Detailed description of the location
+  """
+  description: String!
+
+  """
+  Current condition of the location
+  """
+  condition: String!
+
+  """
+  Notable points of interest
+  """
+  pointsOfInterest: String!
+
+  """
+  Characters present at this location
+  """
+  characters: String!
+
+  """
+  DM-only notes
+  """
+  dmNotes: String!
+
+  """
+  Information shared with players
+  """
+  sharedWithPlayers: String!
+}
+
+input NPCDataInput {
+  """
+  URL to an image of the NPC
+  """
+  imageUrl: String
+
+  """
+  Physical description of the NPC
+  """
+  physicalDescription: String!
+
+  """
+  The NPC's motivation
+  """
+  motivation: String!
+
+  """
+  The NPC's mannerisms and speech patterns
+  """
+  mannerisms: String!
+
+  """
+  DM-only notes
+  """
+  dmNotes: String!
+
+  """
+  Information shared with players
+  """
+  sharedWithPlayers: String!
+}
+
+input PlotDataInput {
+  """
+  DM-only notes
+  """
+  dmNotes: String!
+
+  """
+  Information shared with players
+  """
+  sharedWithPlayers: String!
+
+  """
+  The current status of the plot
+  """
+  status: PlotStatus!
+
+  """
+  The urgency level of the plot
+  """
+  urgency: Urgency!
+
+  """
+  Related assets with their relationships
+  """
+  relatedAssets: [PlotRelationshipInput!]
+}
+
+input PlotRelationshipInput {
+  """
+  The ID of the related asset
+  """
+  relatedAssetId: ID!
+
+  """
+  Summary of how this asset relates to the plot
+  """
+  relationshipSummary: String!
+}
+
+# Input Types for Updates
+
+input UpdateCampaignAssetInput {
+  """
+  The ID of the asset to update
+  """
+  assetId: ID!
+
+  """
+  The type of asset (must match the existing asset type)
+  """
+  recordType: RecordType!
+
+  """
+  The updated name
+  """
+  name: String
+
+  """
+  The updated summary
+  """
+  summary: String
+
+  """
+  The updated player-friendly summary
+  """
+  playerSummary: String
+
+  """
+  Updated location data (only for Location assets)
+  """
+  locationData: LocationDataInput
+
+  """
+  Updated NPC data (only for NPC assets)
+  """
+  npcData: NPCDataInput
+
+  """
+  Updated plot data (only for Plot assets)
+  """
+  plotData: PlotDataInput
+}
+
+# Query Input Types
+
+input GetCampaignAssetInput {
+  """
+  The ID of the campaign asset to retrieve
+  """
+  assetId: ID!
+
+  """
+  Optional: verify the asset is of this type
+  """
+  recordType: RecordType
+}
+
+input ListCampaignAssetsInput {
+  """
+  The ID of the campaign to list assets for
+  """
+  campaignId: ID!
+
+  """
+  Optional: filter by asset type
+  """
+  recordType: RecordType
+
+  """
+  Optional: the number of assets to return
+  """
+  limit: Int = 3
+}
+
+input DeleteCampaignAssetInput {
+  """
+  The ID of the asset to delete
+  """
+  assetId: ID!
+}
+
+# Payload Types
+
+type CreateCampaignAssetPayload {
+  """
+  The newly created campaign asset
+  """
+  asset: CampaignAsset!
+}
+
+type UpdateCampaignAssetPayload {
+  """
+  The updated campaign asset
+  """
+  asset: CampaignAsset!
+}
+
+type DeleteCampaignAssetPayload {
+  """
+  Whether the deletion was successful
+  """
+  success: Boolean!
+
+  """
+  The ID of the deleted asset
+  """
+  assetId: ID!
+}
+
+type GetCampaignAssetPayload {
+  """
+  The requested campaign asset
+  """
+  asset: CampaignAsset
+}
+
+type ListCampaignAssetsPayload {
+  """
+  The list of campaign assets
+  """
+  assets: [CampaignAsset!]!
+}
+
+# Type-specific data types
+
+type LocationData {
+  """
+  URL to an image of the location
+  """
+  imageUrl: String
+
+  """
+  Detailed description of the location
+  """
+  description: String!
+
+  """
+  Current condition of the location
+  """
+  condition: String!
+
+  """
+  Notable points of interest
+  """
+  pointsOfInterest: String!
+
+  """
+  Characters present at this location
+  """
+  characters: String!
+
+  """
+  DM-only notes
+  """
+  dmNotes: String!
+
+  """
+  Information shared with players
+  """
+  sharedWithPlayers: String!
+}
+
+type NPCData {
+  """
+  URL to an image of the NPC
+  """
+  imageUrl: String
+
+  """
+  Physical description of the NPC
+  """
+  physicalDescription: String!
+
+  """
+  The NPC's motivation
+  """
+  motivation: String!
+
+  """
+  The NPC's mannerisms and speech patterns
+  """
+  mannerisms: String!
+
+  """
+  DM-only notes
+  """
+  dmNotes: String!
+
+  """
+  Information shared with players
+  """
+  sharedWithPlayers: String!
+}
+
+type PlotData {
+  """
+  DM-only notes
+  """
+  dmNotes: String!
+
+  """
+  Information shared with players
+  """
+  sharedWithPlayers: String!
+
+  """
+  The current status of the plot
+  """
+  status: PlotStatus!
+
+  """
+  The urgency level of the plot
+  """
+  urgency: Urgency!
+
+  """
+  Related assets with their relationships
+  """
+  relatedAssets: [PlotRelationship!]!
+}
+
+type PlotRelationship {
+  """
+  The ID of the related asset
+  """
+  relatedAssetId: ID!
+
+  """
+  Summary of how this asset relates to the plot
+  """
+  relationshipSummary: String!
+}
+
+# Union type for polymorphic data
+
+union CampaignAssetData = LocationData | NPCData | PlotData
+
+# Main CampaignAsset type
+
+type CampaignAsset {
+  """
+  The unique identifier for the campaign asset
+  """
+  id: ID!
+
+  """
+  The ID of the campaign this asset belongs to
+  """
+  campaignId: ID!
+
+  """
+  The name of the campaign asset
+  """
+  name: String!
+
+  """
+  The type of asset (Location, NPC, or Plot)
+  """
+  recordType: RecordType!
+
+  """
+  A brief summary of the asset
+  """
+  summary: String
+
+  """
+  Player-friendly summary
+  """
+  playerSummary: String
+
+  """
+  The type-specific data as a union
+  """
+  data: CampaignAssetData!
+
+  """
+  When the asset was created
+  """
+  createdAt: DateTime!
+
+  """
+  When the asset was last updated
+  """
+  updatedAt: DateTime!
+}

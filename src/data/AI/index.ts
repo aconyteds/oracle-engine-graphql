@@ -2,6 +2,7 @@ export * from "./agentList";
 export * from "./calculateTokenCount";
 export * from "./createTitle";
 export * from "./DefaultModels";
+export * from "./embedCampaignAsset";
 export * from "./generateMessageWithRouter";
 export * from "./generateMessageWithStandardWorkflow";
 export * from "./getModelDefinition";
