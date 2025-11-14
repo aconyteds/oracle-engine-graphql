@@ -1,0 +1,154 @@
+import { expect } from "bun:test";
+import type { Server } from "http";
+import { BaseNode } from "../BaseNode";
+import type { NodeResult } from "../NodeResult";
+
+/**
+ * Input for GetCampaignAssetNode
+ */
+export type GetCampaignAssetInput = {
+  assetId: string;
+  recordType?: "Location" | "NPC" | "Plot";
+};
+
+/**
+ * Output from GetCampaignAssetNode
+ */
+export type GetCampaignAssetOutput = {
+  getCampaignAsset: {
+    asset: {
+      id: string;
+      campaignId: string;
+      name: string;
+      recordType: string;
+      summary: string | null;
+      playerSummary: string | null;
+      data:
+        | {
+            __typename: "LocationData";
+            imageUrl: string | null;
+            description: string;
+            condition: string;
+            pointsOfInterest: string;
+            characters: string;
+            dmNotes: string;
+            sharedWithPlayers: string;
+          }
+        | {
+            __typename: "NPCData";
+            imageUrl: string | null;
+            physicalDescription: string;
+            motivation: string;
+            mannerisms: string;
+            dmNotes: string;
+            sharedWithPlayers: string;
+          }
+        | {
+            __typename: "PlotData";
+            dmNotes: string;
+            sharedWithPlayers: string;
+            status: string;
+            urgency: string;
+            relatedAssets: Array<{
+              relatedAssetId: string;
+              relationshipSummary: string;
+            }>;
+          };
+      createdAt: string;
+      updatedAt: string;
+    } | null;
+  };
+};
+
+/**
+ * Node for retrieving a single campaign asset.
+ * Requires authentication and asset ownership.
+ */
+export class GetCampaignAssetNode extends BaseNode<
+  GetCampaignAssetInput,
+  GetCampaignAssetOutput
+> {
+  readonly nodeId = "GetCampaignAssetNode";
+
+  constructor(server: Server, authToken?: string) {
+    super(server, authToken);
+  }
+
+  async execute(
+    input: GetCampaignAssetInput
+  ): Promise<NodeResult<GetCampaignAssetOutput>> {
+    const query = `
+      query GetCampaignAsset($input: GetCampaignAssetInput!) {
+        getCampaignAsset(input: $input) {
+          asset {
+            id
+            campaignId
+            name
+            recordType
+            summary
+            playerSummary
+            data {
+              __typename
+              ... on LocationData {
+                imageUrl
+                description
+                condition
+                pointsOfInterest
+                characters
+                dmNotes
+                sharedWithPlayers
+              }
+              ... on NPCData {
+                imageUrl
+                physicalDescription
+                motivation
+                mannerisms
+                dmNotes
+                sharedWithPlayers
+              }
+              ... on PlotData {
+                dmNotes
+                sharedWithPlayers
+                status
+                urgency
+                relatedAssets {
+                  relatedAssetId
+                  relationshipSummary
+                }
+              }
+            }
+            createdAt
+            updatedAt
+          }
+        }
+      }
+    `;
+
+    const result = await this.executeGraphQL<GetCampaignAssetOutput>(query, {
+      input,
+    });
+
+    // Perform built-in assertions
+    if (result.success) {
+      this.expectSuccess(result);
+      this.expectField(result, "getCampaignAsset");
+
+      // Verify asset was retrieved
+      const assetData = result.data?.getCampaignAsset?.asset;
+      expect(assetData).toBeDefined();
+      expect(assetData?.id).toBe(input.assetId);
+
+      // Verify type-specific data is present
+      expect(assetData?.data).toBeDefined();
+      expect(assetData?.data.__typename).toBeDefined();
+
+      // If recordType was specified, verify it matches
+      if (input.recordType) {
+        expect(assetData?.recordType).toBe(input.recordType);
+        expect(assetData?.data.__typename).toBe(`${input.recordType}Data`);
+      }
+    }
+
+    return result;
+  }
+}

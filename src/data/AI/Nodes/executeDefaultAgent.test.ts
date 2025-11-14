@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
+import { HumanMessage } from "@langchain/core/messages";
 import type { AIAgentDefinition } from "../types";
 import type { RouterGraphState } from "../Workflows/routerWorkflow";
 
@@ -12,10 +13,10 @@ describe("executeDefaultAgent", () => {
   ) => Promise<Partial<typeof RouterGraphState.State>>;
 
   const defaultState = {
-    messages: [{ content: "Test message" }],
+    messages: [new HumanMessage("Test message")],
     runId: "test-run-123",
     routingMetadata: {
-      decision: null,
+      decision: undefined,
       executionTime: 0,
       success: false,
       fallbackUsed: false,
@@ -84,19 +85,17 @@ describe("executeDefaultAgent", () => {
   });
 
   test("Unit -> executeDefaultAgent preserves original state properties", async () => {
+    const originalMessages = [new HumanMessage("original")];
     const extendedState = {
       ...defaultState,
-      customField: "value",
-      originalMessages: [{ content: "original" }],
+      originalMessages,
     };
 
     const result = await executeDefaultAgent(extendedState);
 
     expect(result).toEqual(
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       expect.objectContaining({
-        customField: "value",
-        originalMessages: [{ content: "original" }],
+        originalMessages,
         runId: "test-run-123",
       })
     );
@@ -124,21 +123,21 @@ describe("executeDefaultAgent", () => {
     const stateWithMetadata = {
       ...defaultState,
       routingMetadata: {
-        decision: { targetAgent: "previous-agent" },
+        decision: defaultState.routingMetadata!.decision,
         executionTime: 150,
         success: false,
         fallbackUsed: false,
-        customField: "preserved",
+        userSatisfaction: 0.8,
       },
     };
 
     const result = await executeDefaultAgent(stateWithMetadata);
 
-    expect(result.routingMetadata?.decision).toEqual({
-      targetAgent: "previous-agent",
-    });
+    expect(result.routingMetadata?.decision).toEqual(
+      defaultState.routingMetadata!.decision
+    );
     expect(result.routingMetadata?.executionTime).toBe(150);
-    expect(result.routingMetadata?.customField).toBe("preserved");
+    expect(result.routingMetadata?.userSatisfaction).toBe(0.8);
     expect(result.routingMetadata?.success).toBe(true);
     expect(result.routingMetadata?.fallbackUsed).toBe(true);
   });

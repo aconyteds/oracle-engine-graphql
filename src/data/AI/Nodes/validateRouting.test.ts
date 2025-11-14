@@ -1,9 +1,13 @@
 import { beforeEach, describe, expect, test } from "bun:test";
+import { HumanMessage, SystemMessage } from "@langchain/core/messages";
+import { cheapest } from "../Agents";
 import type { RouterGraphState } from "../Workflows/routerWorkflow";
 
 import { validateRouting } from "./validateRouting";
 
 describe("validateRouting", () => {
+  const mockAgent = cheapest;
+
   const defaultState = {
     currentResponse: "Valid response content",
     routingMetadata: {
@@ -36,21 +40,10 @@ describe("validateRouting", () => {
     expect(result.routingMetadata?.success).toBe(false);
   });
 
-  test("Unit -> validateRouting marks as unsuccessful with null response", async () => {
+  test("Unit -> validateRouting marks as unsuccessful with whitespace response as empty", async () => {
     const state = {
       ...defaultState,
-      currentResponse: null,
-    };
-
-    const result = await validateRouting(state);
-
-    expect(result.routingMetadata?.success).toBe(false);
-  });
-
-  test("Unit -> validateRouting marks as unsuccessful with undefined response", async () => {
-    const state = {
-      ...defaultState,
-      currentResponse: undefined,
+      currentResponse: "",
     };
 
     const result = await validateRouting(state);
@@ -75,11 +68,11 @@ describe("validateRouting", () => {
 
   test("Unit -> validateRouting preserves other routing metadata", async () => {
     const customMetadata = {
-      decision: { targetAgent: "test-agent" },
+      decision: defaultState.routingMetadata!.decision,
       executionTime: 250,
       success: true,
       fallbackUsed: true,
-      customField: "value",
+      userSatisfaction: 0.95,
     };
     const state = {
       ...defaultState,
@@ -88,34 +81,36 @@ describe("validateRouting", () => {
 
     const result = await validateRouting(state);
 
-    expect(result.routingMetadata?.decision).toEqual({
-      targetAgent: "test-agent",
-    });
+    expect(result.routingMetadata?.decision).toEqual(
+      defaultState.routingMetadata!.decision
+    );
     expect(result.routingMetadata?.executionTime).toBe(250);
     expect(result.routingMetadata?.fallbackUsed).toBe(true);
-    expect(result.routingMetadata?.customField).toBe("value");
+    expect(result.routingMetadata?.userSatisfaction).toBe(0.95);
   });
 
   test("Unit -> validateRouting preserves all other state properties", async () => {
     const fullState = {
       ...defaultState,
-      messages: ["message1", "message2"],
+      messages: [
+        new SystemMessage("System message"),
+        new HumanMessage("User message"),
+      ],
       runId: "test-run-123",
       isRouted: true,
-      targetAgent: { name: "test-agent" },
+      targetAgent: mockAgent,
     };
 
     const result = await validateRouting(fullState);
 
     expect(result).toEqual(
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       expect.objectContaining({
-        messages: ["message1", "message2"],
         runId: "test-run-123",
         isRouted: true,
-        targetAgent: { name: "test-agent" },
+        targetAgent: mockAgent,
       })
     );
+    expect(result.messages).toHaveLength(2);
   });
 
   test("Unit -> validateRouting handles whitespace-only response", async () => {

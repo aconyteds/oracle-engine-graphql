@@ -46,7 +46,10 @@ describe("getCampaignThreads", () => {
     };
 
     // Set up module mocks INSIDE beforeEach
+    // Import Prisma types to re-export them
+    const prismaTypes = await import("@prisma/client");
     mock.module("./client", () => ({
+      ...prismaTypes,
       DBClient: mockDBClient,
     }));
 

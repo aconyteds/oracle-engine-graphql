@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
-import type { Tool } from "@langchain/core/dist/tools";
 import type { ClientOptions } from "@langchain/openai";
 import type { TrustedModel } from "../../modelList";
 import type { AIAgentDefinition } from "../../types";
@@ -116,7 +115,7 @@ describe("buildRouterAgent", () => {
       availableTools: [
         mockRouteToAgent,
         mockAnalyzeConversationContext,
-      ] as unknown[] as Tool[],
+      ] as unknown as AIAgentDefinition["availableTools"],
       specialization: agent.specialization,
       routerType: RouterType.Router,
     });

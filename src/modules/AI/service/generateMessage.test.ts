@@ -102,11 +102,17 @@ describe("Unit -> generateMessage", () => {
     mockRandomUUID = mock();
 
     // Mock modules
-    void mock.module("../../../data/MongoDB", () => ({
+    // Import Prisma types to re-export them
+    const prismaTypes = await import("@prisma/client");
+    void mock.module("../../../data/MongoDB/client", () => ({
+      ...prismaTypes,
       DBClient: mockDBClient,
     }));
 
+    // Import all error functions to re-export them
+    const errors = await import("../../../graphql/errors");
     void mock.module("../../../graphql/errors", () => ({
+      ...errors,
       ServerError: mockServerError,
     }));
 

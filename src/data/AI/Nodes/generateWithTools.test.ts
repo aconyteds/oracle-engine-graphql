@@ -109,8 +109,12 @@ describe("generateWithTools", () => {
     const result = await generateWithTools(defaultState);
 
     expect(result.messages).toHaveLength(1);
-    expect(result.messages![0]).toBe(response);
-    expect(result.currentResponse).toBe(defaultResponse.content);
+    expect(result.messages![0] as unknown).toEqual(response as unknown);
+    expect(result.currentResponse).toBe(
+      typeof defaultResponse.content === "string"
+        ? defaultResponse.content
+        : undefined
+    );
     expect(result.isComplete).toBe(true);
     expect(result.metadata?.responseGenerated).toBe(true);
     expect(result.metadata?.hasToolCalls).toBe(false);
@@ -129,7 +133,9 @@ describe("generateWithTools", () => {
     const result = await generateWithTools(defaultState);
 
     expect(result.messages).toHaveLength(1);
-    expect(result.messages![0]).toBe(responseWithTools);
+    expect(result.messages![0] as unknown).toEqual(
+      responseWithTools as unknown
+    );
     expect(result.toolCalls).toEqual(toolCalls);
     expect(result.toolCallsForDB).toHaveLength(1);
     expect(result.toolCallsForDB![0].toolName).toBe("test-tool");

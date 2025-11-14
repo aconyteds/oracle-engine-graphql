@@ -1,4 +1,5 @@
 export * from "./addMessageWorkspaceEntry";
+export * from "./campaignAsset";
 export * from "./client";
 export * from "./createThread";
 export * from "./getCampaignThreads";

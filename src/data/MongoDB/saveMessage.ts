@@ -4,7 +4,7 @@ import { DBClient } from "./client";
 
 export type MessageRoles = "user" | "system" | "assistant";
 
-type SaveMessageInput = {
+export type SaveMessageInput = {
   // The ThreadID that the message was added to
   threadId: string;
   // The message being used to create the thread

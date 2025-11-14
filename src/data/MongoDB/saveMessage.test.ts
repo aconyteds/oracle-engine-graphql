@@ -1,19 +1,12 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 import type { Message, MessageWorkspace } from "@prisma/client";
+import { saveMessage } from "./saveMessage";
 
 describe("saveMessage", () => {
   // Mock dependencies - recreated for each test
   let mockCreate: ReturnType<typeof mock>;
   let mockThreadUpdate: ReturnType<typeof mock>;
   let mockCalculateTokenCount: ReturnType<typeof mock>;
-  let saveMessage: (
-    message: string,
-    threadId: string,
-    role: "user" | "assistant" | "system",
-    workspace?: MessageWorkspace[],
-    runId?: string | null,
-    routingMetadata?: object | null
-  ) => Promise<Message>;
 
   const defaultMockMessage: Message = {
     id: "default-message-id",
@@ -38,7 +31,10 @@ describe("saveMessage", () => {
     mockCalculateTokenCount = mock();
 
     // Set up module mocks
+    // Import Prisma types to re-export them
+    const prismaTypes = await import("@prisma/client");
     mock.module("./client", () => ({
+      ...prismaTypes,
       DBClient: {
         message: {
           create: mockCreate,
@@ -52,10 +48,6 @@ describe("saveMessage", () => {
     mock.module("../AI/calculateTokenCount", () => ({
       calculateTokenCount: mockCalculateTokenCount,
     }));
-
-    // Import the module under test after mocks are set up
-    const module = await import("./saveMessage");
-    saveMessage = module.saveMessage;
 
     // Configure default mock behavior
     mockCalculateTokenCount.mockReturnValue(10);

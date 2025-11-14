@@ -20,7 +20,6 @@ import GraphQLServer from "./server";
 
 // Initialize Sentry
 if (process.env.SENTRY_DSN) {
-  const isProduction = process.env.NODE_ENV === "production";
   Sentry.init({
     dsn: process.env.SENTRY_DSN,
     serverName: "oracle-engine-graphql",
@@ -28,8 +27,12 @@ if (process.env.SENTRY_DSN) {
     integrations: [
       Sentry.consoleLoggingIntegration({ levels: ["error", "warn", "log"] }),
     ],
-    enableLogs: isProduction,
-    tracesSampleRate: isProduction ? 0.1 : 1.0, // We can adjust this value in the future so that we don't get spammed
+    enableLogs: true,
+    tracesSampleRate: 0.05,
+  });
+  // This needs to be here to verify Sentry is working in Bun
+  Sentry.logger.info("Sentry initialized for oracle-engine-graphql", {
+    action: "test_log",
   });
 }
 

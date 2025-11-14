@@ -144,7 +144,7 @@ export class CreateMessageNode extends BaseNode<
           this.nodeId,
           [
             {
-              message: `HTTP ${response.status}: ${response.statusText || "Unknown error"}`,
+              message: `HTTP ${response.status}`,
             },
           ],
           { statusCode: response.status }

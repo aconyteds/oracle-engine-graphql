@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 import type { BaseMessage } from "@langchain/core/messages";
+import type { GenerateMessagePayload } from "../../generated/graphql";
 import type { AIAgentDefinition } from "./types";
 
 describe("generateMessageWithRouter", () => {
@@ -19,10 +20,7 @@ describe("generateMessageWithRouter", () => {
     agent: AIAgentDefinition;
     messageHistory: BaseMessage[];
     runId: string;
-  }) => AsyncGenerator<{
-    responseType: string;
-    content: string;
-  }>;
+  }) => AsyncGenerator<GenerateMessagePayload>;
 
   const defaultThread = {
     userId: "507f1f77bcf86cd799439011",

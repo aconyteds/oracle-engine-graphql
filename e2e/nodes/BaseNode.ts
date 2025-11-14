@@ -1,6 +1,5 @@
 import { expect } from "bun:test";
 import type { Server } from "http";
-import type { SuperTest, Test } from "supertest";
 import request from "supertest";
 import type { NodeResult } from "./NodeResult";
 import { createErrorResult, createSuccessResult } from "./NodeResult";
@@ -17,7 +16,7 @@ export abstract class BaseNode<TInput = void, TOutput = unknown> {
   protected server: Server;
 
   /** Supertest request instance */
-  protected request: SuperTest<Test>;
+  protected request: ReturnType<typeof request>;
 
   /** Optional auth token for authenticated requests */
   protected authToken?: string;
@@ -81,7 +80,7 @@ export abstract class BaseNode<TInput = void, TOutput = unknown> {
           this.nodeId,
           [
             {
-              message: `HTTP ${response.status}: ${response.statusText || "Unknown error"}`,
+              message: `HTTP ${response.status}`,
             },
           ],
           { statusCode: response.status }
@@ -133,7 +132,7 @@ export abstract class BaseNode<TInput = void, TOutput = unknown> {
     value: TOutput[K]
   ): void {
     expect(result.data).toBeDefined();
-    expect(result.data?.[field]).toEqual(value);
+    expect(result.data?.[field] as unknown).toEqual(value as unknown);
   }
 
   /**

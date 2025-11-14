@@ -34,7 +34,10 @@ describe("checkCampaignNameExists", () => {
       },
     };
 
+    // Import Prisma types to re-export them
+    const prismaTypes = await import("@prisma/client");
     mock.module("../../../data/MongoDB/client", () => ({
+      ...prismaTypes,
       DBClient: mockDBClient,
     }));
 
