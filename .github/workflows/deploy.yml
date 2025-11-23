@@ -77,3 +77,8 @@ jobs:
 
       - name: Apply DB changes
         run: bunx prisma db push
+
+      - name: Setup Search Indexes
+        run: bun run index:setup
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}

@@ -109,7 +109,7 @@ describe("updateCampaignAsset", () => {
       DBClient: mockDBClient,
     }));
 
-    mock.module("../../AI/embedCampaignAsset", () => ({
+    mock.module("./embedCampaignAsset", () => ({
       embedCampaignAsset: mockEmbedCampaignAsset,
     }));
 

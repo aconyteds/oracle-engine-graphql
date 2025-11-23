@@ -1,3 +1,4 @@
+export { searchCampaignAssets as vectorSearchCampaignAssets } from "./assetSearch";
 export { createCampaignAsset } from "./create";
 export type { DeleteCampaignAssetResult } from "./delete";
 export { deleteCampaignAsset } from "./delete";

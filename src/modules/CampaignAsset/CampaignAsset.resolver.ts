@@ -10,6 +10,7 @@ import {
   getCampaignAssetById,
   listCampaignAssets,
   updateCampaignAsset,
+  vectorSearchCampaignAssets,
 } from "../../data/MongoDB/campaignAsset";
 import { InvalidInput, InvalidUserCredentials } from "../../graphql/errors";
 import type { CampaignAssetModule } from "./generated";
@@ -71,6 +72,37 @@ const CampaignAssetResolvers: CampaignAssetModule.Resolvers = {
       // Translate all database models to GraphQL types
       return {
         assets: assets.map(translateCampaignAsset),
+      };
+    },
+
+    searchCampaignAssets: async (
+      _,
+      { input },
+      { user }
+    ): Promise<CampaignAssetModule.SearchCampaignAssetsPayload> => {
+      if (!user) {
+        throw InvalidUserCredentials();
+      }
+
+      // Verify user owns the campaign
+      await verifyCampaignOwnership(input.campaignId, user.id);
+
+      const results = await vectorSearchCampaignAssets({
+        campaignId: input.campaignId,
+        query: input.query,
+        ...(input.recordType && { recordType: input.recordType }),
+        ...(input.limit !== null &&
+          input.limit !== undefined && { limit: input.limit }),
+        ...(input.minScore !== null &&
+          input.minScore !== undefined && { minScore: input.minScore }),
+      });
+
+      // Transform results to include score
+      return {
+        assets: results.map((result) => ({
+          asset: translateCampaignAsset(result),
+          score: result.vectorScore ?? 0,
+        })),
       };
     },
   },

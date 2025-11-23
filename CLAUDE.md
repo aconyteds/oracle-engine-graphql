@@ -28,6 +28,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - `bunx prisma generate` - Generate Prisma client after schema changes
 - `bunx prisma db push` - Push schema changes to MongoDB and generate client
+- `bun run vector-index:setup` - Create/verify Atlas Vector Search indexes
 
 **GraphQL:**
 
@@ -84,6 +85,50 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `Campaign` - RPG campaign settings and metadata
 - `CampaignAsset` - NPCs, locations, plots with vector embeddings for search
 - `SessionEvent` - Game session summaries and related assets
+
+### Vector Search for Campaign Assets
+
+The application includes semantic search capabilities for campaign assets using OpenAI embeddings and MongoDB Atlas Vector Search.
+
+**Features:**
+- Natural language search queries (e.g., "the old wizard who lives in the tower")
+- Searches across NPCs, Locations, and Plots
+- Filters by campaign ID and optionally by record type
+- Returns similarity scores (0-1) with results
+- Accessible via GraphQL query and as an AI tool
+
+**GraphQL Query Example:**
+```graphql
+query SearchAssets($campaignId: ID!, $query: String!) {
+  searchCampaignAssets(input: {
+    campaignId: $campaignId
+    query: $query
+    recordType: Location  # Optional filter
+    limit: 5              # Optional, default: 10
+    minScore: 0.7         # Optional, default: 0.7
+  }) {
+    assets {
+      asset {
+        id
+        name
+        recordType
+        summary
+      }
+      score
+    }
+  }
+}
+```
+
+**AI Tool Usage:**
+The `campaign_asset_search` tool is available to AI agents for searching campaign assets. It automatically filters results by campaign context and returns formatted results with detailed information.
+
+**Technical Details:**
+- Embeddings: OpenAI text-embedding-3-small (1536 dimensions)
+- Similarity: Cosine similarity
+- Index: MongoDB Atlas Vector Search index (`campaign_asset_vector_index`)
+- Pre-filters: campaignId, recordType
+- Implementation: [src/data/MongoDB/campaignAsset/vectorSearch.ts](src/data/MongoDB/campaignAsset/vectorSearch.ts)
 
 ### AI/LangGraph Integration
 

@@ -1,10 +1,9 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 
-import type { CampaignAsset } from "../MongoDB";
+import type { CampaignAsset } from "../client";
 
 describe("embedCampaignAsset", () => {
-  let mockEmbedQuery: ReturnType<typeof mock>;
-  let mockOpenAIEmbeddings: ReturnType<typeof mock>;
+  let mockCreateEmbeddings: ReturnType<typeof mock>;
   let embedCampaignAsset: typeof import("./embedCampaignAsset").embedCampaignAsset;
 
   // Default mock data
@@ -92,22 +91,17 @@ describe("embedCampaignAsset", () => {
   beforeEach(async () => {
     mock.restore();
 
-    mockEmbedQuery = mock();
-    mockOpenAIEmbeddings = mock(() => ({
-      embedQuery: mockEmbedQuery,
-    }));
+    mockCreateEmbeddings = mock();
 
-    // Mock @langchain/openai with both OpenAIEmbeddings and ChatOpenAI
-    // ChatOpenAI is needed by other modules in the import chain
-    mock.module("@langchain/openai", () => ({
-      OpenAIEmbeddings: mockOpenAIEmbeddings,
-      ChatOpenAI: mock(() => ({})),
+    // Mock the createEmbeddings function from the AI module
+    mock.module("../../AI/createEmbeddings", () => ({
+      createEmbeddings: mockCreateEmbeddings,
     }));
 
     const module = await import("./embedCampaignAsset");
     embedCampaignAsset = module.embedCampaignAsset;
 
-    mockEmbedQuery.mockResolvedValue(defaultEmbeddings);
+    mockCreateEmbeddings.mockResolvedValue(defaultEmbeddings);
   });
 
   afterEach(() => {
@@ -117,23 +111,18 @@ describe("embedCampaignAsset", () => {
   test("Unit -> embedCampaignAsset generates embeddings for NPC asset", async () => {
     const result = await embedCampaignAsset(defaultNPCAsset);
 
-    expect(mockOpenAIEmbeddings).toHaveBeenCalledWith({
-      apiKey: process.env.OPENAI_API_KEY,
-      model: "text-embedding-3-small",
-    });
-
-    expect(mockEmbedQuery).toHaveBeenCalledWith(
+    expect(mockCreateEmbeddings).toHaveBeenCalledWith(
       expect.stringContaining("Name: Gandalf")
     );
-    expect(mockEmbedQuery).toHaveBeenCalledWith(
+    expect(mockCreateEmbeddings).toHaveBeenCalledWith(
       expect.stringContaining("Summary: A wise wizard")
     );
-    expect(mockEmbedQuery).toHaveBeenCalledWith(
+    expect(mockCreateEmbeddings).toHaveBeenCalledWith(
       expect.stringContaining(
         "Physical Description: Tall wizard with grey beard"
       )
     );
-    expect(mockEmbedQuery).toHaveBeenCalledWith(
+    expect(mockCreateEmbeddings).toHaveBeenCalledWith(
       expect.stringContaining("Motivation: Protect Middle Earth")
     );
 
@@ -143,13 +132,13 @@ describe("embedCampaignAsset", () => {
   test("Unit -> embedCampaignAsset generates embeddings for Location asset", async () => {
     const result = await embedCampaignAsset(defaultLocationAsset);
 
-    expect(mockEmbedQuery).toHaveBeenCalledWith(
+    expect(mockCreateEmbeddings).toHaveBeenCalledWith(
       expect.stringContaining("Name: Rivendell")
     );
-    expect(mockEmbedQuery).toHaveBeenCalledWith(
+    expect(mockCreateEmbeddings).toHaveBeenCalledWith(
       expect.stringContaining("Description: Hidden valley of the elves")
     );
-    expect(mockEmbedQuery).toHaveBeenCalledWith(
+    expect(mockCreateEmbeddings).toHaveBeenCalledWith(
       expect.stringContaining(
         "Points of Interest: Council chamber, healing halls"
       )
@@ -161,19 +150,19 @@ describe("embedCampaignAsset", () => {
   test("Unit -> embedCampaignAsset generates embeddings for Plot asset", async () => {
     const result = await embedCampaignAsset(defaultPlotAsset);
 
-    expect(mockEmbedQuery).toHaveBeenCalledWith(
+    expect(mockCreateEmbeddings).toHaveBeenCalledWith(
       expect.stringContaining("Name: Destroy the Ring")
     );
-    expect(mockEmbedQuery).toHaveBeenCalledWith(
+    expect(mockCreateEmbeddings).toHaveBeenCalledWith(
       expect.stringContaining("Summary: The quest to destroy the One Ring")
     );
-    expect(mockEmbedQuery).toHaveBeenCalledWith(
+    expect(mockCreateEmbeddings).toHaveBeenCalledWith(
       expect.stringContaining("Status: InProgress")
     );
-    expect(mockEmbedQuery).toHaveBeenCalledWith(
+    expect(mockCreateEmbeddings).toHaveBeenCalledWith(
       expect.stringContaining("Urgency: Critical")
     );
-    expect(mockEmbedQuery).toHaveBeenCalledWith(
+    expect(mockCreateEmbeddings).toHaveBeenCalledWith(
       expect.stringContaining("Related Assets: Frodo carries the ring")
     );
 
@@ -206,7 +195,7 @@ describe("embedCampaignAsset", () => {
 
   test("Unit -> embedCampaignAsset handles API errors gracefully", async () => {
     const testError = new Error("OpenAI API error");
-    mockEmbedQuery.mockRejectedValue(testError);
+    mockCreateEmbeddings.mockRejectedValue(testError);
 
     const originalConsoleError = console.error;
     const mockConsoleError = mock();
@@ -240,10 +229,10 @@ describe("embedCampaignAsset", () => {
 
     const result = await embedCampaignAsset(partialNPC);
 
-    expect(mockEmbedQuery).toHaveBeenCalledWith(
+    expect(mockCreateEmbeddings).toHaveBeenCalledWith(
       expect.stringContaining("Physical Description: A warrior")
     );
-    expect(mockEmbedQuery).not.toHaveBeenCalledWith(
+    expect(mockCreateEmbeddings).not.toHaveBeenCalledWith(
       expect.stringContaining("Motivation:")
     );
     expect(result).toEqual(defaultEmbeddings);
@@ -265,7 +254,7 @@ describe("embedCampaignAsset", () => {
 
     const result = await embedCampaignAsset(partialLocation);
 
-    expect(mockEmbedQuery).toHaveBeenCalledWith(
+    expect(mockCreateEmbeddings).toHaveBeenCalledWith(
       expect.stringContaining("Description: A tavern")
     );
     expect(result).toEqual(defaultEmbeddings);
@@ -286,114 +275,36 @@ describe("embedCampaignAsset", () => {
 
     const result = await embedCampaignAsset(plotWithoutRelations);
 
-    expect(mockEmbedQuery).toHaveBeenCalledWith(
+    expect(mockCreateEmbeddings).toHaveBeenCalledWith(
       expect.stringContaining("Status: InProgress")
     );
-    expect(mockEmbedQuery).toHaveBeenCalledWith(
+    expect(mockCreateEmbeddings).toHaveBeenCalledWith(
       expect.stringContaining("Urgency: Ongoing")
     );
-    expect(mockEmbedQuery).not.toHaveBeenCalledWith(
+    expect(mockCreateEmbeddings).not.toHaveBeenCalledWith(
       expect.stringContaining("Related Assets:")
     );
     expect(result).toEqual(defaultEmbeddings);
   });
 
-  test("Unit -> embedCampaignAsset truncates text exceeding context window", async () => {
-    // Create a very long text that exceeds 8191 tokens
-    // Average word is ~1.3 tokens, so ~12,000 words should exceed the limit
+  test("Unit -> embedCampaignAsset handles very long text", async () => {
+    // Create a very long text - truncation is now handled by createEmbeddings
     const longText = "word ".repeat(12000);
     const assetWithLongText: CampaignAsset = {
       ...defaultNPCAsset,
       summary: longText,
     };
 
-    const originalConsoleWarn = console.warn;
-    const mockConsoleWarn = mock();
-    console.warn = mockConsoleWarn;
+    const result = await embedCampaignAsset(assetWithLongText);
 
-    try {
-      const result = await embedCampaignAsset(assetWithLongText);
+    // Should still call createEmbeddings with the full extracted text
+    expect(mockCreateEmbeddings).toHaveBeenCalled();
+    const calledText = mockCreateEmbeddings.mock.calls[0][0] as string;
 
-      // Should warn about truncation
-      expect(mockConsoleWarn).toHaveBeenCalledWith(
-        expect.stringContaining("Text exceeds context window of 8191 tokens")
-      );
+    // Verify the extracted text contains the summary
+    expect(calledText).toContain("Summary:");
 
-      // Should still call embedQuery with truncated text
-      expect(mockEmbedQuery).toHaveBeenCalled();
-      const calledText = mockEmbedQuery.mock.calls[0][0] as string;
-
-      // Truncated text should be shorter than original
-      expect(calledText.length).toBeLessThan(longText.length + 100); // +100 for "Name:" and "Summary:" labels
-
-      // Should return embeddings
-      expect(result).toEqual(defaultEmbeddings);
-    } finally {
-      console.warn = originalConsoleWarn;
-    }
-  });
-
-  test("Unit -> embedCampaignAsset truncation preserves text integrity", async () => {
-    // Create text with exactly 8200 tokens (just over the limit)
-    // Using a predictable pattern to verify proper truncation
-    const longText = "The quick brown fox jumps over the lazy dog. ".repeat(
-      2500
-    );
-    const assetWithLongText: CampaignAsset = {
-      ...defaultNPCAsset,
-      name: "Test Asset",
-      summary: longText,
-      npcData: {
-        ...defaultNPCAsset.npcData!,
-        physicalDescription: "Additional text to push over limit",
-      },
-    };
-
-    const originalConsoleWarn = console.warn;
-    const mockConsoleWarn = mock();
-    console.warn = mockConsoleWarn;
-
-    try {
-      const result = await embedCampaignAsset(assetWithLongText);
-
-      // Should warn about truncation
-      expect(mockConsoleWarn).toHaveBeenCalled();
-
-      // Should still process and return embeddings
-      expect(mockEmbedQuery).toHaveBeenCalled();
-      expect(result).toEqual(defaultEmbeddings);
-
-      // Verify the truncated text is valid (not cut mid-word or corrupted)
-      const calledText = mockEmbedQuery.mock.calls[0][0] as string;
-      expect(calledText).toContain("Name: Test Asset");
-    } finally {
-      console.warn = originalConsoleWarn;
-    }
-  });
-
-  test("Unit -> embedCampaignAsset does not truncate text within context window", async () => {
-    // Create text that's well under the limit (should not truncate)
-    const normalText = "A normal sized description. ".repeat(100);
-    const assetWithNormalText: CampaignAsset = {
-      ...defaultNPCAsset,
-      summary: normalText,
-    };
-
-    const originalConsoleWarn = console.warn;
-    const mockConsoleWarn = mock();
-    console.warn = mockConsoleWarn;
-
-    try {
-      const result = await embedCampaignAsset(assetWithNormalText);
-
-      // Should NOT warn about truncation
-      expect(mockConsoleWarn).not.toHaveBeenCalled();
-
-      // Should process normally
-      expect(mockEmbedQuery).toHaveBeenCalled();
-      expect(result).toEqual(defaultEmbeddings);
-    } finally {
-      console.warn = originalConsoleWarn;
-    }
+    // Should return embeddings (truncation handled by createEmbeddings)
+    expect(result).toEqual(defaultEmbeddings);
   });
 });
