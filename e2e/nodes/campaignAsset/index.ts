@@ -19,6 +19,11 @@ export type {
 } from "./ListCampaignAssetsNode";
 export { ListCampaignAssetsNode } from "./ListCampaignAssetsNode";
 export type {
+  SearchCampaignAssetsInput,
+  SearchCampaignAssetsOutput,
+} from "./SearchCampaignAssetsNode";
+export { SearchCampaignAssetsNode } from "./SearchCampaignAssetsNode";
+export type {
   UpdateCampaignAssetInput,
   UpdateCampaignAssetOutput,
 } from "./UpdateCampaignAssetNode";

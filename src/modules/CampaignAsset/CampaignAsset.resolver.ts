@@ -9,8 +9,8 @@ import {
   deleteCampaignAsset,
   getCampaignAssetById,
   listCampaignAssets,
+  searchCampaignAssets,
   updateCampaignAsset,
-  vectorSearchCampaignAssets,
 } from "../../data/MongoDB/campaignAsset";
 import { InvalidInput, InvalidUserCredentials } from "../../graphql/errors";
 import type { CampaignAssetModule } from "./generated";
@@ -87,7 +87,7 @@ const CampaignAssetResolvers: CampaignAssetModule.Resolvers = {
       // Verify user owns the campaign
       await verifyCampaignOwnership(input.campaignId, user.id);
 
-      const results = await vectorSearchCampaignAssets({
+      const results = await searchCampaignAssets({
         campaignId: input.campaignId,
         query: input.query,
         ...(input.recordType && { recordType: input.recordType }),
