@@ -1,5 +1,8 @@
 import type { RecordType } from "@prisma/client";
-import type { AssetSearchResult } from "../../src/data/MongoDB/campaignAsset/assetSearch";
+import type {
+  AssetSearchPayload,
+  AssetSearchResult,
+} from "../../src/data/MongoDB/campaignAsset/assetSearch";
 
 /**
  * Mock data for vector search results.
@@ -31,7 +34,7 @@ export function createMockVectorSearch(
     recordType?: RecordType;
     limit?: number;
     minScore?: number;
-  }): Promise<AssetSearchResult[]> => {
+  }): Promise<AssetSearchPayload> => {
     // Find matching mock mapping based on query
     const mapping = mockMappings.find((m) =>
       input.query.toLowerCase().includes(m.query.toLowerCase())
@@ -54,12 +57,11 @@ export function createMockVectorSearch(
       playerSummary: null,
       createdAt: new Date(),
       updatedAt: new Date(),
-      Embeddings: [],
       locationData: null,
       npcData: null,
       plotData: null,
       sessionEventLink: [],
-      vectorScore: result.score,
+      score: result.score,
     }));
 
     return applyFilters(results, input);
@@ -87,11 +89,11 @@ function applyFilters(
   // Filter by minScore
   if (filters.minScore !== undefined && filters.minScore !== null) {
     const minScore = filters.minScore;
-    filtered = filtered.filter((r) => r.vectorScore >= minScore);
+    filtered = filtered.filter((r) => r.score >= minScore);
   }
 
   // Sort by score descending
-  filtered.sort((a, b) => b.vectorScore - a.vectorScore);
+  filtered.sort((a, b) => b.score - a.score);
 
   // Apply limit
   if (filters.limit !== undefined && filters.limit !== null) {

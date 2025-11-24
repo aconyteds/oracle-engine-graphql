@@ -85,7 +85,13 @@ class TestPrismaClient {
       console.log("Cleaning up test Prisma client...");
 
       // Clear all collections
-      const collections = ["user", "thread", "message", "campaign"];
+      const collections = [
+        "user",
+        "thread",
+        "message",
+        "campaign",
+        "searchMetric",
+      ];
 
       for (const collection of collections) {
         try {

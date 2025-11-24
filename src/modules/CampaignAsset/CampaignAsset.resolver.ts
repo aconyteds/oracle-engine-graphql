@@ -9,11 +9,11 @@ import {
   deleteCampaignAsset,
   getCampaignAssetById,
   listCampaignAssets,
-  searchCampaignAssets,
   updateCampaignAsset,
 } from "../../data/MongoDB/campaignAsset";
 import { InvalidInput, InvalidUserCredentials } from "../../graphql/errors";
 import type { CampaignAssetModule } from "./generated";
+import { searchCampaignAssets } from "./services";
 import {
   translateCampaignAsset,
   translateCampaignAssetData,
@@ -87,23 +87,10 @@ const CampaignAssetResolvers: CampaignAssetModule.Resolvers = {
       // Verify user owns the campaign
       await verifyCampaignOwnership(input.campaignId, user.id);
 
-      const results = await searchCampaignAssets({
-        campaignId: input.campaignId,
-        query: input.query,
-        ...(input.recordType && { recordType: input.recordType }),
-        ...(input.limit !== null &&
-          input.limit !== undefined && { limit: input.limit }),
-        ...(input.minScore !== null &&
-          input.minScore !== undefined && { minScore: input.minScore }),
-      });
+      const results = await searchCampaignAssets(input);
 
       // Transform results to include score
-      return {
-        assets: results.map((result) => ({
-          asset: translateCampaignAsset(result),
-          score: result.vectorScore ?? 0,
-        })),
-      };
+      return results;
     },
   },
 

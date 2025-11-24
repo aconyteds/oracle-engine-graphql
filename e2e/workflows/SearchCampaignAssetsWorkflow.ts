@@ -49,13 +49,13 @@ export class SearchCampaignAssetsWorkflow extends BaseWorkflow {
     this.authToken = token;
     this.context.set("authToken", token);
 
-    // Step 2: Create Campaign
+    // Step 2: Create Campaign with unique name
     const createCampaignNode = new CreateCampaignNode(
       this.server,
       this.authToken
     );
     const createCampaignResult = await this.executeNode(createCampaignNode, {
-      name: "Search Test Campaign",
+      name: `Search Test Campaign ${Date.now()}`,
       setting: "Fantasy Realm",
       tone: "Adventure",
       ruleset: "D&D 5e",
@@ -173,7 +173,7 @@ export class SearchCampaignAssetsWorkflow extends BaseWorkflow {
     // We'll mock the searchCampaignAssets function to return our test assets
     const mockVectorSearch = mock();
 
-    // Mock implementation that returns assets based on query
+    // Mock implementation that returns assets and timings based on query
     mockVectorSearch.mockImplementation(
       async (input: {
         campaignId: string;
@@ -198,7 +198,7 @@ export class SearchCampaignAssetsWorkflow extends BaseWorkflow {
             npcData: null,
             plotData: null,
             sessionEventLink: [],
-            vectorScore: 0.0,
+            score: 0.0,
           },
           {
             id: asset2Id,
@@ -215,7 +215,7 @@ export class SearchCampaignAssetsWorkflow extends BaseWorkflow {
             npcData: {},
             plotData: null,
             sessionEventLink: [],
-            vectorScore: 0.0,
+            score: 0.0,
           },
           {
             id: asset3Id,
@@ -231,7 +231,7 @@ export class SearchCampaignAssetsWorkflow extends BaseWorkflow {
             npcData: null,
             plotData: {},
             sessionEventLink: [],
-            vectorScore: 0.0,
+            score: 0.0,
           },
           {
             id: asset4Id,
@@ -247,7 +247,7 @@ export class SearchCampaignAssetsWorkflow extends BaseWorkflow {
             npcData: null,
             plotData: null,
             sessionEventLink: [],
-            vectorScore: 0.0,
+            score: 0.0,
           },
         ];
 
@@ -269,7 +269,7 @@ export class SearchCampaignAssetsWorkflow extends BaseWorkflow {
             if (asset.name === "Dark Cave") score = 0.94;
           }
 
-          return { ...asset, vectorScore: score };
+          return { ...asset, score };
         });
 
         // Apply filters
@@ -279,18 +279,26 @@ export class SearchCampaignAssetsWorkflow extends BaseWorkflow {
 
         if (input.minScore !== undefined && input.minScore !== null) {
           const minScore = input.minScore;
-          results = results.filter((r) => r.vectorScore >= minScore);
+          results = results.filter((r) => r.score >= minScore);
         }
 
         // Sort by score descending
-        results.sort((a, b) => b.vectorScore - a.vectorScore);
+        results.sort((a, b) => b.score - a.score);
 
         // Apply limit
         if (input.limit !== undefined && input.limit !== null) {
           results = results.slice(0, input.limit);
         }
 
-        return results;
+        return {
+          assets: results,
+          timings: {
+            total: 10,
+            embedding: 5,
+            vectorSearch: 3,
+            conversion: 2,
+          },
+        };
       }
     );
 

@@ -181,6 +181,46 @@ model SessionEvent {
   @@index([relatedAssetList])
 }
 
+model SearchMetric {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  createdAt  DateTime @default(now())
+  searchType String // e.g., "campaign_asset_search"
+
+  campaignId       String  @db.ObjectId
+  hasResults       Boolean
+  resultCount      Int
+  requestedLimit   Int
+  minScore         Float
+  executionTimeMs  Float
+  embeddingTimeMs  Float
+  vectorTimeMs     Float
+  conversionTimeMs Float
+  query            String
+  queryLength      Int
+
+  precisionAtK   Float?
+  recallAtK      Float?
+  f1AtK          Float?
+  precisionAt200 Float?
+  recallAt200    Float?
+  f1At200        Float?
+  coverageRatio  Float?
+
+  scoreMean   Float?
+  scoreMedian Float?
+  scoreMin    Float?
+  scoreMax    Float?
+  scoreStdDev Float?
+
+  totalAssets Int?
+
+  sampled Boolean @default(false)
+
+  @@index([searchType])
+  @@index([campaignId])
+  @@index([sampled])
+}
+
 // Rule data - Post MVP
 
 // enum RuleType {

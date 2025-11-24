@@ -12,6 +12,8 @@ declare module "bun" {
     SENTRY_DSN?: string;
     // The environment the app is running in
     NODE_ENV?: string; // 'development' | 'production' | 'test'
+    // Search metrics sampling rate (0.0 to 1.0)
+    SEARCH_METRICS_SAMPLE_RATE?: string;
   }
 }
 

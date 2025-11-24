@@ -8,6 +8,7 @@ import type { Document } from "mongodb";
 import { z } from "zod";
 import { createEmbeddings } from "../../AI";
 import { DBClient } from "../client";
+import { SearchTimings } from "../saveSearchMetrics";
 
 const assetSearchSchema = z.object({
   query: z.string().describe("Natural language search query"),
@@ -37,7 +38,12 @@ export type AssetSearchInput = z.input<typeof assetSearchSchema>;
 // Omit Embeddings from search results since we don't project it (large array)
 export interface AssetSearchResult
   extends Omit<CampaignAsset, "Embeddings" | "campaign" | "sessionEventData"> {
-  vectorScore: number;
+  score: number;
+}
+
+export interface AssetSearchPayload {
+  assets: AssetSearchResult[];
+  timings: SearchTimings;
 }
 
 /**
@@ -49,12 +55,15 @@ export interface AssetSearchResult
  */
 export async function searchCampaignAssets(
   input: AssetSearchInput
-): Promise<AssetSearchResult[]> {
+): Promise<AssetSearchPayload> {
+  const startTime = performance.now();
   const params = assetSearchSchema.parse(input);
 
   try {
     // Generate query embedding using same logic as asset embeddings
+    const embeddingStart = performance.now();
     const queryEmbedding = await createEmbeddings(params.query);
+    const embeddingDuration = performance.now() - embeddingStart;
 
     if (queryEmbedding.length === 0) {
       throw new Error("Failed to generate query embedding");
@@ -70,16 +79,30 @@ export async function searchCampaignAssets(
     });
 
     // Execute raw aggregation pipeline
+    const vectorSearchStart = performance.now();
     const results = await DBClient.campaignAsset.aggregateRaw({
       pipeline,
     });
+    const vectorSearchDuration = performance.now() - vectorSearchStart;
 
     // Convert raw MongoDB BSON objects to proper JavaScript types
-    if (!Array.isArray(results)) {
-      return [];
-    }
+    const conversionStart = performance.now();
+    const searchResults = Array.isArray(results)
+      ? results.map(convertRawAssetToSearchResult)
+      : [];
+    const conversionDuration = performance.now() - conversionStart;
 
-    return results.map(convertRawAssetToSearchResult);
+    const totalDuration = performance.now() - startTime;
+
+    return {
+      assets: searchResults,
+      timings: {
+        total: totalDuration,
+        embedding: embeddingDuration,
+        vectorSearch: vectorSearchDuration,
+        conversion: conversionDuration,
+      },
+    };
   } catch (error) {
     console.error("Vector search failed:", {
       campaignId: params.campaignId,
@@ -297,7 +320,7 @@ function convertRawAssetToSearchResult(rawDoc: Document): AssetSearchResult {
     recordType: doc.recordType,
     summary: doc.summary,
     playerSummary: doc.playerSummary,
-    vectorScore: doc.vectorScore,
+    score: doc.vectorScore,
 
     // LocationData and NPC have no BSON types - pass through
     locationData: doc.locationData,

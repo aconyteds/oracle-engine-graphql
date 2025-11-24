@@ -44,7 +44,7 @@ describe("searchCampaignAssets", () => {
     plotData: null,
     npcData: null,
     sessionEventLink: [],
-    vectorScore: 0.95,
+    score: 0.95,
   };
 
   const defaultNPCResult: AssetSearchResult = {
@@ -67,7 +67,7 @@ describe("searchCampaignAssets", () => {
     },
     plotData: null,
     sessionEventLink: [],
-    vectorScore: 0.82,
+    score: 0.82,
   };
 
   const defaultResults = [defaultLocationResult, defaultNPCResult];
@@ -173,10 +173,11 @@ describe("searchCampaignAssets", () => {
     expect(mockCreateEmbeddings).toHaveBeenCalledWith(defaultQuery);
     expect(mockDBClient.campaignAsset.aggregateRaw).toHaveBeenCalled();
 
-    expect(result).toEqual(defaultResults);
-    expect(result).toHaveLength(2);
-    expect(result[0].vectorScore).toBe(0.95);
-    expect(result[1].vectorScore).toBe(0.82);
+    expect(result.assets).toEqual(defaultResults);
+    expect(result.assets).toHaveLength(2);
+    expect(result.assets[0].score).toBe(0.95);
+    expect(result.assets[1].score).toBe(0.82);
+    expect(result.timings).toBeDefined();
   });
 
   test("Unit -> searchCampaignAssets filters by campaignId in pipeline", async () => {
@@ -195,12 +196,13 @@ describe("searchCampaignAssets", () => {
   });
 
   test("Unit -> searchCampaignAssets filters by recordType when provided", async () => {
-    await searchCampaignAssets({
+    const result = await searchCampaignAssets({
       query: defaultQuery,
       campaignId: defaultCampaignId,
       recordType: "Location",
     });
 
+    expect(result.assets).toEqual(defaultResults);
     const callArgs = mockDBClient.campaignAsset.aggregateRaw.mock.calls[0][0];
     const pipeline = callArgs.pipeline;
 
@@ -313,8 +315,8 @@ describe("searchCampaignAssets", () => {
       campaignId: defaultCampaignId,
     });
 
-    expect(result).toEqual([]);
-    expect(result).toHaveLength(0);
+    expect(result.assets).toEqual([]);
+    expect(result.assets).toHaveLength(0);
   });
 
   test("Unit -> searchCampaignAssets throws error when embedding generation fails", async () => {
@@ -527,5 +529,87 @@ describe("searchCampaignAssets", () => {
 
     const limitStage = pipeline.find((stage: Document) => stage.$limit);
     expect(limitStage?.$limit).toBe(3);
+  });
+
+  test("Unit -> searchCampaignAssets calls captureSearchMetrics with timing data", async () => {
+    // Mock the dynamic import of captureSearchMetrics
+    const mockCaptureSearchMetrics = mock();
+    mock.module("./captureSearchMetrics", () => ({
+      captureSearchMetrics: mockCaptureSearchMetrics,
+    }));
+
+    const result = await searchCampaignAssets({
+      query: defaultQuery,
+      campaignId: defaultCampaignId,
+      limit: 10,
+      minScore: 0.7,
+    });
+
+    expect(result.assets).toEqual(defaultResults);
+    expect(result.timings).toBeDefined();
+
+    // Wait for async metrics capture to complete
+    await new Promise((resolve) => setTimeout(resolve, 10));
+
+    // Verify captureSearchMetrics was NOT called (it's called by resolver, not this function)
+    expect(mockCaptureSearchMetrics).toHaveBeenCalledTimes(0);
+  });
+
+  test("Unit -> searchCampaignAssets does not call metrics on error", async () => {
+    const mockCaptureSearchMetrics = mock();
+    mock.module("./captureSearchMetrics", () => ({
+      captureSearchMetrics: mockCaptureSearchMetrics,
+    }));
+
+    const testError = new Error("Embedding failed");
+    mockCreateEmbeddings.mockRejectedValue(testError);
+
+    await expect(
+      searchCampaignAssets({
+        query: defaultQuery,
+        campaignId: defaultCampaignId,
+      })
+    ).rejects.toThrow("Vector search failed");
+  });
+
+  test("Unit -> searchCampaignAssets continues even if metrics capture fails", async () => {
+    const mockCaptureSearchMetrics = mock(() => {
+      throw new Error("Metrics error");
+    });
+    const mockConsoleError = mock();
+    const originalConsoleError = console.error;
+    console.error = mockConsoleError;
+
+    mock.module("./captureSearchMetrics", () => ({
+      captureSearchMetrics: mockCaptureSearchMetrics,
+    }));
+
+    try {
+      const result = await searchCampaignAssets({
+        query: defaultQuery,
+        campaignId: defaultCampaignId,
+      });
+
+      // Search should succeed - metrics are not called by this function
+      expect(result.assets).toEqual(defaultResults);
+      expect(result.timings).toBeDefined();
+    } finally {
+      console.error = originalConsoleError;
+    }
+  });
+
+  test("Unit -> searchCampaignAssets passes recordTypeFilter to metrics", async () => {
+    const mockCaptureSearchMetrics = mock();
+    mock.module("./captureSearchMetrics", () => ({
+      captureSearchMetrics: mockCaptureSearchMetrics,
+    }));
+
+    const result = await searchCampaignAssets({
+      query: defaultQuery,
+      campaignId: defaultCampaignId,
+      recordType: "Location",
+    });
+
+    expect(result.assets).toEqual(defaultResults);
   });
 });

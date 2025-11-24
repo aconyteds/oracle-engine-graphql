@@ -1,4 +1,5 @@
-export { searchCampaignAssets } from "./assetSearch";
+export * from "./assetSearch";
+export * from "./captureSearchMetrics";
 export { createCampaignAsset } from "./create";
 export type { DeleteCampaignAssetResult } from "./delete";
 export { deleteCampaignAsset } from "./delete";
