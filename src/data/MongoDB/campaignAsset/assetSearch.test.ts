@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 import { RecordType } from "@prisma/client";
+import type { Document } from "mongodb";
 import type { AssetSearchResult } from "./assetSearch";
 
 describe("searchCampaignAssets", () => {
@@ -31,7 +32,6 @@ describe("searchCampaignAssets", () => {
     playerSummary: "Known for disappearances",
     createdAt: new Date("2024-01-01"),
     updatedAt: new Date("2024-01-03"),
-    Embeddings: defaultQueryEmbedding,
     locationData: {
       imageUrl: "https://example.com/location.jpg",
       description: "A dark and mysterious forest with ancient ruins",
@@ -56,7 +56,6 @@ describe("searchCampaignAssets", () => {
     playerSummary: "Helpful and trustworthy",
     createdAt: new Date("2024-01-02"),
     updatedAt: new Date("2024-01-02"),
-    Embeddings: defaultQueryEmbedding,
     locationData: null,
     npcData: {
       imageUrl: "https://example.com/npc.jpg",
@@ -72,6 +71,57 @@ describe("searchCampaignAssets", () => {
   };
 
   const defaultResults = [defaultLocationResult, defaultNPCResult];
+
+  // Raw MongoDB BSON format as returned by aggregateRaw
+  const defaultRawResults = [
+    {
+      _id: { $oid: defaultAssetId1 },
+      id: { $oid: defaultAssetId1 },
+      campaignId: { $oid: defaultCampaignId },
+      name: "Dark Forest",
+      recordType: RecordType.Location,
+      summary: "A mysterious forest with ancient ruins",
+      playerSummary: "Known for disappearances",
+      createdAt: { $date: "2024-01-01T00:00:00.000Z" },
+      updatedAt: { $date: "2024-01-03T00:00:00.000Z" },
+      locationData: {
+        imageUrl: "https://example.com/location.jpg",
+        description: "A dark and mysterious forest with ancient ruins",
+        condition: "Dense foliage",
+        pointsOfInterest: "Ancient ruins in the center",
+        characters: "Forest guardian",
+        dmNotes: "Hidden treasure in ruins",
+        sharedWithPlayers: "Strange disappearances reported",
+      },
+      plotData: null,
+      npcData: null,
+      sessionEventLink: [],
+      vectorScore: 0.95,
+    },
+    {
+      _id: { $oid: defaultAssetId2 },
+      id: { $oid: defaultAssetId2 },
+      campaignId: { $oid: defaultCampaignId },
+      name: "Elven Ranger",
+      recordType: RecordType.NPC,
+      summary: "A mysterious elf who guards the forest",
+      playerSummary: "Helpful and trustworthy",
+      createdAt: { $date: "2024-01-02T00:00:00.000Z" },
+      updatedAt: { $date: "2024-01-02T00:00:00.000Z" },
+      locationData: null,
+      npcData: {
+        imageUrl: "https://example.com/npc.jpg",
+        physicalDescription: "A tall elf with silver hair",
+        motivation: "Protecting the ancient forest ruins",
+        mannerisms: "Speaks softly",
+        dmNotes: "Knows secrets of the ruins",
+        sharedWithPlayers: "Seems trustworthy",
+      },
+      plotData: null,
+      sessionEventLink: [],
+      vectorScore: 0.82,
+    },
+  ];
 
   beforeEach(async () => {
     // CRITICAL: Restore all mocks first
@@ -102,7 +152,10 @@ describe("searchCampaignAssets", () => {
     searchCampaignAssets = module.searchCampaignAssets;
 
     // Configure default mock behavior AFTER import
-    mockDBClient.campaignAsset.aggregateRaw.mockResolvedValue(defaultResults);
+    // aggregateRaw returns raw MongoDB BSON format, not JavaScript objects
+    mockDBClient.campaignAsset.aggregateRaw.mockResolvedValue(
+      defaultRawResults
+    );
     mockCreateEmbeddings.mockResolvedValue(defaultQueryEmbedding);
   });
 
@@ -136,10 +189,9 @@ describe("searchCampaignAssets", () => {
     const pipeline = callArgs.pipeline;
 
     // Check that pipeline includes campaignId filter
-    // biome-ignore lint/suspicious/noExplicitAny: Pipeline stages are dynamic objects
-    const matchStage = pipeline.find((stage: any) => stage.$match);
+    const matchStage = pipeline.find((stage: Document) => stage.$match);
     expect(matchStage).toBeDefined();
-    expect(matchStage.$match.campaignId).toEqual({ $oid: defaultCampaignId });
+    expect(matchStage?.$match?.campaignId).toEqual({ $oid: defaultCampaignId });
   });
 
   test("Unit -> searchCampaignAssets filters by recordType when provided", async () => {
@@ -154,11 +206,10 @@ describe("searchCampaignAssets", () => {
 
     // Check that pipeline includes recordType filter
     const recordTypeMatch = pipeline.find(
-      // biome-ignore lint/suspicious/noExplicitAny: Pipeline stages are dynamic objects
-      (stage: any) => stage.$match && stage.$match.recordType
+      (stage: Document) => stage.$match && stage.$match.recordType
     );
     expect(recordTypeMatch).toBeDefined();
-    expect(recordTypeMatch.$match.recordType).toBe(RecordType.Location);
+    expect(recordTypeMatch?.$match?.recordType).toBe(RecordType.Location);
   });
 
   test("Unit -> searchCampaignAssets respects custom limit", async () => {
@@ -174,9 +225,9 @@ describe("searchCampaignAssets", () => {
     const pipeline = callArgs.pipeline;
 
     // Check that pipeline includes limit stage
-    const limitStage = pipeline.find((stage: any) => stage.$limit);
+    const limitStage = pipeline.find((stage: Document) => stage.$limit);
     expect(limitStage).toBeDefined();
-    expect(limitStage.$limit).toBe(customLimit);
+    expect(limitStage?.$limit).toBe(customLimit);
   });
 
   test("Unit -> searchCampaignAssets uses default limit when not provided", async () => {
@@ -188,9 +239,9 @@ describe("searchCampaignAssets", () => {
     const callArgs = mockDBClient.campaignAsset.aggregateRaw.mock.calls[0][0];
     const pipeline = callArgs.pipeline;
 
-    const limitStage = pipeline.find((stage: any) => stage.$limit);
+    const limitStage = pipeline.find((stage: Document) => stage.$limit);
     expect(limitStage).toBeDefined();
-    expect(limitStage.$limit).toBe(10); // Default limit
+    expect(limitStage?.$limit).toBe(10); // Default limit
   });
 
   test("Unit -> searchCampaignAssets respects custom minScore", async () => {
@@ -206,9 +257,11 @@ describe("searchCampaignAssets", () => {
     const pipeline = callArgs.pipeline;
 
     // Check that pipeline includes minScore filter
-    const matchStage = pipeline.find((stage: any) => stage.$match?.vectorScore);
+    const matchStage = pipeline.find(
+      (stage: Document) => stage.$match?.vectorScore
+    );
     expect(matchStage).toBeDefined();
-    expect(matchStage.$match.vectorScore).toEqual({ $gte: customMinScore });
+    expect(matchStage?.$match?.vectorScore).toEqual({ $gte: customMinScore });
   });
 
   test("Unit -> searchCampaignAssets uses default minScore when not provided", async () => {
@@ -220,9 +273,11 @@ describe("searchCampaignAssets", () => {
     const callArgs = mockDBClient.campaignAsset.aggregateRaw.mock.calls[0][0];
     const pipeline = callArgs.pipeline;
 
-    const matchStage = pipeline.find((stage: any) => stage.$match?.vectorScore);
+    const matchStage = pipeline.find(
+      (stage: Document) => stage.$match?.vectorScore
+    );
     expect(matchStage).toBeDefined();
-    expect(matchStage.$match.vectorScore).toEqual({ $gte: 0.7 }); // Default minScore
+    expect(matchStage?.$match?.vectorScore).toEqual({ $gte: 0.7 }); // Default minScore
   });
 
   test("Unit -> searchCampaignAssets includes vector search stage with correct parameters", async () => {
@@ -236,18 +291,18 @@ describe("searchCampaignAssets", () => {
     const pipeline = callArgs.pipeline;
 
     const vectorSearchStage = pipeline.find(
-      (stage: any) => stage.$vectorSearch
+      (stage: Document) => stage.$vectorSearch
     );
     expect(vectorSearchStage).toBeDefined();
-    expect(vectorSearchStage.$vectorSearch.index).toBe(
+    expect(vectorSearchStage?.$vectorSearch?.index).toBe(
       "campaign_asset_vector_index"
     );
-    expect(vectorSearchStage.$vectorSearch.path).toBe("Embeddings");
-    expect(vectorSearchStage.$vectorSearch.queryVector).toEqual(
+    expect(vectorSearchStage?.$vectorSearch?.path).toBe("Embeddings");
+    expect(vectorSearchStage?.$vectorSearch?.queryVector).toEqual(
       defaultQueryEmbedding
     );
-    expect(vectorSearchStage.$vectorSearch.numCandidates).toBe(50); // limit * 10
-    expect(vectorSearchStage.$vectorSearch.limit).toBe(10); // limit * 2
+    expect(vectorSearchStage?.$vectorSearch?.numCandidates).toBe(50); // limit * 10
+    expect(vectorSearchStage?.$vectorSearch?.limit).toBe(10); // limit * 2
   });
 
   test("Unit -> searchCampaignAssets returns empty array when no results found", async () => {
@@ -454,21 +509,23 @@ describe("searchCampaignAssets", () => {
 
     // Verify all filters are present
     const campaignMatch = pipeline.find(
-      (stage: any) => stage.$match?.campaignId
+      (stage: Document) => stage.$match?.campaignId
     );
-    expect(campaignMatch.$match.campaignId).toEqual({
+    expect(campaignMatch?.$match?.campaignId).toEqual({
       $oid: defaultCampaignId,
     });
 
-    const scoreMatch = pipeline.find((stage: any) => stage.$match?.vectorScore);
-    expect(scoreMatch.$match.vectorScore).toEqual({ $gte: 0.8 });
+    const scoreMatch = pipeline.find(
+      (stage: Document) => stage.$match?.vectorScore
+    );
+    expect(scoreMatch?.$match?.vectorScore).toEqual({ $gte: 0.8 });
 
     const recordTypeMatch = pipeline.find(
-      (stage: any) => stage.$match?.recordType
+      (stage: Document) => stage.$match?.recordType
     );
-    expect(recordTypeMatch.$match.recordType).toBe(RecordType.NPC);
+    expect(recordTypeMatch?.$match?.recordType).toBe(RecordType.NPC);
 
-    const limitStage = pipeline.find((stage: any) => stage.$limit);
-    expect(limitStage.$limit).toBe(3);
+    const limitStage = pipeline.find((stage: Document) => stage.$limit);
+    expect(limitStage?.$limit).toBe(3);
   });
 });

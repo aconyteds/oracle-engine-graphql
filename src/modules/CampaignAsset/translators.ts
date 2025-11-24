@@ -247,12 +247,15 @@ export function translateCampaignAssetData(
  * Returns the asset with a placeholder for the data field, which will be
  * resolved by the CampaignAsset.data field resolver.
  *
- * Note: We cast the asset to unknown then to the required type because GraphQL
- * field resolvers allow parent objects to have different shapes than their declared type.
+ * Note: We omit internal-only fields that are never exposed via GraphQL:
+ * - Embeddings: Used only for vector search, not exposed to clients
+ * - campaign: Relation field, not needed for translation
+ * - sessionEventData: Relation field, not needed for translation
+ *
  * The data field will be properly resolved by translateCampaignAssetData.
  */
 export function translateCampaignAsset(
-  asset: CampaignAsset
+  asset: Omit<CampaignAsset, "Embeddings" | "campaign" | "sessionEventData">
 ): CampaignAssetModule.CampaignAsset {
   return {
     id: asset.id,

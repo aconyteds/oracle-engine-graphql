@@ -111,7 +111,6 @@ describe("createEmbeddings", () => {
     console.warn = mockConsoleWarn;
 
     const longTokenArray = new Uint32Array(10000);
-    const _truncatedTokenArray = new Uint32Array(8191);
     const truncatedText = new Uint8Array([
       116, 114, 117, 110, 99, 97, 116, 101, 100,
     ]);
