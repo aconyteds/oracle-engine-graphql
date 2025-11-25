@@ -1,7 +1,7 @@
 import { CampaignAsset, Prisma, RecordType } from "@prisma/client";
 import { z } from "zod";
-import { embedCampaignAsset } from "../../AI";
 import { DBClient } from "../client";
+import { embedCampaignAsset } from "./embedCampaignAsset";
 import { locationDataSchema, npcDataSchema, plotDataSchema } from "./models";
 
 // Base schema with common optional fields for updates

@@ -13,6 +13,7 @@ import {
 } from "../../data/MongoDB/campaignAsset";
 import { InvalidInput, InvalidUserCredentials } from "../../graphql/errors";
 import type { CampaignAssetModule } from "./generated";
+import { searchCampaignAssets } from "./services";
 import {
   translateCampaignAsset,
   translateCampaignAssetData,
@@ -72,6 +73,23 @@ const CampaignAssetResolvers: CampaignAssetModule.Resolvers = {
       return {
         assets: assets.map(translateCampaignAsset),
       };
+    },
+
+    searchCampaignAssets: async (
+      _,
+      { input },
+      { user }
+    ): Promise<CampaignAssetModule.SearchCampaignAssetsPayload> => {
+      if (!user) {
+        throw InvalidUserCredentials();
+      }
+
+      // Verify user owns the campaign
+      await verifyCampaignOwnership(input.campaignId, user.id);
+
+      const results = await searchCampaignAssets(input);
+
+      return results;
     },
   },
 

@@ -77,7 +77,7 @@ describe("createCampaignAsset", () => {
     };
 
     // Set up module mocks INSIDE beforeEach
-    mock.module("../../AI/embedCampaignAsset", () => ({
+    mock.module("./embedCampaignAsset", () => ({
       embedCampaignAsset: mockEmbedCampaignAsset,
     }));
 

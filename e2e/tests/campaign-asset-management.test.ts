@@ -10,6 +10,7 @@ import { setupTestServer, teardownTestServer } from "../setup";
 import { LocationAssetWorkflow } from "../workflows/LocationAssetWorkflow";
 import { NPCAssetWorkflow } from "../workflows/NPCAssetWorkflow";
 import { PlotAssetWorkflow } from "../workflows/PlotAssetWorkflow";
+import { SearchCampaignAssetsWorkflow } from "../workflows/SearchCampaignAssetsWorkflow";
 
 describe("E2E -> Campaign Asset Management", () => {
   let server: Server;
@@ -109,6 +110,35 @@ describe("E2E -> Campaign Asset Management", () => {
     expect(result.success).toBe(false);
     expect(result.errors).toBeDefined();
     expect(result.errors!.length).toBeGreaterThan(0);
+  });
+
+  test("Search campaign assets with vector similarity", async () => {
+    const testEmail = process.env.TEST_USER_EMAIL || "test@example.com";
+    const testPassword = process.env.TEST_USER_PASSWORD || "testpassword";
+
+    const workflow = new SearchCampaignAssetsWorkflow(
+      server,
+      testEmail,
+      testPassword
+    );
+    const result = await workflow.execute();
+
+    // Assert workflow succeeded
+    expect(result.success).toBe(true);
+    expect(result.failedNode).toBeUndefined();
+    expect(result.error).toBeUndefined();
+
+    // Assert all nodes executed
+    // Workflow: Login → CreateCampaign → 4xCreateAsset → 4xSearch → DeleteCampaign = 11 nodes
+    expect(result.nodeResults.length).toBe(11);
+
+    // Verify context has expected data
+    expect(result.context.has("authToken")).toBe(true);
+    expect(result.context.has("campaignId")).toBe(true);
+    expect(result.context.has("asset1Id")).toBe(true);
+    expect(result.context.has("asset2Id")).toBe(true);
+    expect(result.context.has("asset3Id")).toBe(true);
+    expect(result.context.has("asset4Id")).toBe(true);
   });
 
   test("List assets filters by recordType correctly", async () => {

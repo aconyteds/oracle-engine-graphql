@@ -8,6 +8,13 @@ extend type Query {
   Returns all campaign assets for a campaign
   """
   listCampaignAssets(input: ListCampaignAssetsInput!): ListCampaignAssetsPayload
+
+  """
+  Searches campaign assets using natural language queries with vector similarity
+  """
+  searchCampaignAssets(
+    input: SearchCampaignAssetsInput!
+  ): SearchCampaignAssetsPayload
 }
 
 extend type Mutation {
@@ -335,6 +342,33 @@ input DeleteCampaignAssetInput {
   assetId: ID!
 }
 
+input SearchCampaignAssetsInput {
+  """
+  The ID of the campaign to search within
+  """
+  campaignId: ID!
+
+  """
+  Natural language search query
+  """
+  query: String!
+
+  """
+  Optional: filter by asset type
+  """
+  recordType: RecordType
+
+  """
+  Optional: maximum number of results (default: 10)
+  """
+  limit: Int = 10
+
+  """
+  Optional: minimum similarity score 0-1 (default: 0.7)
+  """
+  minScore: Float = 0.7
+}
+
 # Payload Types
 
 type CreateCampaignAssetPayload {
@@ -375,6 +409,25 @@ type ListCampaignAssetsPayload {
   The list of campaign assets
   """
   assets: [CampaignAsset!]!
+}
+
+type SearchCampaignAssetsPayload {
+  """
+  List of matching campaign assets with similarity scores
+  """
+  assets: [CampaignAssetSearchResult!]!
+}
+
+type CampaignAssetSearchResult {
+  """
+  The campaign asset
+  """
+  asset: CampaignAsset!
+
+  """
+  Vector similarity score (0-1, higher is better)
+  """
+  score: Float!
 }
 
 # Type-specific data types

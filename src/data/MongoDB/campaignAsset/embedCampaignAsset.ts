@@ -1,11 +1,7 @@
-import { OpenAIEmbeddings } from "@langchain/openai";
-import { encoding_for_model } from "tiktoken";
-
-import { type CampaignAsset, RecordType } from "../MongoDB";
-import { getModelByName } from "./modelList";
+import { createEmbeddings } from "../../AI";
+import { type CampaignAsset, RecordType } from "../client";
 
 /**
- * Generates vector embeddings for a campaign asset using OpenAI's text-embedding-3-small model.
  * Extracts relevant text fields based on the asset's recordType and creates a single embedding vector.
  *
  * @param asset - The campaign asset to generate embeddings for (NPC, Location, or Plot)
@@ -14,39 +10,15 @@ import { getModelByName } from "./modelList";
 export const embedCampaignAsset = async (
   asset: CampaignAsset
 ): Promise<number[]> => {
-  const currentEmbeddingsModel = "text-embedding-3-small";
   try {
-    const embeddingModel = getModelByName(currentEmbeddingsModel);
-    const embeddings = new OpenAIEmbeddings({
-      apiKey: process.env.OPENAI_API_KEY,
-      model: embeddingModel.modelName,
-    });
-
-    let textToEmbed = extractTextForEmbedding(asset);
+    const textToEmbed = extractTextForEmbedding(asset);
 
     if (!textToEmbed.trim()) {
       console.error("No text content found for embedding");
       return [];
     }
 
-    const encoder = encoding_for_model(currentEmbeddingsModel);
-    try {
-      const tokenCount = encoder.encode(textToEmbed).length;
-      if (tokenCount > embeddingModel.contextWindow) {
-        console.warn(
-          `Text exceeds context window of ${embeddingModel.contextWindow} tokens (actual: ${tokenCount}). Truncating text.`
-        );
-        // Efficient truncation: tokenize once, slice to context window, decode back
-        const encoder = encoding_for_model(currentEmbeddingsModel);
-
-        const tokens = encoder.encode(textToEmbed);
-        const truncatedTokens = tokens.slice(0, embeddingModel.contextWindow);
-        textToEmbed = new TextDecoder().decode(encoder.decode(truncatedTokens));
-      }
-    } finally {
-      encoder.free();
-    }
-    const result = await embeddings.embedQuery(textToEmbed);
+    const result = await createEmbeddings(textToEmbed);
     return result;
   } catch (error) {
     console.error("Error generating embeddings for campaign asset:", error);
