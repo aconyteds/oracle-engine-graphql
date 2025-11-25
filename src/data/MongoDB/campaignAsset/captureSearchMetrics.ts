@@ -96,8 +96,8 @@ export async function captureSearchMetrics(
       });
     }
 
-    // Save metrics to MongoDB (fire and forget)
-    saveSearchMetrics({
+    // Save metrics to MongoDB
+    await saveSearchMetrics({
       searchType: "campaign_asset",
       query: shouldSample ? input.searchInput.query : undefined,
       campaignId: basicMetrics.campaignId,

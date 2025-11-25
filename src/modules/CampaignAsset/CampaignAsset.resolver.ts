@@ -89,7 +89,6 @@ const CampaignAssetResolvers: CampaignAssetModule.Resolvers = {
 
       const results = await searchCampaignAssets(input);
 
-      // Transform results to include score
       return results;
     },
   },

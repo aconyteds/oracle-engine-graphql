@@ -28,7 +28,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - `bunx prisma generate` - Generate Prisma client after schema changes
 - `bunx prisma db push` - Push schema changes to MongoDB and generate client
-- `bun run vector-index:setup` - Create/verify Atlas Vector Search indexes
+- `bun run index:setup` - Create/verify Atlas Complex search indexes
 
 **GraphQL:**
 
@@ -128,7 +128,7 @@ The `campaign_asset_search` tool is available to AI agents for searching campaig
 - Similarity: Cosine similarity
 - Index: MongoDB Atlas Vector Search index (`campaign_asset_vector_index`)
 - Pre-filters: campaignId, recordType
-- Implementation: [src/data/MongoDB/campaignAsset/vectorSearch.ts](src/data/MongoDB/campaignAsset/vectorSearch.ts)
+- Implementation: [src/data/MongoDB/campaignAsset/assetSearch.ts](src/data/MongoDB/campaignAsset/assetSearch.ts)
 
 ### AI/LangGraph Integration
 

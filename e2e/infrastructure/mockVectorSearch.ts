@@ -42,7 +42,15 @@ export function createMockVectorSearch(
 
     // If no mapping found, return default assets
     if (!mapping) {
-      return applyFilters(defaultAssets, input);
+      return {
+        assets: applyFilters(defaultAssets, input),
+        timings: {
+          total: 0,
+          embedding: 0,
+          vectorSearch: 0,
+          conversion: 0,
+        },
+      };
     }
 
     // Map the mock results to full AssetSearchResult objects
@@ -64,7 +72,15 @@ export function createMockVectorSearch(
       score: result.score,
     }));
 
-    return applyFilters(results, input);
+    return {
+      assets: applyFilters(results, input),
+      timings: {
+        total: 0,
+        embedding: 0,
+        vectorSearch: 0,
+        conversion: 0,
+      },
+    };
   };
 }
 
