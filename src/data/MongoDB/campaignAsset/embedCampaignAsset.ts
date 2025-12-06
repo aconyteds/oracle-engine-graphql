@@ -11,7 +11,7 @@ export const embedCampaignAsset = async (
   asset: CampaignAsset
 ): Promise<number[]> => {
   try {
-    const textToEmbed = extractTextForEmbedding(asset);
+    const textToEmbed = stringifyCampaignAsset(asset);
 
     if (!textToEmbed.trim()) {
       console.error("No text content found for embedding");
@@ -28,12 +28,17 @@ export const embedCampaignAsset = async (
 
 /**
  * Extracts relevant text fields from a campaign asset based on its type.
- * Combines multiple fields into a single string suitable for embedding generation.
+ * Combines multiple fields into a single string suitable for embedding generation or passing to an LLM.
  *
  * @param asset - The campaign asset to extract text from
  * @returns string - Concatenated text content
  */
-function extractTextForEmbedding(asset: CampaignAsset): string {
+export function stringifyCampaignAsset(
+  asset: Pick<
+    CampaignAsset,
+    "recordType" | "name" | "summary" | "npcData" | "locationData" | "plotData"
+  >
+): string {
   const parts: string[] = [];
 
   // Always include name and summary if present

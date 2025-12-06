@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
-import type { ClientOptions } from "@langchain/openai";
-import type { TrustedModel } from "../../modelList";
+import { ChatOpenAI, type ClientOptions } from "@langchain/openai";
 import type { AIAgentDefinition } from "../../types";
 import { RouterType } from "../../types";
 
@@ -11,11 +10,9 @@ describe("buildRouterAgent", () => {
   let mockBuildRouterSystemMessage: ReturnType<typeof mock>;
   let buildRouterAgent: (agent: AIAgentDefinition) => AIAgentDefinition;
 
-  const defaultModel: TrustedModel = {
+  const defaultModel = new ChatOpenAI({
     modelName: "gpt-4",
-    modelProvider: "OpenAI",
-    contextWindow: 8192,
-  };
+  });
 
   // Default mock data
   const defaultAgent: AIAgentDefinition = {
@@ -24,19 +21,18 @@ describe("buildRouterAgent", () => {
     description: "Test agent description",
     specialization: "test specialization",
     systemMessage: "Original system message",
-    routerType: RouterType.Simple,
+    routerType: RouterType.None,
   };
 
   const defaultSubAgent: AIAgentDefinition = {
     name: "SubAgent",
-    model: {
-      ...defaultModel,
-      modelName: "gpt-3.5-turbo",
-    },
+    model: new ChatOpenAI({
+      model: "gpt-3.5-turbo",
+    }),
     description: "Sub agent description",
     specialization: "sub specialization",
     systemMessage: "Sub agent system message",
-    routerType: RouterType.Simple,
+    routerType: RouterType.None,
   };
 
   const defaultRouterSystemMessage = "Generated router system message";
@@ -73,33 +69,37 @@ describe("buildRouterAgent", () => {
     mock.restore();
   });
 
-  test("Unit -> buildRouterAgent returns simple router type for agent without sub-agents", () => {
+  test("Unit -> buildRouterAgent returns None router type for agent without sub-agents", () => {
     const agent = { ...defaultAgent };
 
     const result = buildRouterAgent(agent);
 
     expect(result).toEqual({
       ...agent,
-      routerType: RouterType.Simple,
+      routerType: RouterType.None,
     });
     expect(mockBuildRouterSystemMessage).not.toHaveBeenCalled();
   });
 
-  test("Unit -> buildRouterAgent returns simple router type for agent with empty sub-agents array", () => {
+  test("Unit -> buildRouterAgent returns None router type for agent with empty sub-agents array", () => {
     const agent = { ...defaultAgent, availableSubAgents: [] };
 
     const result = buildRouterAgent(agent);
 
     expect(result).toEqual({
       ...agent,
-      routerType: RouterType.Simple,
+      routerType: RouterType.None,
     });
     expect(mockBuildRouterSystemMessage).not.toHaveBeenCalled();
   });
 
-  test("Unit -> buildRouterAgent builds router agent with sub-agents", () => {
+  test("Unit -> buildRouterAgent builds router agent with sub-agents and preserves routerType", () => {
     const subAgents = [defaultSubAgent];
-    const agent = { ...defaultAgent, availableSubAgents: subAgents };
+    const agent = {
+      ...defaultAgent,
+      availableSubAgents: subAgents,
+      routerType: RouterType.Handoff,
+    };
 
     const result = buildRouterAgent(agent);
 
@@ -117,7 +117,7 @@ describe("buildRouterAgent", () => {
         mockAnalyzeConversationContext,
       ] as unknown as AIAgentDefinition["availableTools"],
       specialization: agent.specialization,
-      routerType: RouterType.Router,
+      routerType: RouterType.Handoff,
     });
   });
 
@@ -172,7 +172,11 @@ describe("buildRouterAgent", () => {
       },
       { ...defaultSubAgent, name: "SubAgent3", description: "Third sub agent" },
     ];
-    const agent = { ...defaultAgent, availableSubAgents: subAgents };
+    const agent = {
+      ...defaultAgent,
+      availableSubAgents: subAgents,
+      routerType: RouterType.Handoff,
+    };
 
     const result = buildRouterAgent(agent);
 
@@ -182,7 +186,7 @@ describe("buildRouterAgent", () => {
       subAgents
     );
 
-    expect(result.routerType).toBe(RouterType.Router);
+    expect(result.routerType).toBe(RouterType.Handoff);
     expect(result.availableTools).toHaveLength(2);
   });
 

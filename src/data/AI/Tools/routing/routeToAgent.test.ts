@@ -24,6 +24,7 @@ describe("routeToAgent", () => {
         "User requested character creation with specific class and level",
       fallbackAgent: "Cheapest",
       intentKeywords: ["character", "create", "wizard"],
+      contextFactors: [],
     };
 
     const result = await routeToAgent.call(input);
@@ -44,20 +45,22 @@ describe("routeToAgent", () => {
     expect(parsed.timestamp).toBeDefined();
   });
 
-  test("Unit -> routeToAgent uses undefined fallback when not specified", async () => {
+  test("Unit -> routeToAgent requires fallbackAgent field", async () => {
     const input = {
       targetAgent: "Character Generator",
       confidence: 4,
       reasoning: "Character creation request",
       intentKeywords: ["npc"],
+      fallbackAgent: "Cheapest",
+      contextFactors: [],
     };
 
     const result = await routeToAgent.call(input);
     const parsed = JSON.parse(result) as {
-      fallbackAgent?: string;
+      fallbackAgent: string;
     };
 
-    expect(parsed.fallbackAgent).toBeUndefined();
+    expect(parsed.fallbackAgent).toBe("Cheapest");
   });
 
   test("Unit -> routeToAgent returns routing decision without errors", async () => {
@@ -66,6 +69,8 @@ describe("routeToAgent", () => {
       confidence: 4.5,
       reasoning: "Clear character creation intent",
       intentKeywords: ["character"],
+      fallbackAgent: "Cheapest",
+      contextFactors: [],
     };
 
     const result = await routeToAgent.call(input);
@@ -84,6 +89,7 @@ describe("routeToAgent", () => {
       confidence: 3.5,
       reasoning: "General question with some context",
       intentKeywords: ["help"],
+      fallbackAgent: "default",
       contextFactors: ["previous_character_discussion", "topic_shift"],
     };
 
@@ -98,21 +104,23 @@ describe("routeToAgent", () => {
     ]);
   });
 
-  test("Unit -> routeToAgent handles missing optional parameters", async () => {
+  test("Unit -> routeToAgent handles empty context factors", async () => {
     const input = {
       targetAgent: "General Assistant",
       confidence: 3.75,
       reasoning: "Basic question about math",
       intentKeywords: ["math", "calculation"],
+      fallbackAgent: "Cheapest",
+      contextFactors: [],
     };
 
     const result = await routeToAgent.call(input);
     const parsed = JSON.parse(result) as {
-      fallbackAgent?: string;
+      fallbackAgent: string;
       contextFactors: string[];
     };
 
-    expect(parsed.fallbackAgent).toBeUndefined();
+    expect(parsed.fallbackAgent).toBe("Cheapest");
     expect(parsed.contextFactors).toEqual([]);
   });
 });

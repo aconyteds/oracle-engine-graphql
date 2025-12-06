@@ -18,7 +18,10 @@ const AIResolvers: AiModule.Resolvers = {
         await verifyThreadOwnership(input.threadId, user.id);
 
         // Use for-await to iterate over the generator and yield each chunk
-        for await (const chunk of generateMessage(threadId)) {
+        for await (const chunk of generateMessage({
+          threadId,
+          userId: user.id,
+        })) {
           if (!chunk) {
             continue;
           }

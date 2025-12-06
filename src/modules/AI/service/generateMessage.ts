@@ -1,19 +1,21 @@
 import { randomUUID } from "crypto";
-import {
-  generateMessageWithRouter,
-  generateMessageWithStandardWorkflow,
-  getAgentByName,
-  getModelDefinition,
-  RouterType,
-  truncateMessageHistory,
-} from "../../../data/AI";
+import { AIMessage, BaseMessage, HumanMessage } from "langchain";
+import { generateMessageWithAgent } from "../../../data/AI";
+import { defaultRouter } from "../../../data/AI/Agents";
+import type { RequestContext } from "../../../data/AI/types";
 import { DBClient } from "../../../data/MongoDB";
 import type { GenerateMessagePayload } from "../../../generated/graphql";
 import { ServerError } from "../../../graphql/errors";
 
+export type GenerateMessageProps = {
+  threadId: string;
+  userId: string;
+};
+
 export async function* generateMessage(
-  threadId: string
+  props: GenerateMessageProps
 ): AsyncGenerator<GenerateMessagePayload> {
+  const { threadId, userId } = props;
   // Get the Thread
   const thread = await DBClient.thread.findUnique({
     select: {
@@ -22,8 +24,7 @@ export async function* generateMessage(
           createdAt: "asc",
         },
       },
-      selectedAgent: true,
-      userId: true,
+      campaignId: true,
     },
     where: {
       id: threadId,
@@ -34,42 +35,38 @@ export async function* generateMessage(
     throw ServerError("Thread not found");
   }
 
-  const currAgent = getAgentByName(thread.selectedAgent);
-  if (!currAgent) {
-    throw ServerError("Invalid agent selected.");
-  }
-  const AIModel = getModelDefinition(currAgent);
-  if (!AIModel) {
-    throw ServerError("Invalid agent Configuration detected.");
-  }
+  const { campaignId } = thread;
 
-  const truncatedMessageHistory = truncateMessageHistory({
-    messageList: thread.messages,
-    agent: currAgent,
+  const currAgent = defaultRouter;
+
+  const messageHistory: BaseMessage[] = [];
+  thread.messages.forEach((msg) => {
+    if (msg.role === "user") {
+      messageHistory.push(new HumanMessage(msg.content));
+      return;
+    }
+    if (msg.role === "assistant") {
+      messageHistory.push(new AIMessage(msg.content));
+      return;
+    }
   });
 
   const runId = randomUUID().toString(); // Unique ID for this workflow run
 
-  // Route to appropriate workflow based on agent type
-  switch (currAgent.routerType) {
-    case RouterType.Router:
-      // Use router workflow for router agents
-      yield* generateMessageWithRouter({
-        threadId,
-        agent: currAgent,
-        messageHistory: truncatedMessageHistory,
-        runId,
-      });
-      break;
-    case RouterType.Simple:
-    default:
-      // Use standard workflow for leaf agents
-      yield* generateMessageWithStandardWorkflow({
-        threadId,
-        agent: currAgent,
-        messageHistory: truncatedMessageHistory,
-        runId,
-      });
-      break;
-  }
+  // Create request context with deterministic values
+  const requestContext: RequestContext = {
+    userId,
+    campaignId,
+    threadId,
+    runId,
+  };
+
+  // All agents now use the unified generation pattern
+  yield* generateMessageWithAgent({
+    threadId,
+    runId,
+    agent: currAgent,
+    messageHistory,
+    requestContext,
+  });
 }

@@ -17,8 +17,7 @@ describe("createThread", () => {
     id: "thread-1",
     title: "Test Thread Title",
     campaignId: "campaign-1",
-    userId: null,
-    selectedAgent: "Default Router",
+    userId: "owner-1",
     createdAt: new Date(),
     updatedAt: new Date(),
   };
@@ -26,6 +25,7 @@ describe("createThread", () => {
   const defaultInput = {
     message: "Hello, this is a test message",
     campaignId: "campaign-1",
+    userId: "owner-1",
   };
 
   beforeEach(async () => {
@@ -72,7 +72,7 @@ describe("createThread", () => {
       data: {
         title: "Test Thread Title",
         campaignId: "campaign-1",
-        selectedAgent: "Default Router",
+        userId: "owner-1",
       },
     });
     expect(result).toBe("thread-1");
@@ -112,7 +112,7 @@ describe("createThread", () => {
       data: {
         title: "Test Thread Title",
         campaignId: "campaign-different",
-        selectedAgent: "Default Router",
+        userId: "owner-1",
       },
     });
   });

@@ -1,9 +1,7 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
+import { SearchTimings } from "../saveSearchMetrics";
 import type { AssetSearchResult } from "./assetSearch";
-import type {
-  CaptureSearchMetricsInput,
-  SearchTimings,
-} from "./captureSearchMetrics";
+import type { CaptureSearchMetricsInput } from "./captureSearchMetrics";
 
 describe("captureSearchMetrics", () => {
   let captureSearchMetrics: typeof import("./captureSearchMetrics").captureSearchMetrics;

@@ -36,6 +36,7 @@ export async function createMessage(
     threadId = await createThread({
       message: input.content,
       campaignId,
+      userId,
     });
   } else {
     // Verify that the user has access to the thread

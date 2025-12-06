@@ -1,14 +1,21 @@
-import { getModelByName } from "../modelList";
+import { ChatOpenAI } from "@langchain/openai";
 import { calculator, currentTime } from "../Tools";
 import type { AIAgentDefinition } from "../types";
 import { RouterType } from "../types";
 
 export const cheapest: AIAgentDefinition = {
-  name: "Cheapest",
-  routerType: RouterType.Simple,
-  model: getModelByName("gpt-4.1-nano"),
+  name: "cheapest",
+  routerType: RouterType.None,
+  model: new ChatOpenAI({
+    model: "gpt-5-nano",
+    maxRetries: 0,
+    verbosity: "low",
+    reasoning: {
+      effort: "minimal",
+    },
+  }),
   description:
-    "A smaller version of GPT-4.1 with a context window of 1,047,576 tokens.",
+    "This agent uses the most cost-effective model available while still providing strong performance.",
   specialization: "general questions",
   systemMessage:
     "You are a helpful assistant who will answer questions in a jovial manner.",

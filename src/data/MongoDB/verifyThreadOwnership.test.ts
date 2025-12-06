@@ -21,7 +21,6 @@ describe("verifyThreadOwnership", () => {
     title: "Test Thread",
     campaignId: "campaign-1",
     userId: null,
-    selectedAgent: "Default Router",
     createdAt: new Date(),
     updatedAt: new Date(),
     campaign: {

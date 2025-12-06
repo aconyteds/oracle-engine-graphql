@@ -20,11 +20,26 @@
  *   DATABASE_URL - MongoDB Atlas connection string (required)
  */
 
+import type { Collection } from "mongodb";
 import { MongoClient } from "mongodb";
+import {
+  type StandardIndexDefinition,
+  standardIndexes,
+} from "./atlas-indexes/standardIndexDefinitions";
 import {
   type AtlasVectorIndexDefinition,
   atlasIndexes,
 } from "./atlas-indexes/vectorIndexDefinitions";
+
+type ExistingIndexDefinition = {
+  fields?: unknown[];
+};
+
+type ExistingIndex = {
+  name: string;
+  latestDefinition?: ExistingIndexDefinition;
+  definition?: ExistingIndexDefinition;
+};
 
 const DATABASE_URL = process.env.DATABASE_URL;
 
@@ -37,7 +52,7 @@ if (!DATABASE_URL) {
  * Compares two index definitions to determine if they're equivalent
  */
 function areIndexDefinitionsEqual(
-  existing: any,
+  existing: ExistingIndex,
   desired: AtlasVectorIndexDefinition
 ): boolean {
   try {
@@ -57,7 +72,7 @@ function areIndexDefinitionsEqual(
     }
 
     // Create comparison objects for deep equality check
-    const existingFieldsNormalized = existingFields.map((field: any) =>
+    const existingFieldsNormalized = existingFields.map((field: unknown) =>
       JSON.stringify(field)
     );
     const desiredFieldsNormalized = desiredFields.map((field) =>
@@ -82,7 +97,7 @@ function areIndexDefinitionsEqual(
  * Creates or updates a single vector search index
  */
 async function ensureIndex(
-  collection: any,
+  collection: Collection,
   indexDef: AtlasVectorIndexDefinition
 ): Promise<void> {
   try {
@@ -91,8 +106,8 @@ async function ensureIndex(
 
     // Check if index exists
     const existingIndex = indexes.find(
-      (idx: any) => idx.name === indexDef.name
-    );
+      (idx: unknown) => (idx as ExistingIndex).name === indexDef.name
+    ) as ExistingIndex | undefined;
 
     if (existingIndex) {
       console.log(`ℹ️  Index "${indexDef.name}" already exists`);
@@ -144,9 +159,67 @@ async function ensureIndex(
 }
 
 /**
- * Main function to set up all vector indexes
+ * Creates or updates a single standard MongoDB index
  */
-async function setupVectorIndexes() {
+async function ensureStandardIndex(
+  collection: Collection,
+  indexDef: StandardIndexDefinition
+): Promise<void> {
+  try {
+    // List all indexes for this collection
+    const indexes = await collection.indexes();
+
+    // Check if index exists
+    const existingIndex = indexes.find((idx) => idx.name === indexDef.name);
+
+    if (existingIndex) {
+      console.log(`ℹ️  Standard Index "${indexDef.name}" already exists`);
+
+      // Basic check for TTL index
+      if (
+        indexDef.options?.expireAfterSeconds !== undefined &&
+        existingIndex.expireAfterSeconds !== indexDef.options.expireAfterSeconds
+      ) {
+        console.warn(
+          `⚠️  Standard Index "${indexDef.name}" definition differs!`
+        );
+        console.warn(
+          `   Existing expireAfterSeconds: ${existingIndex.expireAfterSeconds}`
+        );
+        console.warn(
+          `   Desired expireAfterSeconds: ${indexDef.options.expireAfterSeconds}`
+        );
+        console.warn(
+          "   To update, please drop the index via Atlas UI and re-run this script"
+        );
+      } else {
+        console.log(`✅ Standard Index "${indexDef.name}" definition matches`);
+      }
+      return;
+    }
+
+    // Create new index
+    console.log(`🔨 Creating standard index "${indexDef.name}"...`);
+
+    await collection.createIndex(indexDef.indexSpec, {
+      name: indexDef.name,
+      ...indexDef.options,
+    });
+
+    console.log(`✅ Standard Index "${indexDef.name}" created successfully!`);
+  } catch (error) {
+    console.error(
+      `❌ Failed to ensure standard index "${indexDef.name}":`,
+      error
+    );
+    throw error;
+  }
+}
+
+/**
+ * Main function to set up all indexes
+ */
+async function setupIndexes() {
   const client = new MongoClient(DATABASE_URL);
 
   try {
@@ -156,30 +229,55 @@ async function setupVectorIndexes() {
     const db = client.db();
 
     // Group indexes by collection for efficient processing
-    const indexesByCollection = new Map<string, AtlasVectorIndexDefinition[]>();
+    const vectorIndexesByCollection = new Map<
+      string,
+      AtlasVectorIndexDefinition[]
+    >();
     for (const indexDef of atlasIndexes) {
-      const existing = indexesByCollection.get(indexDef.collection) || [];
+      const existing = vectorIndexesByCollection.get(indexDef.collection) || [];
       existing.push(indexDef);
-      indexesByCollection.set(indexDef.collection, existing);
+      vectorIndexesByCollection.set(indexDef.collection, existing);
     }
 
+    const standardIndexesByCollection = new Map<
+      string,
+      StandardIndexDefinition[]
+    >();
+    for (const indexDef of standardIndexes) {
+      const existing =
+        standardIndexesByCollection.get(indexDef.collection) || [];
+      existing.push(indexDef);
+      standardIndexesByCollection.set(indexDef.collection, existing);
+    }
+
+    const allCollections = new Set([
+      ...vectorIndexesByCollection.keys(),
+      ...standardIndexesByCollection.keys(),
+    ]);
+
     console.log(
-      `\n📋 Processing ${atlasIndexes.length} index(es) across ${indexesByCollection.size} collection(s)...\n`
+      `\n📋 Processing indexes across ${allCollections.size} collection(s)...\n`
     );
 
     // Process each collection's indexes
-    for (const [collectionName, indexes] of indexesByCollection) {
+    for (const collectionName of allCollections) {
       console.log(`\n📦 Collection: ${collectionName}`);
       const collection = db.collection(collectionName);
 
-      for (const indexDef of indexes) {
+      const vectorIndexes = vectorIndexesByCollection.get(collectionName) || [];
+      for (const indexDef of vectorIndexes) {
         await ensureIndex(collection, indexDef);
+      }
+
+      const stdIndexes = standardIndexesByCollection.get(collectionName) || [];
+      for (const indexDef of stdIndexes) {
+        await ensureStandardIndex(collection, indexDef);
       }
     }
 
     console.log("\n✅ All indexes processed successfully!");
   } catch (error) {
-    console.error("\n❌ Failed to setup vector indexes:", error);
+    console.error("\n❌ Failed to setup indexes:", error);
     process.exit(1);
   } finally {
     await client.close();
@@ -188,4 +286,4 @@ async function setupVectorIndexes() {
 }
 
 // Run the script
-setupVectorIndexes();
+setupIndexes();

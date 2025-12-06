@@ -1,16 +1,13 @@
 import { describe, expect, test } from "bun:test";
-import type { TrustedModel } from "../../modelList";
+import { ChatOpenAI } from "@langchain/openai";
 import type { AIAgentDefinition, RoutingExample } from "../../types";
 import { RouterType } from "../../types";
-
 import { generateRoutingExamples } from "./generateRoutingExamples";
 
 describe("generateRoutingExamples", () => {
-  const defaultModel: TrustedModel = {
-    modelName: "gpt-4",
-    modelProvider: "OpenAI",
-    contextWindow: 8192,
-  };
+  const defaultModel = new ChatOpenAI({
+    model: "gpt-5-nano",
+  });
 
   // Default mock data
   const defaultAgent: AIAgentDefinition = {
@@ -19,7 +16,7 @@ describe("generateRoutingExamples", () => {
     description: "Test agent description",
     specialization: "test specialization",
     systemMessage: "Test system message",
-    routerType: RouterType.Simple,
+    routerType: RouterType.None,
   };
 
   const defaultRoutingExample: RoutingExample = {
