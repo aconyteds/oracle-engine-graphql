@@ -1,4 +1,5 @@
 import { ChatOpenAI } from "@langchain/openai";
+import { findCampaignAsset } from "../Tools";
 import type { AIAgentDefinition } from "../types";
 import { RouterType } from "../types";
 import { characterGenerator } from "./characterGenerator";
@@ -19,8 +20,8 @@ const defaultRouterDefinition: AIAgentDefinition = {
   description:
     "A router agent that intelligently routes requests to specialized agents.",
   specialization: "intelligent request routing and delegation",
-  systemMessage: `You are an intelligent router agent. Your job is to analyze user requests and route them to the most appropriate specialized agent based on their expertise.`,
-  availableTools: [],
+  systemMessage: `You are an intelligent router agent for a TTRPG storyteller assistant called Oracle Engine. Your job is to analyze user requests and route them to the most appropriate specialized agent based on their expertise. Use the provided findCampaignAsset tool to identify any relevant context for making your decision.`,
+  availableTools: [findCampaignAsset],
   availableSubAgents: [cheapest, characterGenerator, locationAgent],
   routerType: RouterType.Handoff,
 };

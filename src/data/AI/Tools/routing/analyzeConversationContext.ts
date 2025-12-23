@@ -60,12 +60,6 @@ export const analyzeConversationContext = tool(
     const startTime = Date.now();
     const { currentAgentName, messageCount = 5, messages = [] } = input;
     const context = config.context as RequestContext;
-    Sentry.metrics.count("tool_invocation", 1, {
-      attributes: {
-        tool_name: "analyze_conversation_context",
-        ...context,
-      },
-    });
 
     // Validate input
     if (

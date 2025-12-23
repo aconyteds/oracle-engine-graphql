@@ -2,10 +2,11 @@ import { randomUUID } from "crypto";
 import { AIMessage, BaseMessage, HumanMessage } from "langchain";
 import { generateMessageWithAgent } from "../../../data/AI";
 import { defaultRouter } from "../../../data/AI/Agents";
-import type { RequestContext } from "../../../data/AI/types";
+import type { CampaignMetadata, RequestContext } from "../../../data/AI/types";
 import { DBClient } from "../../../data/MongoDB";
 import type { GenerateMessagePayload } from "../../../generated/graphql";
 import { ServerError } from "../../../graphql/errors";
+import { getCampaign } from "../../Campaign/service/getCampaign";
 
 export type GenerateMessageProps = {
   threadId: string;
@@ -37,6 +38,23 @@ export async function* generateMessage(
 
   const { campaignId } = thread;
 
+  // Fetch campaign metadata for context enrichment
+  let campaignMetadata: CampaignMetadata | undefined;
+  try {
+    const campaign = await getCampaign(campaignId);
+    if (campaign) {
+      campaignMetadata = {
+        name: campaign.name,
+        setting: campaign.setting,
+        tone: campaign.tone,
+        ruleset: campaign.ruleset,
+      };
+    }
+  } catch (error) {
+    console.error("Failed to fetch campaign metadata:", error);
+    // Continue without metadata rather than failing the request
+  }
+
   const currAgent = defaultRouter;
 
   const messageHistory: BaseMessage[] = [];
@@ -59,6 +77,8 @@ export async function* generateMessage(
     campaignId,
     threadId,
     runId,
+    campaignMetadata,
+    allowEdits: true, // Default to allowing edits, can be made configurable later
   };
 
   // All agents now use the unified generation pattern

@@ -365,6 +365,123 @@ describe("PrismaCheckpointSaver Sentry Integration", () => {
         },
       });
     });
+
+    test("Unit -> put converts undefined values in metadata to null for Prisma compatibility", async () => {
+      const checkpointer = new PrismaCheckpointSaver();
+
+      mockDBClient.checkpoint.create.mockResolvedValue({
+        id: defaultCheckpointId,
+      });
+
+      const config = {
+        configurable: {
+          thread_id: defaultThreadId,
+          checkpoint_ns: "",
+        },
+      };
+
+      // Metadata with undefined values (like the error case)
+      // Using Record type to allow arbitrary properties for testing
+      const metadataWithUndefined = {
+        source: "input",
+        step: 1,
+        parents: {},
+        jumpTo: undefined, // This causes Prisma error
+        nestedArray: [
+          ["key1", "value1"],
+          ["key2", undefined],
+        ], // Nested undefined
+      } as CheckpointMetadata;
+
+      await checkpointer.put(
+        config,
+        defaultCheckpoint,
+        metadataWithUndefined,
+        defaultNewVersions
+      );
+
+      // Verify create was called with cleaned metadata (undefined -> null)
+      expect(mockDBClient.checkpoint.create).toHaveBeenCalledWith({
+        data: {
+          id: defaultCheckpointId,
+          threadId: defaultThreadId,
+          checkpointNamespace: "",
+          checkpointData: expect.any(Array),
+          metadata: {
+            source: "input",
+            step: 1,
+            parents: {},
+            jumpTo: null, // Should be converted to null
+            nestedArray: [
+              ["key1", "value1"],
+              ["key2", null],
+            ], // Nested undefined -> null
+          },
+          parentCheckpointId: undefined,
+        },
+      });
+    });
+
+    test("Unit -> put handles deeply nested undefined values in metadata", async () => {
+      const checkpointer = new PrismaCheckpointSaver();
+
+      mockDBClient.checkpoint.create.mockResolvedValue({
+        id: defaultCheckpointId,
+      });
+
+      const config = {
+        configurable: {
+          thread_id: defaultThreadId,
+          checkpoint_ns: "",
+        },
+      };
+
+      // Complex metadata with deeply nested undefined values
+      const complexMetadata = {
+        source: "input",
+        step: 1,
+        parents: {},
+        nested: {
+          level1: {
+            level2: {
+              value: undefined,
+              array: [1, undefined, 3],
+            },
+          },
+        },
+      } as CheckpointMetadata;
+
+      await checkpointer.put(
+        config,
+        defaultCheckpoint,
+        complexMetadata,
+        defaultNewVersions
+      );
+
+      // Verify all undefined values are converted to null
+      expect(mockDBClient.checkpoint.create).toHaveBeenCalledWith({
+        data: {
+          id: defaultCheckpointId,
+          threadId: defaultThreadId,
+          checkpointNamespace: "",
+          checkpointData: expect.any(Array),
+          metadata: {
+            source: "input",
+            step: 1,
+            parents: {},
+            nested: {
+              level1: {
+                level2: {
+                  value: null,
+                  array: [1, null, 3],
+                },
+              },
+            },
+          },
+          parentCheckpointId: undefined,
+        },
+      });
+    });
   });
 
   describe("putWrites", () => {
@@ -434,6 +551,69 @@ describe("PrismaCheckpointSaver Sentry Integration", () => {
           operation: "putWrites",
           reminder:
             "Failed to save pending writes to checkpoint. This is non-critical but means partial AI execution results may be lost. Could indicate database issues or that the checkpoint doesn't exist yet (which is normal if putWrites is called before put).",
+        },
+      });
+    });
+
+    test("Unit -> putWrites converts undefined values in writes to null for Prisma compatibility", async () => {
+      const checkpointer = new PrismaCheckpointSaver();
+
+      mockDBClient.checkpoint.findUnique.mockResolvedValue({
+        id: defaultCheckpointId,
+        metadata: {},
+      });
+
+      mockDBClient.checkpoint.update.mockResolvedValue({
+        id: defaultCheckpointId,
+      });
+
+      const config = {
+        configurable: {
+          thread_id: defaultThreadId,
+          checkpoint_id: defaultCheckpointId,
+        },
+      };
+
+      // Writes with undefined values (like LangGraph messages)
+      const writes: PendingWrite[] = [
+        [
+          "messages",
+          [
+            {
+              id: "msg-1",
+              content: "test",
+              name: undefined, // Common in LangGraph messages
+              usage_metadata: undefined, // Common in LangGraph messages
+              artifact: undefined, // Common in LangGraph messages
+            },
+          ],
+        ],
+      ];
+
+      await checkpointer.putWrites(config, writes, "task-789");
+
+      // Verify update was called with cleaned metadata (undefined -> null)
+      expect(mockDBClient.checkpoint.update).toHaveBeenCalledWith({
+        where: { id: defaultCheckpointId },
+        data: {
+          metadata: {
+            writes: {
+              "task-789": [
+                [
+                  "messages",
+                  [
+                    {
+                      id: "msg-1",
+                      content: "test",
+                      name: null, // Should be converted to null
+                      usage_metadata: null, // Should be converted to null
+                      artifact: null, // Should be converted to null
+                    },
+                  ],
+                ],
+              ],
+            },
+          },
         },
       });
     });

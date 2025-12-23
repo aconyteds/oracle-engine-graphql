@@ -1,4 +1,3 @@
-import * as Sentry from "@sentry/bun";
 import { tool } from "langchain";
 import { handoffRoutingResponseSchema } from "../../schemas";
 
@@ -11,7 +10,7 @@ import { handoffRoutingResponseSchema } from "../../schemas";
  * agents to consider a wider range of factors and collaborate more effectively.
  */
 export const routeToAgent = tool(
-  async (input, context) => {
+  async (input) => {
     const {
       targetAgent,
       confidence,
@@ -20,12 +19,6 @@ export const routeToAgent = tool(
       intentKeywords,
       contextFactors,
     } = input;
-    Sentry.metrics.count("tool_invocation", 1, {
-      attributes: {
-        tool_name: "route_to_agent",
-        ...context,
-      },
-    });
 
     const routingDecision = {
       type: "routing_decision",

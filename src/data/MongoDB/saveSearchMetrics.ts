@@ -58,10 +58,6 @@ export async function saveSearchMetrics(
   try {
     const sampled = !!expandedResultScores;
 
-    const metricAttributes = {
-      campaign_id: campaignId,
-      result_count: String(resultScores.length),
-    };
     let sampledMetrics: SampledMetrics | undefined;
     if (sampled) {
       sampledMetrics = collectSampledMetrics(
@@ -75,23 +71,20 @@ export async function saveSearchMetrics(
     // 1) Overall search latency
     Sentry.metrics.distribution(
       `${searchType}.execution_time_ms`,
-      timings.total,
-      { attributes: metricAttributes }
+      timings.total
     );
 
     // 2) Result count
     Sentry.metrics.distribution(
       `${searchType}.result_count`,
-      resultScores.length,
-      { attributes: metricAttributes }
+      resultScores.length
     );
 
     // 3) Quality proxy (sampled only)
     if (sampledMetrics) {
       Sentry.metrics.distribution(
         `${searchType}.precision_at_k`,
-        sampledMetrics.precisionAtK,
-        { attributes: metricAttributes }
+        sampledMetrics.precisionAtK
       );
     }
 

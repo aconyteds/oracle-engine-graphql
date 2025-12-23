@@ -35,7 +35,7 @@ export async function* generateMessageWithAgent({
   const { userId, campaignId } = requestContext;
 
   // Get agent instance with tools and checkpointer configured
-  const agentInstance = getAgentDefinition(agent, requestContext);
+  const agentInstance = await getAgentDefinition(agent, requestContext);
 
   if (!agentInstance) {
     throw ServerError("Invalid agent configuration detected.");

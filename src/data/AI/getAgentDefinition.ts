@@ -2,8 +2,9 @@ import { ChatOpenAI } from "@langchain/openai";
 import { createAgent, summarizationMiddleware, tool } from "langchain";
 import { z } from "zod";
 import { PrismaCheckpointSaver } from "./Checkpointers";
+import { enrichInstructions } from "./enrichInstructions";
 import { agentContextSchema, handoffRoutingResponseSchema } from "./schemas";
-import { toolMonitoringMiddleware } from "./Tools";
+import { toolErrorHandlingMiddleware, toolMonitoringMiddleware } from "./Tools";
 import { type AIAgentDefinition, RequestContext, RouterType } from "./types";
 
 // Create singleton checkpointer instance
@@ -22,7 +23,7 @@ function getCheckpointer(): PrismaCheckpointSaver {
 function createSubAgentTool(subAgent: AIAgentDefinition) {
   return tool(
     async (input: { request: string }, config) => {
-      const subAgentInstance = getAgentDefinition(subAgent);
+      const subAgentInstance = await getAgentDefinition(subAgent);
       const result = await subAgentInstance.invoke(
         { messages: [{ role: "user", content: input.request }] },
         {
@@ -43,10 +44,10 @@ function createSubAgentTool(subAgent: AIAgentDefinition) {
   );
 }
 
-export function getAgentDefinition(
+export async function getAgentDefinition(
   agent: AIAgentDefinition,
   requestContext?: RequestContext
-): ReturnType<typeof createAgent> {
+): Promise<ReturnType<typeof createAgent>> {
   const { model } = agent;
   let compositeThreadId = "";
   if (requestContext) {
@@ -77,38 +78,67 @@ export function getAgentDefinition(
     responseFormat = handoffRoutingResponseSchema;
   }
 
-  // TODO:: Add logic to enrich system messages
+  // Enrich system message with campaign context if available
+  const enrichedSystemMessage = await enrichInstructions({
+    systemMessage: agent.systemMessage,
+    campaignMetadata: requestContext
+      ? requestContext.campaignMetadata
+      : undefined,
+  });
 
   // Set prompt cache key for the model to enable caching
   if (compositeThreadId) {
     model.promptCacheKey = compositeThreadId;
   }
+
+  // Build middleware array
+  const middleware = [
+    summarizationMiddleware({
+      model: new ChatOpenAI({
+        modelName: "gpt-5-nano",
+        reasoning: {
+          effort: "low",
+        },
+        ...(compositeThreadId
+          ? { promptCacheKey: `${compositeThreadId}:summary` }
+          : {}),
+      }),
+      trigger: { tokens: 100_000 },
+      keep: {
+        tokens: 10_000,
+      },
+    }),
+    toolErrorHandlingMiddleware, // Handle tool validation errors gracefully
+    toolMonitoringMiddleware, // Monitor tool execution and log metrics
+  ];
+
+  // TODO: Add HITL middleware when allowEdits: false
+  // Note: Human-in-the-loop middleware needs proper implementation based on langchain SDK
+  // This will intercept delete_location tool calls when requestContext.allowEdits === false
+  // Reference: https://docs.langchain.com/oss/javascript/langchain/human-in-the-loop
+  // if (requestContext?.allowEdits === false) {
+  //   middleware.push(
+  //     humanInTheLoopMiddleware({
+  //       interruptOn: {
+  //         delete_location: {
+  //           allowedDecisions: ["approve", "reject"],
+  //           description: "⚠️ This will permanently delete the location. Approve to proceed or reject to cancel.",
+  //         },
+  //       },
+  //       descriptionPrefix: "Action requires approval",
+  //     })
+  //   );
+  // }
+
   const agentInstance = createAgent({
     model,
     tools,
     contextSchema: agentContextSchema,
     description: agent.description,
     name: agent.name,
-    systemPrompt: agent.systemMessage,
+    systemPrompt: enrichedSystemMessage, // Use enriched system message
     checkpointer: getCheckpointer(),
-    middleware: [
-      summarizationMiddleware({
-        model: new ChatOpenAI({
-          modelName: "gpt-5-nano",
-          reasoning: {
-            effort: "low",
-          },
-          ...(compositeThreadId
-            ? { promptCacheKey: `${compositeThreadId}:summary` }
-            : {}),
-        }),
-        trigger: { tokens: 100_000 },
-        keep: {
-          tokens: 10_000,
-        },
-      }),
-      toolMonitoringMiddleware,
-    ],
+    middleware, // Use middleware array
     ...(responseFormat ? { responseFormat } : {}),
   });
   return agentInstance;

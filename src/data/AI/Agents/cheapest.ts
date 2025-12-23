@@ -1,5 +1,5 @@
 import { ChatOpenAI } from "@langchain/openai";
-import { calculator, currentTime } from "../Tools";
+import { calculator, currentTime, findCampaignAsset } from "../Tools";
 import type { AIAgentDefinition } from "../types";
 import { RouterType } from "../types";
 
@@ -19,5 +19,5 @@ export const cheapest: AIAgentDefinition = {
   specialization: "general questions",
   systemMessage:
     "You are a helpful assistant who will answer questions in a jovial manner.",
-  availableTools: [currentTime, calculator],
+  availableTools: [currentTime, calculator, findCampaignAsset],
 };

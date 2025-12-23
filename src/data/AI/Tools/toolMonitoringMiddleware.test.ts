@@ -73,10 +73,6 @@ describe("toolMonitoringMiddleware", () => {
     expect(mockSentryMetrics.count).toHaveBeenCalledWith("tool_invocation", 1, {
       attributes: {
         tool_name: "calculator",
-        userId: "user-1",
-        campaignId: "campaign-1",
-        threadId: "thread-1",
-        runId: "run-1",
       },
     });
   });
@@ -267,7 +263,7 @@ describe("toolMonitoringMiddleware", () => {
     );
   });
 
-  test("Unit -> toolMonitoringMiddleware includes partial context when available", () => {
+  test("Unit -> toolMonitoringMiddleware does not include context in metrics", () => {
     const partialContextRequest = {
       toolCall: defaultToolCall,
       runtime: {
@@ -282,11 +278,10 @@ describe("toolMonitoringMiddleware", () => {
     const mockHandler = mock((_req) => "tool result");
     wrapToolCallFn(partialContextRequest, mockHandler);
 
+    // Only tool_name is included to keep cardinality low
     expect(mockSentryMetrics.count).toHaveBeenCalledWith("tool_invocation", 1, {
       attributes: {
         tool_name: "calculator",
-        userId: "user-1",
-        campaignId: "campaign-1",
       },
     });
   });

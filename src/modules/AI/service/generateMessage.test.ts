@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
-import { AIMessage, HumanMessage } from "langchain";
+import { AIMessage, HumanMessage } from "@langchain/core/messages";
 import type { Message, Thread } from "../../../data/MongoDB";
 import type { GenerateMessagePayload } from "../../../generated/graphql";
 import { GenerateMessageProps } from "./generateMessage";
@@ -19,6 +19,7 @@ describe("Unit -> generateMessage", () => {
   let mockServerError: ReturnType<typeof mock>;
   let mockGenerateMessageWithAgent: ReturnType<typeof mock>;
   let mockRandomUUID: ReturnType<typeof mock>;
+  let mockGetCampaign: ReturnType<typeof mock>;
   let generateMessage: (
     input: GenerateMessageProps
   ) => AsyncGenerator<GenerateMessagePayload>;
@@ -35,6 +36,17 @@ describe("Unit -> generateMessage", () => {
     userId: "user-id",
     campaignId: "campaign-id",
     messages: [],
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
+  const defaultCampaign = {
+    id: "campaign-id",
+    name: "Test Campaign",
+    setting: "Fantasy World",
+    tone: "Epic Adventure",
+    ruleset: "D&D 5e",
+    userId: "user-id",
     createdAt: new Date(),
     updatedAt: new Date(),
   };
@@ -82,6 +94,7 @@ describe("Unit -> generateMessage", () => {
     mockServerError = mock();
     mockGenerateMessageWithAgent = mock();
     mockRandomUUID = mock();
+    mockGetCampaign = mock();
 
     // Mock modules
     const prismaTypes = await import("@prisma/client");
@@ -110,12 +123,17 @@ describe("Unit -> generateMessage", () => {
       randomUUID: mockRandomUUID,
     }));
 
+    void mock.module("../../Campaign/service/getCampaign", () => ({
+      getCampaign: mockGetCampaign,
+    }));
+
     // Dynamic import
     const module = await import("./generateMessage");
     generateMessage = module.generateMessage;
 
     // Set up default mock behavior
     mockFindUnique.mockResolvedValue(defaultThread);
+    mockGetCampaign.mockResolvedValue(defaultCampaign);
 
     mockGenerateMessageWithAgent.mockImplementation(async function* () {
       for (const result of defaultWorkflowResults) {
@@ -188,6 +206,13 @@ describe("Unit -> generateMessage", () => {
         campaignId: "campaign-id",
         threadId: "thread-id",
         runId: "test-run-id",
+        campaignMetadata: {
+          name: "Test Campaign",
+          setting: "Fantasy World",
+          tone: "Epic Adventure",
+          ruleset: "D&D 5e",
+        },
+        allowEdits: true,
       },
     });
   });
@@ -252,6 +277,13 @@ describe("Unit -> generateMessage", () => {
         campaignId: "campaign-id",
         threadId: "thread-id",
         runId: "test-run-id",
+        campaignMetadata: {
+          name: "Test Campaign",
+          setting: "Fantasy World",
+          tone: "Epic Adventure",
+          ruleset: "D&D 5e",
+        },
+        allowEdits: true,
       },
     });
   });
@@ -283,6 +315,13 @@ describe("Unit -> generateMessage", () => {
         campaignId: "campaign-id",
         threadId: "thread-id",
         runId: "test-run-id",
+        campaignMetadata: {
+          name: "Test Campaign",
+          setting: "Fantasy World",
+          tone: "Epic Adventure",
+          ruleset: "D&D 5e",
+        },
+        allowEdits: true,
       },
     });
   });
@@ -326,8 +365,74 @@ describe("Unit -> generateMessage", () => {
         campaignId: "campaign-id",
         threadId: "thread-id",
         runId: "test-run-id",
+        campaignMetadata: {
+          name: "Test Campaign",
+          setting: "Fantasy World",
+          tone: "Epic Adventure",
+          ruleset: "D&D 5e",
+        },
+        allowEdits: true,
       },
     });
+  });
+
+  test("Unit -> generateMessage fetches campaign metadata", async () => {
+    const generator = generateMessage(defaultInput);
+    const results: GenerateMessagePayload[] = [];
+
+    for await (const result of generator) {
+      results.push(result);
+    }
+
+    expect(mockGetCampaign).toHaveBeenCalledWith("campaign-id");
+  });
+
+  test("Unit -> generateMessage handles campaign fetch error gracefully", async () => {
+    const originalConsoleError = console.error;
+    const mockConsoleErrorLocal = mock();
+    console.error = mockConsoleErrorLocal;
+
+    try {
+      mockGetCampaign.mockRejectedValue(new Error("Campaign not found"));
+
+      const generator = generateMessage(defaultInput);
+      const results: GenerateMessagePayload[] = [];
+
+      for await (const result of generator) {
+        results.push(result);
+      }
+
+      // Should still work, just without campaign metadata
+      expect(results).toHaveLength(1);
+      expect(mockConsoleErrorLocal).toHaveBeenCalledWith(
+        "Failed to fetch campaign metadata:",
+        expect.any(Error)
+      );
+
+      // Should pass undefined campaignMetadata to generateMessageWithAgent
+      const callArgs = mockGenerateMessageWithAgent.mock.calls[0][0];
+      expect(callArgs.requestContext.campaignMetadata).toBeUndefined();
+    } finally {
+      console.error = originalConsoleError;
+    }
+  });
+
+  test("Unit -> generateMessage handles missing campaign gracefully", async () => {
+    mockGetCampaign.mockResolvedValue(null);
+
+    const generator = generateMessage(defaultInput);
+    const results: GenerateMessagePayload[] = [];
+
+    for await (const result of generator) {
+      results.push(result);
+    }
+
+    // Should still work, just without campaign metadata
+    expect(results).toHaveLength(1);
+
+    // Should pass undefined campaignMetadata to generateMessageWithAgent
+    const callArgs = mockGenerateMessageWithAgent.mock.calls[0][0];
+    expect(callArgs.requestContext.campaignMetadata).toBeUndefined();
   });
 
   test("Unit -> generateMessage streams all payloads from generateMessageWithAgent", async () => {

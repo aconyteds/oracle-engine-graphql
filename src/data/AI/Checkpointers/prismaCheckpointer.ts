@@ -421,6 +421,13 @@ export class PrismaCheckpointSaver extends BaseCheckpointSaver {
     const base64Data = uint8ArrayToBase64(data);
     const checkpointData = [type, base64Data];
 
+    // Clean metadata to replace undefined with null for Prisma compatibility
+    const cleanedMetadata = JSON.parse(
+      JSON.stringify(metadata, (_key, value) =>
+        value === undefined ? null : value
+      )
+    ) as CheckpointMetadata;
+
     // Get parent checkpoint ID if exists
     const parentCheckpointId = config.configurable?.checkpoint_id as
       | string
@@ -438,7 +445,7 @@ export class PrismaCheckpointSaver extends BaseCheckpointSaver {
           threadId,
           checkpointNamespace,
           checkpointData: checkpointData as Prisma.InputJsonArray,
-          metadata: metadata as Prisma.InputJsonObject,
+          metadata: cleanedMetadata as Prisma.InputJsonObject,
           parentCheckpointId,
         },
       });
@@ -555,9 +562,16 @@ export class PrismaCheckpointSaver extends BaseCheckpointSaver {
           },
         };
 
+        // Clean undefined values from metadata before saving
+        const cleanedMetadata = JSON.parse(
+          JSON.stringify(updatedMetadata, (_key, value) =>
+            value === undefined ? null : value
+          )
+        ) as Prisma.InputJsonObject;
+
         await DBClient.checkpoint.update({
           where: { id: checkpointId },
-          data: { metadata: updatedMetadata as Prisma.InputJsonObject },
+          data: { metadata: cleanedMetadata },
         });
       }
       // If checkpoint doesn't exist yet, putWrites is being called before put()

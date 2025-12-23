@@ -8,6 +8,8 @@ describe("getAgentDefinition", () => {
   let mockPrismaCheckpointSaver: ReturnType<typeof mock>;
   let mockSummarizationMiddleware: ReturnType<typeof mock>;
   let mockToolMonitoringMiddleware: ReturnType<typeof mock>;
+  let mockToolErrorHandlingMiddleware: ReturnType<typeof mock>;
+  let mockEnrichInstructions: ReturnType<typeof mock>;
   let getAgentDefinition: typeof import("./getAgentDefinition").getAgentDefinition;
 
   const defaultRequestContext: RequestContext = {
@@ -52,6 +54,8 @@ describe("getAgentDefinition", () => {
     }));
     mockSummarizationMiddleware = mock();
     mockToolMonitoringMiddleware = mock();
+    mockToolErrorHandlingMiddleware = mock();
+    mockEnrichInstructions = mock();
 
     mock.module("langchain", () => ({
       createAgent: mockCreateAgent,
@@ -71,6 +75,11 @@ describe("getAgentDefinition", () => {
 
     mock.module("./Tools", () => ({
       toolMonitoringMiddleware: mockToolMonitoringMiddleware,
+      toolErrorHandlingMiddleware: mockToolErrorHandlingMiddleware,
+    }));
+
+    mock.module("./enrichInstructions", () => ({
+      enrichInstructions: mockEnrichInstructions,
     }));
 
     const module = await import("./getAgentDefinition");
@@ -80,14 +89,20 @@ describe("getAgentDefinition", () => {
     mockSummarizationMiddleware.mockReturnValue({
       name: "summarization",
     });
+    mockEnrichInstructions.mockImplementation(async ({ systemMessage }) => {
+      return systemMessage || "default system message";
+    });
   });
 
   afterEach(() => {
     mock.restore();
   });
 
-  test("Unit -> getAgentDefinition creates basic agent with tools", () => {
-    const result = getAgentDefinition(defaultAgent, defaultRequestContext);
+  test("Unit -> getAgentDefinition creates basic agent with tools", async () => {
+    const result = await getAgentDefinition(
+      defaultAgent,
+      defaultRequestContext
+    );
 
     expect(mockCreateAgent).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -100,23 +115,23 @@ describe("getAgentDefinition", () => {
     expect(result).toBe(mockAgentInstance);
   });
 
-  test("Unit -> getAgentDefinition sets composite thread ID on model with agent name", () => {
-    getAgentDefinition(defaultAgent, defaultRequestContext);
+  test("Unit -> getAgentDefinition sets composite thread ID on model with agent name", async () => {
+    await getAgentDefinition(defaultAgent, defaultRequestContext);
 
     expect(defaultAgent.model.promptCacheKey).toBe(
       "user-1:thread-1:campaign-1:test_agent"
     );
   });
 
-  test("Unit -> getAgentDefinition includes checkpointer", () => {
-    getAgentDefinition(defaultAgent, defaultRequestContext);
+  test("Unit -> getAgentDefinition includes checkpointer", async () => {
+    await getAgentDefinition(defaultAgent, defaultRequestContext);
 
     const callArgs = mockCreateAgent.mock.calls[0][0];
     expect(callArgs.checkpointer).toBeDefined();
   });
 
-  test("Unit -> getAgentDefinition includes middleware", () => {
-    getAgentDefinition(defaultAgent, defaultRequestContext);
+  test("Unit -> getAgentDefinition includes middleware", async () => {
+    await getAgentDefinition(defaultAgent, defaultRequestContext);
 
     const callArgs = mockCreateAgent.mock.calls[0][0];
     expect(callArgs.middleware).toBeDefined();
@@ -124,31 +139,59 @@ describe("getAgentDefinition", () => {
     expect(callArgs.middleware.length).toBeGreaterThan(0);
   });
 
-  test("Unit -> getAgentDefinition creates agent without tools", () => {
+  test("Unit -> getAgentDefinition enriches system message with campaign metadata", async () => {
+    const campaignMetadata = {
+      name: "Test Campaign",
+      setting: "Fantasy World",
+      tone: "Epic",
+      ruleset: "D&D 5e",
+    };
+
+    const contextWithCampaign: RequestContext = {
+      ...defaultRequestContext,
+      campaignMetadata,
+    };
+
+    const enrichedMessage = "Enriched system message with campaign context";
+    mockEnrichInstructions.mockResolvedValueOnce(enrichedMessage);
+
+    await getAgentDefinition(defaultAgent, contextWithCampaign);
+
+    expect(mockEnrichInstructions).toHaveBeenCalledWith({
+      systemMessage: "You are a test agent",
+      campaignMetadata,
+    });
+
+    // Verify the enriched message is passed to createAgent
+    const callArgs = mockCreateAgent.mock.calls[0][0];
+    expect(callArgs.systemPrompt).toBe(enrichedMessage);
+  });
+
+  test("Unit -> getAgentDefinition creates agent without tools", async () => {
     const agentWithoutTools: AIAgentDefinition = {
       ...defaultAgent,
       availableTools: undefined,
     };
 
-    getAgentDefinition(agentWithoutTools, defaultRequestContext);
+    await getAgentDefinition(agentWithoutTools, defaultRequestContext);
 
     const callArgs = mockCreateAgent.mock.calls[0][0];
     expect(callArgs.tools).toEqual([]);
   });
 
-  test("Unit -> getAgentDefinition handles Handoff router with response format", () => {
+  test("Unit -> getAgentDefinition handles Handoff router with response format", async () => {
     const handoffAgent: AIAgentDefinition = {
       ...defaultAgent,
       routerType: RouterType.Handoff,
     };
 
-    getAgentDefinition(handoffAgent, defaultRequestContext);
+    await getAgentDefinition(handoffAgent, defaultRequestContext);
 
     const callArgs = mockCreateAgent.mock.calls[0][0];
     expect(callArgs.responseFormat).toBeDefined();
   });
 
-  test("Unit -> getAgentDefinition handles Controller router with sub-agents", () => {
+  test("Unit -> getAgentDefinition handles Controller router with sub-agents", async () => {
     const subAgent: AIAgentDefinition = {
       name: "sub_agent",
       model: new ChatOpenAI({ modelName: "gpt-4" }),
@@ -164,14 +207,14 @@ describe("getAgentDefinition", () => {
       availableSubAgents: [subAgent],
     };
 
-    getAgentDefinition(controllerAgent, defaultRequestContext);
+    await getAgentDefinition(controllerAgent, defaultRequestContext);
 
     const callArgs = mockCreateAgent.mock.calls[0][0];
     // Should have original tools plus sub-agent tools
     expect(callArgs.tools.length).toBeGreaterThan(1);
   });
 
-  test("Unit -> getAgentDefinition throws error when Controller has Handoff sub-agent", () => {
+  test("Unit -> getAgentDefinition throws error when Controller has Handoff sub-agent", async () => {
     const handoffSubAgent: AIAgentDefinition = {
       name: "handoff_sub",
       model: new ChatOpenAI({ modelName: "gpt-4" }),
@@ -194,7 +237,7 @@ describe("getAgentDefinition", () => {
     );
   });
 
-  test("Unit -> getAgentDefinition creates sub-agent tool with correct schema", () => {
+  test("Unit -> getAgentDefinition creates sub-agent tool with correct schema", async () => {
     const subAgent: AIAgentDefinition = {
       name: "specialized_agent",
       model: new ChatOpenAI({ modelName: "gpt-4" }),
@@ -211,7 +254,7 @@ describe("getAgentDefinition", () => {
       availableTools: [],
     };
 
-    getAgentDefinition(controllerAgent, defaultRequestContext);
+    await getAgentDefinition(controllerAgent, defaultRequestContext);
 
     const callArgs = mockCreateAgent.mock.calls[0][0];
     expect(callArgs.tools.length).toBe(1);
@@ -219,15 +262,15 @@ describe("getAgentDefinition", () => {
     expect(callArgs.tools[0].description).toBe("Handles specialized tasks");
   });
 
-  test("Unit -> getAgentDefinition uses checkpointer", () => {
-    getAgentDefinition(defaultAgent, defaultRequestContext);
+  test("Unit -> getAgentDefinition uses checkpointer", async () => {
+    await getAgentDefinition(defaultAgent, defaultRequestContext);
 
     const callArgs = mockCreateAgent.mock.calls[0][0];
     // Should have a checkpointer assigned
     expect(callArgs.checkpointer).toBeDefined();
   });
 
-  test("Unit -> getAgentDefinition handles agent with multiple sub-agents", () => {
+  test("Unit -> getAgentDefinition handles agent with multiple sub-agents", async () => {
     const subAgent1: AIAgentDefinition = {
       name: "sub_agent_1",
       model: new ChatOpenAI({ modelName: "gpt-4" }),
@@ -253,7 +296,7 @@ describe("getAgentDefinition", () => {
       availableTools: [],
     };
 
-    getAgentDefinition(controllerAgent, defaultRequestContext);
+    await getAgentDefinition(controllerAgent, defaultRequestContext);
 
     const callArgs = mockCreateAgent.mock.calls[0][0];
     expect(callArgs.tools.length).toBe(2);
@@ -261,7 +304,7 @@ describe("getAgentDefinition", () => {
     expect(callArgs.tools[1].name).toBe("sub_agent_2");
   });
 
-  test("Unit -> getAgentDefinition handles Controller with both tools and sub-agents", () => {
+  test("Unit -> getAgentDefinition handles Controller with both tools and sub-agents", async () => {
     const subAgent: AIAgentDefinition = {
       name: "sub_agent",
       model: new ChatOpenAI({ modelName: "gpt-4" }),
@@ -278,26 +321,26 @@ describe("getAgentDefinition", () => {
       availableTools: [mockTool],
     };
 
-    getAgentDefinition(controllerAgent, defaultRequestContext);
+    await getAgentDefinition(controllerAgent, defaultRequestContext);
 
     const callArgs = mockCreateAgent.mock.calls[0][0];
     // Should have original tool + sub-agent tool
     expect(callArgs.tools.length).toBe(2);
   });
 
-  test("Unit -> getAgentDefinition does not set responseFormat for non-Handoff routers", () => {
+  test("Unit -> getAgentDefinition does not set responseFormat for non-Handoff routers", async () => {
     const nonHandoffAgent: AIAgentDefinition = {
       ...defaultAgent,
       routerType: RouterType.None,
     };
 
-    getAgentDefinition(nonHandoffAgent, defaultRequestContext);
+    await getAgentDefinition(nonHandoffAgent, defaultRequestContext);
 
     const callArgs = mockCreateAgent.mock.calls[0][0];
     expect(callArgs.responseFormat).toBeUndefined();
   });
 
-  test("Unit -> getAgentDefinition does not create sub-agent tools for non-Controller", () => {
+  test("Unit -> getAgentDefinition does not create sub-agent tools for non-Controller", async () => {
     const subAgent: AIAgentDefinition = {
       name: "sub_agent",
       model: new ChatOpenAI({ modelName: "gpt-4" }),
@@ -315,7 +358,7 @@ describe("getAgentDefinition", () => {
       availableTools: [mockTool],
     };
 
-    getAgentDefinition(regularAgent, defaultRequestContext);
+    await getAgentDefinition(regularAgent, defaultRequestContext);
 
     const callArgs = mockCreateAgent.mock.calls[0][0];
     // Should only have the original tool, not sub-agent tools
@@ -323,15 +366,15 @@ describe("getAgentDefinition", () => {
     expect(callArgs.tools[0]).toBe(mockTool);
   });
 
-  test("Unit -> getAgentDefinition passes contextSchema to createAgent", () => {
-    getAgentDefinition(defaultAgent, defaultRequestContext);
+  test("Unit -> getAgentDefinition passes contextSchema to createAgent", async () => {
+    await getAgentDefinition(defaultAgent, defaultRequestContext);
 
     const callArgs = mockCreateAgent.mock.calls[0][0];
     expect(callArgs.contextSchema).toBeDefined();
   });
 
-  test("Unit -> getAgentDefinition configures summarization middleware", () => {
-    getAgentDefinition(defaultAgent, defaultRequestContext);
+  test("Unit -> getAgentDefinition configures summarization middleware", async () => {
+    await getAgentDefinition(defaultAgent, defaultRequestContext);
 
     expect(mockSummarizationMiddleware).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -342,20 +385,20 @@ describe("getAgentDefinition", () => {
     );
   });
 
-  test("Unit -> getAgentDefinition includes toolMonitoringMiddleware", () => {
-    getAgentDefinition(defaultAgent, defaultRequestContext);
+  test("Unit -> getAgentDefinition includes toolMonitoringMiddleware", async () => {
+    await getAgentDefinition(defaultAgent, defaultRequestContext);
 
     const callArgs = mockCreateAgent.mock.calls[0][0];
     expect(callArgs.middleware).toContain(mockToolMonitoringMiddleware);
   });
 
-  test("Unit -> getAgentDefinition works without requestContext", () => {
+  test("Unit -> getAgentDefinition works without requestContext", async () => {
     const agentWithoutContext: AIAgentDefinition = {
       ...defaultAgent,
       model: new ChatOpenAI({ modelName: "gpt-4" }),
     };
 
-    const result = getAgentDefinition(agentWithoutContext);
+    const result = await getAgentDefinition(agentWithoutContext);
 
     expect(mockCreateAgent).toHaveBeenCalled();
     expect(result).toBe(mockAgentInstance);
@@ -363,21 +406,21 @@ describe("getAgentDefinition", () => {
     expect(agentWithoutContext.model.promptCacheKey).toBeUndefined();
   });
 
-  test("Unit -> getAgentDefinition uses agent name in composite thread ID", () => {
+  test("Unit -> getAgentDefinition uses agent name in composite thread ID", async () => {
     const customAgent: AIAgentDefinition = {
       ...defaultAgent,
       name: "custom_agent_name",
     };
 
-    getAgentDefinition(customAgent, defaultRequestContext);
+    await getAgentDefinition(customAgent, defaultRequestContext);
 
     expect(customAgent.model.promptCacheKey).toBe(
       "user-1:thread-1:campaign-1:custom_agent_name"
     );
   });
 
-  test("Unit -> getAgentDefinition configures summarization with summary suffix in cache key", () => {
-    getAgentDefinition(defaultAgent, defaultRequestContext);
+  test("Unit -> getAgentDefinition configures summarization with summary suffix in cache key", async () => {
+    await getAgentDefinition(defaultAgent, defaultRequestContext);
 
     expect(mockSummarizationMiddleware).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -388,14 +431,14 @@ describe("getAgentDefinition", () => {
     );
   });
 
-  test("Unit -> getAgentDefinition configures summarization without cache key when no context", () => {
+  test("Unit -> getAgentDefinition configures summarization without cache key when no context", async () => {
     const agentWithoutContext: AIAgentDefinition = {
       ...defaultAgent,
       name: "no_context_agent",
       model: new ChatOpenAI({ modelName: "gpt-4" }),
     };
 
-    getAgentDefinition(agentWithoutContext);
+    await getAgentDefinition(agentWithoutContext);
 
     // The summarization model should be created without promptCacheKey property
     const callArgs =

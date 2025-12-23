@@ -4,11 +4,10 @@ import { createMiddleware } from "langchain";
 export const toolMonitoringMiddleware = createMiddleware({
   name: "ToolMonitoringMiddleware",
   wrapToolCall: (request, handler) => {
-    const { context } = request.runtime;
     Sentry.metrics.count("tool_invocation", 1, {
+      // Ensure we keep Cardinality low
       attributes: {
         tool_name: request.toolCall.name,
-        ...(context && typeof context === "object" ? context : {}),
       },
     });
     console.debug(`Executing tool: ${request.toolCall.name}`);

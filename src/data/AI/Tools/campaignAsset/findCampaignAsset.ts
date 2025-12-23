@@ -1,5 +1,4 @@
 import { tool } from "@langchain/core/tools";
-import * as Sentry from "@sentry/bun";
 import { z } from "zod";
 import { searchCampaignAssets, stringifyCampaignAsset } from "../../../MongoDB";
 import { RequestContext } from "../../types";
@@ -22,19 +21,13 @@ export const findCampaignAsset = tool(
   async (rawInput, config): Promise<string> => {
     const input = findCampaignAssetSchema.parse(rawInput);
     const context = config.context as RequestContext;
-    Sentry.metrics.count("tool_invocation", 1, {
-      attributes: {
-        tool_name: "find_campaign_asset",
-        ...context,
-      },
-    });
 
     try {
       const results = await searchCampaignAssets({
         campaignId: context.campaignId,
         query: input.query,
         limit: 5,
-        minScore: 0.69,
+        minScore: 0.65,
         recordType: input.recordType,
       });
 
