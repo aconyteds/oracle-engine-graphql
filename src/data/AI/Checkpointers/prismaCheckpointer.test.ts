@@ -6,6 +6,446 @@ import type {
 } from "@langchain/langgraph-checkpoint";
 import { Checkpoint } from "@langchain/langgraph-checkpoint";
 
+describe("PrismaCheckpointSaver Helper Methods", () => {
+  let PrismaCheckpointSaver: typeof import("./prismaCheckpointer").PrismaCheckpointSaver;
+  let mockDBClient: {
+    checkpoint: {
+      findFirst: ReturnType<typeof mock>;
+      findMany: ReturnType<typeof mock>;
+      findUnique: ReturnType<typeof mock>;
+      create: ReturnType<typeof mock>;
+      update: ReturnType<typeof mock>;
+      deleteMany: ReturnType<typeof mock>;
+    };
+  };
+
+  // Default mock data
+  const defaultThreadId = "user123:thread456:campaign789";
+  const defaultCheckpointId = "checkpoint-uuid-123";
+  const defaultCheckpointNamespace = "";
+  const defaultCheckpoint = {
+    v: 1,
+    id: defaultCheckpointId,
+    ts: "2024-01-01T00:00:00.000Z",
+    channel_values: { messages: ["test message"] },
+    channel_versions: { messages: 1 },
+    versions_seen: {},
+  };
+  const defaultMetadata: CheckpointMetadata = {
+    source: "input",
+    step: 1,
+    parents: {},
+  };
+
+  beforeEach(async () => {
+    mock.restore();
+
+    // Create fresh mock instances
+    const mockFindFirst = mock();
+    const mockFindMany = mock();
+    const mockFindUnique = mock();
+    const mockCreate = mock();
+    const mockUpdate = mock();
+    const mockDeleteMany = mock();
+
+    mockDBClient = {
+      checkpoint: {
+        findFirst: mockFindFirst,
+        findMany: mockFindMany,
+        findUnique: mockFindUnique,
+        create: mockCreate,
+        update: mockUpdate,
+        deleteMany: mockDeleteMany,
+      },
+    };
+
+    // Set up module mocks
+    mock.module("@sentry/bun", () => ({
+      captureException: mock(),
+    }));
+    mock.module("../../MongoDB", () => ({
+      DBClient: mockDBClient,
+      Prisma: {
+        InputJsonArray: {},
+        InputJsonObject: {},
+      },
+    }));
+
+    // Dynamically import the module under test
+    const module = await import("./prismaCheckpointer");
+    PrismaCheckpointSaver = module.PrismaCheckpointSaver;
+  });
+
+  afterEach(() => {
+    mock.restore();
+  });
+
+  describe("deserializeCheckpoint (via getTuple)", () => {
+    test("Unit -> deserializeCheckpoint successfully deserializes valid checkpoint data", async () => {
+      const checkpointer = new PrismaCheckpointSaver();
+
+      // Create serialized checkpoint data (base64 encoded)
+      const serializedData =
+        await checkpointer["serde"].dumpsTyped(defaultCheckpoint);
+      const [type, uint8Data] = serializedData;
+      const base64Data = Buffer.from(uint8Data).toString("base64");
+
+      const checkpointDoc = {
+        id: defaultCheckpointId,
+        checkpointData: [type, base64Data],
+        metadata: defaultMetadata,
+        parentCheckpointId: null,
+      };
+
+      mockDBClient.checkpoint.findFirst.mockResolvedValue(checkpointDoc);
+
+      const config = {
+        configurable: {
+          thread_id: defaultThreadId,
+          checkpoint_ns: defaultCheckpointNamespace,
+        },
+      };
+
+      const result = await checkpointer.getTuple(config);
+
+      expect(result).toBeDefined();
+      expect(result?.checkpoint).toMatchObject({
+        v: 1,
+        id: defaultCheckpointId,
+      });
+    });
+
+    test("Unit -> deserializeCheckpoint returns undefined for invalid checkpoint data format", async () => {
+      const checkpointer = new PrismaCheckpointSaver();
+      const originalConsoleError = console.error;
+      const mockConsoleError = mock();
+      console.error = mockConsoleError;
+
+      try {
+        const checkpointDoc = {
+          id: defaultCheckpointId,
+          checkpointData: "invalid-format", // Not an array
+          metadata: defaultMetadata,
+          parentCheckpointId: null,
+        };
+
+        mockDBClient.checkpoint.findFirst.mockResolvedValue(checkpointDoc);
+
+        const config = {
+          configurable: {
+            thread_id: defaultThreadId,
+            checkpoint_ns: defaultCheckpointNamespace,
+          },
+        };
+
+        const result = await checkpointer.getTuple(config);
+
+        expect(result).toBeUndefined();
+        expect(mockConsoleError).toHaveBeenCalledWith(
+          "Invalid checkpoint data format"
+        );
+      } finally {
+        console.error = originalConsoleError;
+      }
+    });
+
+    test("Unit -> deserializeCheckpoint returns undefined for array with wrong length", async () => {
+      const checkpointer = new PrismaCheckpointSaver();
+      const originalConsoleError = console.error;
+      const mockConsoleError = mock();
+      console.error = mockConsoleError;
+
+      try {
+        const checkpointDoc = {
+          id: defaultCheckpointId,
+          checkpointData: ["only-one-element"], // Should be [type, data]
+          metadata: defaultMetadata,
+          parentCheckpointId: null,
+        };
+
+        mockDBClient.checkpoint.findFirst.mockResolvedValue(checkpointDoc);
+
+        const config = {
+          configurable: {
+            thread_id: defaultThreadId,
+            checkpoint_ns: defaultCheckpointNamespace,
+          },
+        };
+
+        const result = await checkpointer.getTuple(config);
+
+        expect(result).toBeUndefined();
+        expect(mockConsoleError).toHaveBeenCalledWith(
+          "Invalid checkpoint data format"
+        );
+      } finally {
+        console.error = originalConsoleError;
+      }
+    });
+  });
+
+  describe("buildCheckpointTuple (via getTuple and list)", () => {
+    test("Unit -> buildCheckpointTuple creates complete tuple without parent", async () => {
+      const checkpointer = new PrismaCheckpointSaver();
+
+      const serializedData =
+        await checkpointer["serde"].dumpsTyped(defaultCheckpoint);
+      const [type, uint8Data] = serializedData;
+      const base64Data = Buffer.from(uint8Data).toString("base64");
+
+      const checkpointDoc = {
+        id: defaultCheckpointId,
+        checkpointData: [type, base64Data],
+        metadata: defaultMetadata,
+        parentCheckpointId: null,
+      };
+
+      mockDBClient.checkpoint.findFirst.mockResolvedValue(checkpointDoc);
+
+      const config = {
+        configurable: {
+          thread_id: defaultThreadId,
+          checkpoint_ns: defaultCheckpointNamespace,
+        },
+      };
+
+      const result = await checkpointer.getTuple(config);
+
+      expect(result).toBeDefined();
+      expect(result?.config).toEqual({
+        configurable: {
+          thread_id: defaultThreadId,
+          checkpoint_ns: defaultCheckpointNamespace,
+          checkpoint_id: defaultCheckpointId,
+        },
+      });
+      expect(result?.metadata).toEqual(defaultMetadata);
+      expect(result?.parentConfig).toBeUndefined();
+      expect(result?.pendingWrites).toEqual([]);
+    });
+
+    test("Unit -> buildCheckpointTuple creates complete tuple with parent config", async () => {
+      const checkpointer = new PrismaCheckpointSaver();
+      const parentCheckpointId = "parent-checkpoint-123";
+
+      const serializedData =
+        await checkpointer["serde"].dumpsTyped(defaultCheckpoint);
+      const [type, uint8Data] = serializedData;
+      const base64Data = Buffer.from(uint8Data).toString("base64");
+
+      const checkpointDoc = {
+        id: defaultCheckpointId,
+        checkpointData: [type, base64Data],
+        metadata: defaultMetadata,
+        parentCheckpointId,
+      };
+
+      const parentDoc = {
+        id: parentCheckpointId,
+      };
+
+      mockDBClient.checkpoint.findFirst.mockResolvedValue(checkpointDoc);
+      mockDBClient.checkpoint.findUnique.mockResolvedValue(parentDoc);
+
+      const config = {
+        configurable: {
+          thread_id: defaultThreadId,
+          checkpoint_ns: defaultCheckpointNamespace,
+        },
+      };
+
+      const result = await checkpointer.getTuple(config);
+
+      expect(result).toBeDefined();
+      expect(result?.parentConfig).toEqual({
+        configurable: {
+          thread_id: defaultThreadId,
+          checkpoint_ns: defaultCheckpointNamespace,
+          checkpoint_id: parentCheckpointId,
+        },
+      });
+    });
+
+    test("Unit -> buildCheckpointTuple handles missing parent document gracefully", async () => {
+      const checkpointer = new PrismaCheckpointSaver();
+      const parentCheckpointId = "nonexistent-parent";
+
+      const serializedData =
+        await checkpointer["serde"].dumpsTyped(defaultCheckpoint);
+      const [type, uint8Data] = serializedData;
+      const base64Data = Buffer.from(uint8Data).toString("base64");
+
+      const checkpointDoc = {
+        id: defaultCheckpointId,
+        checkpointData: [type, base64Data],
+        metadata: defaultMetadata,
+        parentCheckpointId,
+      };
+
+      mockDBClient.checkpoint.findFirst.mockResolvedValue(checkpointDoc);
+      mockDBClient.checkpoint.findUnique.mockResolvedValue(null);
+
+      const config = {
+        configurable: {
+          thread_id: defaultThreadId,
+          checkpoint_ns: defaultCheckpointNamespace,
+        },
+      };
+
+      const result = await checkpointer.getTuple(config);
+
+      expect(result).toBeDefined();
+      expect(result?.parentConfig).toBeUndefined();
+    });
+
+    test("Unit -> buildCheckpointTuple preserves custom checkpoint namespace", async () => {
+      const checkpointer = new PrismaCheckpointSaver();
+      const customNamespace = "custom-namespace";
+
+      const serializedData =
+        await checkpointer["serde"].dumpsTyped(defaultCheckpoint);
+      const [type, uint8Data] = serializedData;
+      const base64Data = Buffer.from(uint8Data).toString("base64");
+
+      const checkpointDoc = {
+        id: defaultCheckpointId,
+        checkpointData: [type, base64Data],
+        metadata: defaultMetadata,
+        parentCheckpointId: null,
+      };
+
+      mockDBClient.checkpoint.findFirst.mockResolvedValue(checkpointDoc);
+
+      const config = {
+        configurable: {
+          thread_id: defaultThreadId,
+          checkpoint_ns: customNamespace,
+        },
+      };
+
+      const result = await checkpointer.getTuple(config);
+
+      expect(result).toBeDefined();
+      expect(result?.config.configurable?.checkpoint_ns).toBe(customNamespace);
+    });
+  });
+
+  describe("list method with helper methods", () => {
+    test("Unit -> list uses buildCheckpointTuple for multiple checkpoints", async () => {
+      const checkpointer = new PrismaCheckpointSaver();
+
+      const checkpoint1 = { ...defaultCheckpoint, id: "checkpoint-1" };
+      const checkpoint2 = { ...defaultCheckpoint, id: "checkpoint-2" };
+
+      const serialized1 = await checkpointer["serde"].dumpsTyped(checkpoint1);
+      const serialized2 = await checkpointer["serde"].dumpsTyped(checkpoint2);
+
+      const [type1, uint8Data1] = serialized1;
+      const [type2, uint8Data2] = serialized2;
+
+      const base64Data1 = Buffer.from(uint8Data1).toString("base64");
+      const base64Data2 = Buffer.from(uint8Data2).toString("base64");
+
+      const checkpoints = [
+        {
+          id: "checkpoint-1",
+          checkpointData: [type1, base64Data1],
+          metadata: defaultMetadata,
+          parentCheckpointId: null,
+        },
+        {
+          id: "checkpoint-2",
+          checkpointData: [type2, base64Data2],
+          metadata: defaultMetadata,
+          parentCheckpointId: "checkpoint-1",
+        },
+      ];
+
+      mockDBClient.checkpoint.findMany.mockResolvedValue(checkpoints);
+      mockDBClient.checkpoint.findUnique.mockResolvedValue({
+        id: "checkpoint-1",
+      });
+
+      const config = {
+        configurable: {
+          thread_id: defaultThreadId,
+          checkpoint_ns: defaultCheckpointNamespace,
+        },
+      };
+
+      const results = [];
+      for await (const tuple of checkpointer.list(config)) {
+        results.push(tuple);
+      }
+
+      expect(results).toHaveLength(2);
+      expect(results[0].config.configurable?.checkpoint_id).toBe(
+        "checkpoint-1"
+      );
+      expect(results[1].config.configurable?.checkpoint_id).toBe(
+        "checkpoint-2"
+      );
+      expect(results[1].parentConfig?.configurable?.checkpoint_id).toBe(
+        "checkpoint-1"
+      );
+    });
+
+    test("Unit -> list skips invalid checkpoints and continues processing", async () => {
+      const checkpointer = new PrismaCheckpointSaver();
+      const originalConsoleError = console.error;
+      const mockConsoleError = mock();
+      console.error = mockConsoleError;
+
+      try {
+        const validCheckpoint = { ...defaultCheckpoint, id: "checkpoint-1" };
+        const serialized =
+          await checkpointer["serde"].dumpsTyped(validCheckpoint);
+        const [type, uint8Data] = serialized;
+        const base64Data = Buffer.from(uint8Data).toString("base64");
+
+        const checkpoints = [
+          {
+            id: "invalid-checkpoint",
+            checkpointData: "invalid-data", // Invalid format
+            metadata: defaultMetadata,
+            parentCheckpointId: null,
+          },
+          {
+            id: "checkpoint-1",
+            checkpointData: [type, base64Data],
+            metadata: defaultMetadata,
+            parentCheckpointId: null,
+          },
+        ];
+
+        mockDBClient.checkpoint.findMany.mockResolvedValue(checkpoints);
+
+        const config = {
+          configurable: {
+            thread_id: defaultThreadId,
+            checkpoint_ns: defaultCheckpointNamespace,
+          },
+        };
+
+        const results = [];
+        for await (const tuple of checkpointer.list(config)) {
+          results.push(tuple);
+        }
+
+        expect(results).toHaveLength(1);
+        expect(results[0].config.configurable?.checkpoint_id).toBe(
+          "checkpoint-1"
+        );
+        expect(mockConsoleError).toHaveBeenCalledWith(
+          "Invalid checkpoint data format"
+        );
+      } finally {
+        console.error = originalConsoleError;
+      }
+    });
+  });
+});
+
 describe("PrismaCheckpointSaver Sentry Integration", () => {
   let PrismaCheckpointSaver: typeof import("./prismaCheckpointer").PrismaCheckpointSaver;
   let mockSentry: {

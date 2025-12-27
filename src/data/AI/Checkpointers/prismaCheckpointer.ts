@@ -76,6 +76,103 @@ function base64ToUint8Array(base64: string): Uint8Array {
  */
 export class PrismaCheckpointSaver extends BaseCheckpointSaver {
   /**
+   * Deserializes checkpoint data from the database document format.
+   *
+   * Converts the stored [type, base64] format back into a Checkpoint object
+   * using the serde (serialization/deserialization) system.
+   *
+   * @param checkpointDoc - The checkpoint document from the database
+   * @returns The deserialized Checkpoint object, or undefined if deserialization fails
+   * @private
+   */
+  private async deserializeCheckpoint(checkpointDoc: {
+    checkpointData: unknown;
+  }): Promise<Checkpoint | undefined> {
+    const checkpointData = checkpointDoc.checkpointData as unknown;
+    if (!Array.isArray(checkpointData) || checkpointData.length !== 2) {
+      console.error("Invalid checkpoint data format");
+      return undefined;
+    }
+
+    const [type, base64Data] = checkpointData as [string, string];
+    const data = base64ToUint8Array(base64Data);
+    const checkpoint = (await this.serde.loadsTyped(type, data)) as Checkpoint;
+
+    return checkpoint;
+  }
+
+  /**
+   * Builds a complete CheckpointTuple from a database checkpoint document.
+   *
+   * This method:
+   * 1. Deserializes the checkpoint data
+   * 2. Creates the checkpoint config (with thread_id, checkpoint_ns, checkpoint_id)
+   * 3. Fetches and builds the parent config if a parent checkpoint exists
+   * 4. Assembles everything into a CheckpointTuple
+   *
+   * @param checkpointDoc - The checkpoint document from the database
+   * @param threadId - The conversation thread ID
+   * @param checkpointNamespace - The checkpoint namespace
+   * @returns A complete CheckpointTuple, or undefined if deserialization fails
+   * @private
+   */
+  private async buildCheckpointTuple(
+    checkpointDoc: {
+      id: string;
+      checkpointData: unknown;
+      metadata: unknown;
+      parentCheckpointId: string | null;
+    },
+    threadId: string,
+    checkpointNamespace: string
+  ): Promise<CheckpointTuple | undefined> {
+    // Deserialize checkpoint data
+    const checkpoint = await this.deserializeCheckpoint(checkpointDoc);
+
+    if (!checkpoint) {
+      return undefined;
+    }
+
+    // Parse metadata
+    const metadata = checkpointDoc.metadata as CheckpointMetadata;
+
+    // Build config for this checkpoint
+    const checkpointConfig: RunnableConfig = {
+      configurable: {
+        thread_id: threadId,
+        checkpoint_ns: checkpointNamespace,
+        checkpoint_id: checkpointDoc.id,
+      },
+    };
+
+    // Get parent config if exists
+    let parentConfig: RunnableConfig | undefined;
+    if (checkpointDoc.parentCheckpointId) {
+      const parentDoc = await DBClient.checkpoint.findUnique({
+        where: { id: checkpointDoc.parentCheckpointId },
+      });
+
+      if (parentDoc) {
+        parentConfig = {
+          configurable: {
+            thread_id: threadId,
+            checkpoint_ns: checkpointNamespace,
+            checkpoint_id: parentDoc.id,
+          },
+        };
+      }
+    }
+
+    return {
+      config: checkpointConfig,
+      checkpoint,
+      metadata,
+      parentConfig,
+      pendingWrites: [],
+    };
+  }
+
+  /**
    * Retrieves a specific saved checkpoint (conversation state) from the database.
    *
    * This is like loading a save game - it fetches the most recent state of a conversation
@@ -138,62 +235,11 @@ export class PrismaCheckpointSaver extends BaseCheckpointSaver {
         return undefined;
       }
 
-      // Deserialize checkpoint data
-      // dumpsTyped returns [type: string, data: Uint8Array], stored as [type, base64]
-      const checkpointData = checkpointDoc.checkpointData as unknown;
-      if (!Array.isArray(checkpointData) || checkpointData.length !== 2) {
-        console.error("Invalid checkpoint data format");
-        return undefined;
-      }
-
-      const [type, base64Data] = checkpointData as [string, string];
-      const data = base64ToUint8Array(base64Data);
-      const checkpoint = (await this.serde.loadsTyped(
-        type,
-        data
-      )) as Checkpoint;
-
-      if (!checkpoint) {
-        return undefined;
-      }
-
-      // Parse metadata
-      const metadata = checkpointDoc.metadata as CheckpointMetadata;
-
-      // Build config for this checkpoint
-      const checkpointConfig: RunnableConfig = {
-        configurable: {
-          thread_id: threadId,
-          checkpoint_ns: checkpointNamespace,
-          checkpoint_id: checkpointDoc.id,
-        },
-      };
-
-      // Get parent config if exists
-      let parentConfig: RunnableConfig | undefined;
-      if (checkpointDoc.parentCheckpointId) {
-        const parentDoc = await DBClient.checkpoint.findUnique({
-          where: { id: checkpointDoc.parentCheckpointId },
-        });
-
-        if (parentDoc) {
-          parentConfig = {
-            configurable: {
-              thread_id: threadId,
-              checkpoint_ns: checkpointNamespace,
-              checkpoint_id: parentDoc.id,
-            },
-          };
-        }
-      }
-
-      return {
-        config: checkpointConfig,
-        checkpoint,
-        metadata,
-        parentConfig,
-        pendingWrites: [],
-      };
+      return this.buildCheckpointTuple(
+        checkpointDoc,
+        threadId,
+        checkpointNamespace
+      );
     } catch (error) {
       console.error("Error retrieving checkpoint:", error);
       Sentry.captureException(error, {
@@ -270,57 +316,15 @@ export class PrismaCheckpointSaver extends BaseCheckpointSaver {
       });
 
       for (const checkpointDoc of checkpoints) {
-        const checkpointData = checkpointDoc.checkpointData as unknown;
-        if (!Array.isArray(checkpointData) || checkpointData.length !== 2) {
-          console.error("Invalid checkpoint data format");
-          continue;
+        const tuple = await this.buildCheckpointTuple(
+          checkpointDoc,
+          threadId,
+          checkpointNamespace
+        );
+
+        if (tuple) {
+          yield tuple;
         }
-
-        const [type, base64Data] = checkpointData as [string, string];
-        const data = base64ToUint8Array(base64Data);
-        const checkpoint = (await this.serde.loadsTyped(
-          type,
-          data
-        )) as Checkpoint;
-
-        if (!checkpoint) {
-          continue;
-        }
-
-        const metadata = checkpointDoc.metadata as CheckpointMetadata;
-
-        const checkpointConfig: RunnableConfig = {
-          configurable: {
-            thread_id: threadId,
-            checkpoint_ns: checkpointNamespace,
-            checkpoint_id: checkpointDoc.id,
-          },
-        };
-
-        let parentConfig: RunnableConfig | undefined;
-        if (checkpointDoc.parentCheckpointId) {
-          const parentDoc = await DBClient.checkpoint.findUnique({
-            where: { id: checkpointDoc.parentCheckpointId },
-          });
-
-          if (parentDoc) {
-            parentConfig = {
-              configurable: {
-                thread_id: threadId,
-                checkpoint_ns: checkpointNamespace,
-                checkpoint_id: parentDoc.id,
-              },
-            };
-          }
-        }
-
-        yield {
-          config: checkpointConfig,
-          checkpoint,
-          metadata,
-          parentConfig,
-          pendingWrites: [],
-        };
       }
     } catch (error) {
       console.error("Error listing checkpoints:", error);
