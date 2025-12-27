@@ -1,11 +1,3 @@
 {
-  "mcpServers": {
-    "github": {
-      "type": "http",
-      "url": "https://api.githubcopilot.com/mcp",
-      "headers": {
-        "Authorization": "Bearer $(grep GITHUB_PAT .env | cut -d '=' -f2)"
-      }
-    }
-  }
+  "mcpServers": {}
 }

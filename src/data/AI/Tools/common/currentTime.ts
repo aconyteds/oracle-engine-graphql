@@ -1,12 +1,10 @@
-import { tool } from "@langchain/core/tools";
+import { tool } from "langchain";
 import { z } from "zod";
 
 const currentTimeSchema = z.object({});
 
 export const currentTime = tool(
-  (rawInput: unknown): string => {
-    // Validate against schema even though it is empty to ensure consistent behavior
-    currentTimeSchema.parse(rawInput);
+  async (_input, _context) => {
     return `Current time: ${new Date().toISOString()} (UTC)`;
   },
   {

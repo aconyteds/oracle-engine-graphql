@@ -1,17 +1,23 @@
 import type { BaseMessage } from "@langchain/core/messages";
-import type { DynamicStructuredTool, Tool } from "@langchain/core/tools";
+import type { RunnableConfig } from "@langchain/core/runnables";
+import type {
+  DynamicStructuredTool,
+  Tool,
+  ToolRunnableConfig,
+} from "@langchain/core/tools";
 import type { ClientOptions } from "@langchain/openai";
-
-import type { TrustedModel } from "./modelList";
+import { ChatOpenAI } from "@langchain/openai";
+import type { ToolCall as LangChainToolCall } from "langchain";
 
 export enum RouterType {
-  Simple = "simple",
-  Router = "router",
+  None = "none",
+  Handoff = "handoff",
+  Controller = "controller",
 }
 
 export type AIAgentDefinition = {
   name: string;
-  model: TrustedModel;
+  model: ChatOpenAI;
   description: string;
   // This is a string that indicates to the LLM what this agent is best at handling.
   // It should be a short phrase, like "math problems" or "travel recommendations".
@@ -88,3 +94,32 @@ export interface RouterWorkflowState {
   targetAgentResult?: unknown;
   routingMetadata?: RoutingMetadata;
 }
+
+// Campaign metadata for enriching agent context
+export interface CampaignMetadata {
+  name: string;
+  setting: string;
+  tone: string;
+  ruleset: string;
+}
+
+// Request context for passing deterministic values to tools
+export interface RequestContext {
+  userId: string; // Database user ID
+  campaignId: string; // Database campaign ID
+  threadId: string; // Database thread ID
+  runId: string; // LangSmith trace ID
+  campaignMetadata?: CampaignMetadata; // Optional campaign context for enrichment
+  allowEdits?: boolean; // Controls human-in-the-loop for destructive operations (default: true)
+}
+
+// Generic tool configuration type for tool function signatures
+// This handles the various config shapes that LangChain can pass to tool functions
+export type ToolConfig =
+  | Record<string, any>
+  | ToolRunnableConfig
+  | (Record<string, any> &
+      RunnableConfig<Record<string, any>> & {
+        toolCall?: LangChainToolCall;
+        context?: any;
+      });

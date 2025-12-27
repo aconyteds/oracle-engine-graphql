@@ -6,11 +6,14 @@ type CreateThreadInput = {
   message: string;
   // The campaign ID to tie the thread to
   campaignId: string;
+  // The user ID creating the thread
+  userId: string;
 };
 
 export const createThread = async ({
   message,
   campaignId,
+  userId,
 }: CreateThreadInput): Promise<string> => {
   // Create a title using the AI
   const title = await createTitle(message);
@@ -20,9 +23,7 @@ export const createThread = async ({
     data: {
       title,
       campaignId,
-      // TODO:: Make this more dynamic
-      selectedAgent: "Default Router",
-      // selectedAgent: "Cheapest",
+      userId,
     },
   });
 

@@ -1,75 +1,116 @@
 import { randomUUID } from "crypto";
-import {
-  generateMessageWithRouter,
-  generateMessageWithStandardWorkflow,
-  getAgentByName,
-  getModelDefinition,
-  RouterType,
-  truncateMessageHistory,
-} from "../../../data/AI";
+import { AIMessage, BaseMessage, HumanMessage } from "langchain";
+import { generateMessageWithAgent } from "../../../data/AI";
+import { defaultRouter } from "../../../data/AI/Agents";
+import type { CampaignMetadata, RequestContext } from "../../../data/AI/types";
 import { DBClient } from "../../../data/MongoDB";
 import type { GenerateMessagePayload } from "../../../generated/graphql";
-import { ServerError } from "../../../graphql/errors";
+import {
+  NotFoundError,
+  UnauthorizedAccessError,
+} from "../../../graphql/errors";
+import { getCampaign } from "../../Campaign/service/getCampaign";
+
+export type GenerateMessageProps = {
+  threadId: string;
+  userId: string;
+};
 
 export async function* generateMessage(
-  threadId: string
+  props: GenerateMessageProps
 ): AsyncGenerator<GenerateMessagePayload> {
-  // Get the Thread
-  const thread = await DBClient.thread.findUnique({
+  const { threadId, userId } = props;
+  // Get the Thread with explicit user ownership check
+  const thread = await DBClient.thread.findFirst({
     select: {
       messages: {
         orderBy: {
           createdAt: "asc",
         },
       },
-      selectedAgent: true,
+      campaignId: true,
       userId: true,
     },
     where: {
       id: threadId,
+      userId: userId, // Ensure thread belongs to requesting user
     },
   });
 
   if (!thread) {
-    throw ServerError("Thread not found");
+    throw new NotFoundError("Thread not found");
   }
 
-  const currAgent = getAgentByName(thread.selectedAgent);
-  if (!currAgent) {
-    throw ServerError("Invalid agent selected.");
-  }
-  const AIModel = getModelDefinition(currAgent);
-  if (!AIModel) {
-    throw ServerError("Invalid agent Configuration detected.");
+  // Defense-in-depth: Verify thread ownership
+  if (thread.userId !== userId) {
+    throw new UnauthorizedAccessError("Unauthorized access to thread");
   }
 
-  const truncatedMessageHistory = truncateMessageHistory({
-    messageList: thread.messages,
-    agent: currAgent,
+  const { campaignId } = thread;
+
+  // Fetch campaign metadata for context enrichment
+  let campaignMetadata: CampaignMetadata | undefined;
+  try {
+    const campaign = await getCampaign(campaignId);
+    if (!campaign) {
+      throw new NotFoundError("Campaign not found");
+    }
+
+    // Verify campaign ownership to prevent cross-campaign data bleed
+    if (campaign.ownerId !== userId) {
+      throw new UnauthorizedAccessError("Unauthorized access to campaign");
+    }
+
+    campaignMetadata = {
+      name: campaign.name,
+      setting: campaign.setting,
+      tone: campaign.tone,
+      ruleset: campaign.ruleset,
+    };
+  } catch (error) {
+    console.error("Failed to fetch campaign metadata:", error);
+    // Re-throw security errors (NotFoundError, UnauthorizedAccessError), don't silently continue
+    if (
+      error instanceof NotFoundError ||
+      error instanceof UnauthorizedAccessError
+    ) {
+      throw error;
+    }
+    // For other errors, continue without metadata rather than failing the request
+  }
+
+  const currAgent = defaultRouter;
+
+  const messageHistory: BaseMessage[] = [];
+  thread.messages.forEach((msg) => {
+    if (msg.role === "user") {
+      messageHistory.push(new HumanMessage(msg.content));
+      return;
+    }
+    if (msg.role === "assistant") {
+      messageHistory.push(new AIMessage(msg.content));
+      return;
+    }
   });
 
   const runId = randomUUID().toString(); // Unique ID for this workflow run
 
-  // Route to appropriate workflow based on agent type
-  switch (currAgent.routerType) {
-    case RouterType.Router:
-      // Use router workflow for router agents
-      yield* generateMessageWithRouter({
-        threadId,
-        agent: currAgent,
-        messageHistory: truncatedMessageHistory,
-        runId,
-      });
-      break;
-    case RouterType.Simple:
-    default:
-      // Use standard workflow for leaf agents
-      yield* generateMessageWithStandardWorkflow({
-        threadId,
-        agent: currAgent,
-        messageHistory: truncatedMessageHistory,
-        runId,
-      });
-      break;
-  }
+  // Create request context with deterministic values
+  const requestContext: RequestContext = {
+    userId,
+    campaignId,
+    threadId,
+    runId,
+    campaignMetadata,
+    allowEdits: true, // Default to allowing edits, can be made configurable later
+  };
+
+  // All agents now use the unified generation pattern
+  yield* generateMessageWithAgent({
+    threadId,
+    runId,
+    agent: currAgent,
+    messageHistory,
+    requestContext,
+  });
 }

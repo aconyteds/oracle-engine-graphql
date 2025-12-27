@@ -46,18 +46,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Runtime:** Bun (not Node.js) - used for all TypeScript execution and testing
 - **Server:** Apollo Server with GraphQL subscriptions over WebSockets
 - **Database:** MongoDB Atlas with Prisma ORM
-- **AI:** LangGraph workflows with OpenAI, Anthropic models and tool integration
+- **AI:** LangChain 1.0 with createAgent API, OpenAI models, and tool integration
 - **Authentication:** Firebase Admin SDK
 
 ### Application Structure
 
 **src/data/** - Data access layer with services for external systems:
 
-- `AI/` - LangGraph workflows, agents, tools, and AI model definitions
-  - `Workflows/toolEnabledWorkflow.ts` - Main LangGraph workflow for AI message generation
-  - `Agents/` - Pre-configured AI agents (characterGenerator, cheapest)
-  - `Tools/` - Available tools for AI agents (calculator, dice roller, RPG tools)
-  - `Nodes/` - LangGraph workflow nodes (validateToolInput, generateWithTools, executeTools)
+- `AI/` - LangChain agents, tools, and AI model definitions
+  - `getAgentDefinition.ts` - Creates agent instances using LangChain 1.0 createAgent API
+  - `generateMessageWithAgent.ts` - Agent invocation and handoff routing logic
+  - `enrichInstructions.ts` - Standardized system message generation with campaign context
+  - `Agents/` - Pre-configured AI agent definitions (cheapest, locationAgent)
+  - `Tools/` - Available tools for AI agents (calculator, dice roller, RPG tools, campaign assets)
+  - `Checkpointers/` - Prisma-based checkpoint management for conversation state
 - `MongoDB/` - Prisma client and database operations
 - `Firebase/` - Authentication and user management
 
@@ -130,18 +132,62 @@ The `campaign_asset_search` tool is available to AI agents for searching campaig
 - Pre-filters: campaignId, recordType
 - Implementation: [src/data/MongoDB/campaignAsset/assetSearch.ts](src/data/MongoDB/campaignAsset/assetSearch.ts)
 
-### AI/LangGraph Integration
+### AI/LangChain Integration
 
-The system uses LangGraph for structured AI workflows:
+The system uses LangChain 1.0's `createAgent` API for AI-powered message generation:
 
-1. **Tool-Enabled Workflow** (`src/data/AI/Workflows/toolEnabledWorkflow.ts`):
-   - Validates input → Generates with tools → Executes tools → Generates final response
-   - Supports streaming responses and tool execution tracking
-   - Stores tool calls and results in message workspace
+**Agent Architecture:**
 
-2. **Agents** are pre-configured with specific models, system messages, and available tools
+1. **Agent Definitions** (`src/data/AI/Agents/`):
+   - Each agent is defined with inline model configuration, router type, description, specialization, system message, and available tools
+   - Example: `cheapest.ts` uses gpt-5-nano with minimal reasoning effort
+   - Example: `locationAgent.ts` specializes in location-based campaign asset management
+   - Models are declared inline (e.g., `new ChatOpenAI({ model: "gpt-5-nano", ... })`)
 
-3. **Tools** include common utilities (calculator, time) and RPG-specific tools (dice, character generation)
+2. **Agent Instance Creation** (`src/data/AI/getAgentDefinition.ts`):
+   - Uses LangChain's `createAgent()` to create agent instances with:
+     - Model configuration (with prompt caching by thread ID)
+     - Tools (agent-specific tools + sub-agent tools for supervisor pattern)
+     - System prompts (enriched with campaign context via `enrichInstructions`)
+     - Middleware stack (summarization, error handling, monitoring)
+     - PrismaCheckpointSaver for conversation state management
+   - Supports three router types:
+     - `RouterType.None`: Standard agent with tools
+     - `RouterType.Handoff`: Routes to other agents via structured response schema
+     - `RouterType.Controller`: Supervisor pattern - sub-agents exposed as tools
+
+3. **System Message Enrichment** (`src/data/AI/enrichInstructions.ts`):
+   - Generates standardized system messages with XML-structured context:
+     - Application context (Oracle Engine description and capabilities)
+     - Agent-specific system instructions
+     - Campaign metadata (name, setting, tone, ruleset) with usage guidance
+     - Formatting guidance (Markdown, asset links)
+     - Guardrails (consistency, no fabrication, user instruction priority)
+
+4. **Message Generation** (`src/data/AI/generateMessageWithAgent.ts`):
+   - Invokes agents with conversation checkpointing
+   - Handles handoff routing between agents (recursive calls to target agents)
+   - Tracks tool usage and yields intermediate status updates
+   - Stores final messages with workspace metadata (debug info, tool usage, routing decisions)
+   - Manages message history to avoid duplication in checkpoints
+
+5. **Conversation State Management**:
+   - Uses PrismaCheckpointSaver for persistent conversation state
+   - Composite thread IDs: `${userId}:${threadId}:${campaignId}:${agentName}`
+   - Only passes new messages if checkpoint exists (avoids re-appending history)
+   - Enables conversation continuity across sessions
+
+6. **Context Summarization**:
+   - Automatic summarization via LangChain's `summarizationMiddleware`
+   - Triggers at 100,000 tokens, keeps 10,000 tokens of recent context
+   - Uses gpt-5-nano with minimal reasoning for cost-effective summarization
+   - Prevents context window overflow in long conversations
+
+7. **Tool Integration**:
+   - Common utilities: calculator, currentTime
+   - RPG-specific: dice roller, character generation
+   - Campaign assets: findCampaignAsset (semantic search), location CRUD operations
+   - Middleware wraps tools with error handling and monitoring
 
 ### Development Conventions
 

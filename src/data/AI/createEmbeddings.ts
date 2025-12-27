@@ -1,6 +1,5 @@
 import { OpenAIEmbeddings } from "@langchain/openai";
-import { encoding_for_model } from "tiktoken";
-import { getModelByName } from "./modelList";
+import { encoding_for_model, TiktokenModel } from "tiktoken";
 
 /**
  * Generates an embedding vector for a search query using OpenAI's text-embedding-3-small model.
@@ -10,12 +9,14 @@ import { getModelByName } from "./modelList";
  * @returns Promise<number[]> - Embedding vector, or empty array on error
  */
 export async function createEmbeddings(query: string): Promise<number[]> {
-  const currentEmbeddingsModel = "text-embedding-3-small";
+  const embeddingModel = {
+    modelName: "text-embedding-3-small" as TiktokenModel,
+    modelProvider: "openai",
+    contextWindow: 8_191,
+  };
 
   try {
-    const embeddingModel = getModelByName(currentEmbeddingsModel);
     const embeddings = new OpenAIEmbeddings({
-      apiKey: process.env.OPENAI_API_KEY,
       model: embeddingModel.modelName,
     });
 
@@ -27,7 +28,7 @@ export async function createEmbeddings(query: string): Promise<number[]> {
     }
 
     // Check token count and truncate if necessary
-    const encoder = encoding_for_model(currentEmbeddingsModel);
+    const encoder = encoding_for_model(embeddingModel.modelName);
     try {
       const tokenCount = encoder.encode(textToEmbed).length;
       if (tokenCount > embeddingModel.contextWindow) {

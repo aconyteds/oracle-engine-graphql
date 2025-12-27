@@ -7,17 +7,12 @@ import { buildRouterSystemMessage } from "./buildRouterSystemMessage";
  * Template-based router agent translator
  * Converts AIAgentDefinition with sub-agents into router-capable agents
  */
-
-/**
- * Translates an agent with sub-agents into a router agent
- * Only considers direct sub-agents to keep system message focused
- */
 export function buildRouterAgent(agent: AIAgentDefinition): AIAgentDefinition {
   // If no sub-agents, return as-is (leaf agent)
   if (!agent.availableSubAgents?.length) {
     return {
       ...agent,
-      routerType: RouterType.Simple,
+      routerType: RouterType.None,
     };
   }
 
@@ -29,12 +24,14 @@ export function buildRouterAgent(agent: AIAgentDefinition): AIAgentDefinition {
   );
 
   // Return router-enabled agent
+  // IMPORTANT: Preserve the original routerType from the agent definition
+  // This allows the caller to specify Handoff or Controller behavior
   return {
     ...agent,
     systemMessage,
     availableTools: [routeToAgent, analyzeConversationContext],
     specialization:
       agent.specialization || "intelligent request routing and delegation",
-    routerType: RouterType.Router,
+    // Don't override routerType - use the one from the original agent definition
   };
 }

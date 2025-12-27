@@ -1,4 +1,4 @@
-import { tool } from "@langchain/core/tools";
+import { tool } from "langchain";
 import { z } from "zod";
 
 const calculatorSchema = z.object({
@@ -10,8 +10,7 @@ const calculatorSchema = z.object({
 });
 
 export const calculator = tool(
-  async (rawInput: unknown): Promise<string> => {
-    const input = calculatorSchema.parse(rawInput);
+  async (input, _context) => {
     try {
       // Simple calculator - in production you'd want more sophisticated parsing
       const sanitizedExpression = input.expression.replace(

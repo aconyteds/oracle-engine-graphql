@@ -1,16 +1,13 @@
 import { describe, expect, test } from "bun:test";
-import type { TrustedModel } from "../../modelList";
+import { ChatOpenAI } from "@langchain/openai";
 import type { AIAgentDefinition } from "../../types";
 import { RouterType } from "../../types";
-
 import { buildSubAgentDescriptions } from "./buildSubAgentDescriptions";
 
 describe("buildSubAgentDescriptions", () => {
-  const defaultModel: TrustedModel = {
-    modelName: "gpt-4",
-    contextWindow: 8192,
-    modelProvider: "OpenAI",
-  };
+  const defaultModel = new ChatOpenAI({
+    model: "gpt-5-nano",
+  });
   // Default mock data
   const defaultAgent: AIAgentDefinition = {
     name: "TestAgent",
@@ -18,7 +15,7 @@ describe("buildSubAgentDescriptions", () => {
     description: "Test agent description",
     specialization: "test specialization",
     systemMessage: "Test system message",
-    routerType: RouterType.Simple,
+    routerType: RouterType.None,
   };
 
   test("Unit -> buildSubAgentDescriptions returns empty string for empty sub-agents array", () => {

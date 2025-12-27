@@ -1,41 +1,140 @@
-import { beforeEach, describe, expect, test } from "bun:test";
-import type {
-  AnalysisMessage,
-  ConversationAnalysis,
-} from "./analyzeConversationContext";
+import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
+import type { AIAgentDefinition } from "../../types";
+import { RouterType } from "../../types";
+import type { ConversationAnalysis } from "./analyzeConversationContext";
 
 describe("analyzeConversationContext", () => {
-  let analyzeConversationContext: {
-    func: (input: {
-      messageCount?: number;
-      messages?: AnalysisMessage[];
-    }) => Promise<string>;
+  // Declare mock variables
+  let mockGetAgentByName: ReturnType<typeof mock>;
+  let mockSaveRoutingMetrics: ReturnType<typeof mock>;
+  let analyzeConversationContext: typeof import("./analyzeConversationContext").analyzeConversationContext;
+
+  // Mock model (simplified for testing)
+  const mockModel = {} as AIAgentDefinition["model"];
+
+  // Mock agent configurations
+  const mockCharacterAgent: AIAgentDefinition = {
+    name: "character_generator",
+    model: mockModel,
+    description: "Character creation agent",
+    specialization: "character creation and management",
+    systemMessage: "You help create characters",
+    routerType: RouterType.None,
   };
 
-  // Default mock data - reusable across tests
+  const mockLocationAgent: AIAgentDefinition = {
+    name: "location_agent",
+    model: mockModel,
+    description: "Location management agent",
+    specialization: "location-based campaign assets",
+    systemMessage: "You help with locations",
+    routerType: RouterType.None,
+  };
+
+  const mockRouterAgent: AIAgentDefinition = {
+    name: "default_router",
+    model: mockModel,
+    description: "Router agent",
+    specialization: "intelligent request routing",
+    systemMessage: "You route requests",
+    availableSubAgents: [mockCharacterAgent, mockLocationAgent],
+    routerType: RouterType.Handoff,
+  };
+
+  const mockSimpleAgent: AIAgentDefinition = {
+    name: "simple_agent",
+    model: mockModel,
+    description: "Simple agent with no sub-agents",
+    specialization: "general questions",
+    systemMessage: "You help with general tasks",
+    routerType: RouterType.None,
+  };
+
+  // Helper to create messages
   const createMessage = (
     id: string,
     content: string,
     role: "user" | "assistant" | "system",
-    createdAt: string,
-    routingMetadata?: AnalysisMessage["routingMetadata"]
-  ): AnalysisMessage => ({
+    createdAt: string
+  ) => ({
     id,
     content,
     role,
     createdAt,
-    routingMetadata,
+    routingMetadata: null,
   });
 
+  // Mock context
+  const mockContext = {
+    userId: "user-123",
+    campaignId: "campaign-456",
+    threadId: "thread-789",
+    runId: "run-abc",
+  };
+
   beforeEach(async () => {
+    // Restore all mocks
+    mock.restore();
+
+    // Create fresh mocks
+    mockGetAgentByName = mock();
+    mockSaveRoutingMetrics = mock();
+
+    // Set up module mocks
+    mock.module("../../agentList", () => ({
+      getAgentByName: mockGetAgentByName,
+    }));
+
+    mock.module("../../../MongoDB/saveRoutingMetrics", () => ({
+      saveRoutingMetrics: mockSaveRoutingMetrics,
+    }));
+
+    // Dynamically import the module under test
     const module = await import("./analyzeConversationContext");
     analyzeConversationContext = module.analyzeConversationContext;
+
+    // Default: router agent with sub-agents
+    mockGetAgentByName.mockReturnValue(mockRouterAgent);
+  });
+
+  afterEach(() => {
+    mock.restore();
+  });
+
+  test("Unit -> analyzeConversationContext returns empty analysis when agent has no sub-agents", async () => {
+    mockGetAgentByName.mockReturnValue(mockSimpleAgent);
+
+    const result = await analyzeConversationContext.invoke(
+      {
+        currentAgentName: "simple_agent",
+        messageCount: 5,
+        messages: [],
+      },
+      { context: mockContext }
+    );
+
+    const parsed = JSON.parse(result) as ConversationAnalysis;
+
+    expect(parsed.analysisType).toBe("conversation_context");
+    expect(parsed.messageCount).toBe(0);
+    expect(parsed.recommendations).toContain(
+      "No sub-agents available for routing analysis - agent operates independently"
+    );
+
+    // Verify metrics were saved
+    expect(mockSaveRoutingMetrics).toHaveBeenCalled();
   });
 
   test("Unit -> analyzeConversationContext returns empty analysis for no messages", async () => {
-    const input = { messageCount: 5 };
+    const result = await analyzeConversationContext.invoke(
+      {
+        currentAgentName: "default_router",
+        messageCount: 5,
+        messages: [],
+      },
+      { context: mockContext }
+    );
 
-    const result = await analyzeConversationContext.func(input);
     const parsed = JSON.parse(result) as ConversationAnalysis;
 
     expect(parsed.analysisType).toBe("conversation_context");
@@ -49,9 +148,12 @@ describe("analyzeConversationContext", () => {
     expect(parsed.recommendations).toEqual([
       "No conversation history available for analysis",
     ]);
+
+    // Verify metrics were saved
+    expect(mockSaveRoutingMetrics).toHaveBeenCalled();
   });
 
-  test("Unit -> analyzeConversationContext detects topic shifts", async () => {
+  test("Unit -> analyzeConversationContext analyzes messages with dynamic topic mapping", async () => {
     const messages = [
       createMessage(
         "1",
@@ -61,375 +163,138 @@ describe("analyzeConversationContext", () => {
       ),
       createMessage(
         "2",
-        "I'll help you create a character",
+        "Here's a character",
         "assistant",
         "2024-01-01T10:01:00Z"
       ),
       createMessage(
         "3",
-        "How do I calculate damage in combat?",
-        "user",
-        "2024-01-01T10:02:00Z"
-      ),
-      createMessage(
-        "4",
-        "Combat damage is calculated...",
-        "assistant",
-        "2024-01-01T10:03:00Z"
-      ),
-    ];
-
-    const input = { messageCount: 4, messages };
-    const result = await analyzeConversationContext.func(input);
-    const parsed = JSON.parse(result) as ConversationAnalysis;
-
-    expect(parsed.topicShifts).toHaveLength(1);
-    expect(parsed.topicShifts[0].from).toBe("character_creation");
-    expect(parsed.topicShifts[0].to).toBe("combat_rules");
-    expect(parsed.topicShifts[0].messageIndex).toBe(2);
-  });
-
-  test("Unit -> analyzeConversationContext identifies dominant topics", async () => {
-    const messages = [
-      createMessage("1", "Create a character", "user", "2024-01-01T10:00:00Z"),
-      createMessage("2", "Set character stats", "user", "2024-01-01T10:01:00Z"),
-      createMessage(
-        "3",
-        "Choose character background",
-        "user",
-        "2024-01-01T10:02:00Z"
-      ),
-      createMessage(
-        "4",
-        "Calculate some numbers",
-        "user",
-        "2024-01-01T10:03:00Z"
-      ),
-    ];
-
-    const input = { messageCount: 4, messages };
-    const result = await analyzeConversationContext.func(input);
-    const parsed = JSON.parse(result) as ConversationAnalysis;
-
-    expect(parsed.dominantTopics).toContain("character_creation");
-    expect(parsed.dominantTopics).toContain("calculations");
-  });
-
-  test("Unit -> analyzeConversationContext calculates topic stability", async () => {
-    const stableMessages = [
-      createMessage("1", "Create a character", "user", "2024-01-01T10:00:00Z"),
-      createMessage("2", "Set character stats", "user", "2024-01-01T10:01:00Z"),
-      createMessage(
-        "3",
-        "Choose character background",
+        "Tell me about a location in the campaign",
         "user",
         "2024-01-01T10:02:00Z"
       ),
     ];
 
-    const unstableMessages = [
-      createMessage("1", "Create a character", "user", "2024-01-01T10:00:00Z"),
-      createMessage("2", "Calculate damage", "user", "2024-01-01T10:01:00Z"),
-      createMessage("3", "Cast a spell", "user", "2024-01-01T10:02:00Z"),
-      createMessage(
-        "4",
-        "Need technical support",
-        "user",
-        "2024-01-01T10:03:00Z"
-      ),
-    ];
-
-    const stableResult = await analyzeConversationContext.func({
-      messageCount: 3,
-      messages: stableMessages,
-    });
-    const stableParsed = JSON.parse(stableResult) as ConversationAnalysis;
-
-    const unstableResult = await analyzeConversationContext.func({
-      messageCount: 4,
-      messages: unstableMessages,
-    });
-    const unstableParsed = JSON.parse(unstableResult) as ConversationAnalysis;
-
-    expect(stableParsed.topicStability).toBeGreaterThan(
-      unstableParsed.topicStability
+    const result = await analyzeConversationContext.invoke(
+      {
+        currentAgentName: "default_router",
+        messageCount: 5,
+        messages,
+      },
+      { context: mockContext }
     );
-  });
 
-  test("Unit -> analyzeConversationContext analyzes agent performance", async () => {
-    const messages = [
-      createMessage("1", "Create a character", "user", "2024-01-01T10:00:00Z"),
-      createMessage(
-        "2",
-        "Created character",
-        "assistant",
-        "2024-01-01T10:01:00Z",
-        {
-          decision: {
-            targetAgent: "Character Generator",
-            confidence: 4.5,
-            reasoning: "Character creation request",
-            intentKeywords: ["character", "create"],
-          },
-          success: true,
-          executionTime: 100,
-          fallbackUsed: false,
-        }
-      ),
-      createMessage(
-        "3",
-        "Thank you, that's perfect!",
-        "user",
-        "2024-01-01T10:02:00Z"
-      ),
-      createMessage("4", "Calculate 2+2", "user", "2024-01-01T10:03:00Z"),
-      createMessage(
-        "5",
-        "The answer is 4",
-        "assistant",
-        "2024-01-01T10:04:00Z",
-        {
-          decision: {
-            targetAgent: "Cheapest",
-            confidence: 3.0,
-            reasoning: "Simple calculation request",
-            intentKeywords: ["calculate", "math"],
-          },
-          success: true,
-          executionTime: 50,
-          fallbackUsed: false,
-        }
-      ),
-    ];
-
-    const input = { messageCount: 5, messages };
-    const result = await analyzeConversationContext.func(input);
     const parsed = JSON.parse(result) as ConversationAnalysis;
 
-    expect(parsed.agentPerformance["Character Generator"]).toBeDefined();
-    expect(parsed.agentPerformance["Character Generator"].successRate).toBe(
-      1.0
-    );
-    expect(
-      parsed.agentPerformance["Character Generator"].userSatisfaction
-    ).toBe("positive");
-    expect(parsed.agentPerformance["Cheapest"]).toBeDefined();
-  });
-
-  test("Unit -> analyzeConversationContext detects escalating complexity pattern", async () => {
-    const messages = [
-      createMessage("1", "Hi", "user", "2024-01-01T10:00:00Z"),
-      createMessage(
-        "2",
-        "I need to implement a complex optimization algorithm",
-        "user",
-        "2024-01-01T10:01:00Z"
-      ),
-      createMessage(
-        "3",
-        "Please help me debug and analyze this sophisticated configuration system for enterprise deployment",
-        "user",
-        "2024-01-01T10:02:00Z"
-      ),
-    ];
-
-    const input = { messageCount: 3, messages };
-    const result = await analyzeConversationContext.func(input);
-    const parsed = JSON.parse(result) as ConversationAnalysis;
-
-    const escalatingPattern = parsed.patterns.find(
-      (p) => p.type === "escalating_complexity"
-    );
-    expect(escalatingPattern).toBeDefined();
-    expect(escalatingPattern?.recommendation).toBe("route_to_specialist");
-  });
-
-  test("Unit -> analyzeConversationContext detects repeated failures pattern", async () => {
-    const messages = [
-      createMessage("1", "Test request", "user", "2024-01-01T10:00:00Z"),
-      createMessage("2", "Response", "assistant", "2024-01-01T10:01:00Z", {
-        decision: {
-          targetAgent: "Cheapest",
-          confidence: 2.0,
-          reasoning: "General request",
-          intentKeywords: ["test"],
-        },
-        success: false,
-        executionTime: 100,
-        fallbackUsed: false,
-      }),
-      createMessage("3", "Another request", "user", "2024-01-01T10:02:00Z"),
-      createMessage("4", "Response", "assistant", "2024-01-01T10:03:00Z", {
-        decision: {
-          targetAgent: "Character Generator",
-          confidence: 1.5,
-          reasoning: "Another attempt",
-          intentKeywords: ["request"],
-        },
-        success: false,
-        executionTime: 100,
-        fallbackUsed: false,
-      }),
-    ];
-
-    const input = { messageCount: 4, messages };
-    const result = await analyzeConversationContext.func(input);
-    const parsed = JSON.parse(result) as ConversationAnalysis;
-
-    const failurePattern = parsed.patterns.find(
-      (p) => p.type === "repeated_failures"
-    );
-    expect(failurePattern).toBeDefined();
-    expect(failurePattern?.failureCount).toBe(2);
-    expect(failurePattern?.recommendation).toBe("try_different_agent");
-  });
-
-  test("Unit -> analyzeConversationContext detects workflow continuation pattern", async () => {
-    const messages = [
-      createMessage("1", "Create a character", "user", "2024-01-01T10:00:00Z"),
-      createMessage("2", "Set character stats", "user", "2024-01-01T10:01:00Z"),
-      createMessage(
-        "3",
-        "Choose character race",
-        "user",
-        "2024-01-01T10:02:00Z"
-      ),
-      createMessage(
-        "4",
-        "Select character class",
-        "user",
-        "2024-01-01T10:03:00Z"
-      ),
-    ];
-
-    const input = { messageCount: 4, messages };
-    const result = await analyzeConversationContext.func(input);
-    const parsed = JSON.parse(result) as ConversationAnalysis;
-
-    const workflowPattern = parsed.patterns.find(
-      (p) => p.type === "session_flow"
-    );
-    expect(workflowPattern).toBeDefined();
-    expect(workflowPattern?.currentStep).toBe("character_creation");
-    expect(workflowPattern?.recommendation).toBe("maintain_current_agent");
-  });
-
-  test("Unit -> analyzeConversationContext detects topic drift pattern", async () => {
-    const messages = [
-      createMessage("1", "Create character", "user", "2024-01-01T10:00:00Z"),
-      createMessage("2", "Calculate damage", "user", "2024-01-01T10:01:00Z"),
-      createMessage("3", "Cast spell", "user", "2024-01-01T10:02:00Z"),
-      createMessage("4", "Need help", "user", "2024-01-01T10:03:00Z"),
-      createMessage("5", "Adventure story", "user", "2024-01-01T10:04:00Z"),
-    ];
-
-    const input = { messageCount: 5, messages };
-    const result = await analyzeConversationContext.func(input);
-    const parsed = JSON.parse(result) as ConversationAnalysis;
-
-    const driftPattern = parsed.patterns.find((p) => p.type === "topic_drift");
-    expect(driftPattern).toBeDefined();
-    expect(driftPattern?.recommendation).toBe("try_different_agent");
-  });
-
-  test("Unit -> analyzeConversationContext assesses active workflow continuity", async () => {
-    const messages = [
-      createMessage("1", "Create character", "user", "2024-01-01T10:00:00Z"),
-      createMessage("2", "Set character stats", "user", "2024-01-01T10:01:00Z"),
-      createMessage("3", "Choose background", "user", "2024-01-01T10:02:00Z"),
-    ];
-
-    const input = { messageCount: 3, messages };
-    const result = await analyzeConversationContext.func(input);
-    const parsed = JSON.parse(result) as ConversationAnalysis;
-
-    const workflowFactor = parsed.continuityFactors.find(
-      (f) => f.type === "active_workflow"
-    );
-    expect(workflowFactor).toBeDefined();
-    expect(workflowFactor?.workflow).toBe("character_creation");
-    expect(workflowFactor?.completionPercentage).toBeGreaterThan(0);
-  });
-
-  test("Unit -> analyzeConversationContext assesses knowledge buildup", async () => {
-    const messages = [
-      createMessage("1", "Question", "user", "2024-01-01T10:00:00Z"),
-      createMessage(
-        "2",
-        "This is a very detailed and comprehensive response with extensive context and information that builds understanding and demonstrates significant knowledge depth. This response contains many words and provides thorough explanations that would indicate high contextual value in the conversation. The assistant is clearly building substantial context through these detailed responses that show deep engagement with the user's needs and requirements.",
-        "assistant",
-        "2024-01-01T10:01:00Z"
-      ),
-      createMessage("3", "Another question", "user", "2024-01-01T10:02:00Z"),
-      createMessage(
-        "4",
-        "Another extremely comprehensive response that continues building on the previous context with extensive detail and thorough explanations. This response also contains substantial content that demonstrates the assistant's commitment to providing rich, contextual information that builds upon the conversation history.",
-        "assistant",
-        "2024-01-01T10:03:00Z"
-      ),
-      createMessage("5", "Follow up", "user", "2024-01-01T10:04:00Z"),
-      createMessage(
-        "6",
-        "Yet another detailed response maintaining continuity with substantial context and comprehensive information that further builds the knowledge base established in previous interactions.",
-        "assistant",
-        "2024-01-01T10:05:00Z"
-      ),
-    ];
-
-    const input = { messageCount: 6, messages };
-    const result = await analyzeConversationContext.func(input);
-    const parsed = JSON.parse(result) as ConversationAnalysis;
-
-    const knowledgeFactor = parsed.continuityFactors.find(
-      (f) => f.type === "knowledge_buildup"
-    );
-    expect(knowledgeFactor).toBeDefined();
-    expect(knowledgeFactor?.contextValue).toBeOneOf(["medium", "high"]);
-  });
-
-  test("Unit -> analyzeConversationContext generates appropriate recommendations", async () => {
-    const messages = [
-      createMessage("1", "Create character", "user", "2024-01-01T10:00:00Z"),
-      createMessage(
-        "2",
-        "Character created",
-        "assistant",
-        "2024-01-01T10:01:00Z"
-      ),
-      createMessage("3", "Set character stats", "user", "2024-01-01T10:02:00Z"),
-    ];
-
-    const input = { messageCount: 3, messages };
-    const result = await analyzeConversationContext.func(input);
-    const parsed = JSON.parse(result) as ConversationAnalysis;
-
-    expect(parsed.recommendations).toBeInstanceOf(Array);
-    expect(parsed.recommendations.length).toBeGreaterThan(0);
-    expect(parsed.recommendations[0]).toContain("character_creation");
-  });
-
-  test("Unit -> analyzeConversationContext validates input parameters with Zod", async () => {
-    const input = { messageCount: 0 };
-
-    try {
-      await analyzeConversationContext.func(input);
-      expect(false).toBe(true); // Should not reach here
-    } catch (error) {
-      expect(error).toBeDefined();
-      expect(String(error)).toContain("Too small");
-    }
-  });
-
-  test("Unit -> analyzeConversationContext handles minimum messageCount", async () => {
-    const messages = [
-      createMessage("1", "Hello", "user", "2024-01-01T10:00:00Z"),
-    ];
-
-    const input = { messageCount: 1, messages };
-    const result = await analyzeConversationContext.func(input);
-    const parsed = JSON.parse(result) as ConversationAnalysis;
-
-    expect(parsed.messageCount).toBe(1);
     expect(parsed.analysisType).toBe("conversation_context");
+    expect(parsed.messageCount).toBe(3);
+
+    // Verify metrics were saved with correct parameters
+    expect(mockSaveRoutingMetrics).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: "user-123",
+        campaignId: "campaign-456",
+        threadId: "thread-789",
+        runId: "run-abc",
+        currentAgent: "default_router",
+        availableAgents: ["character_generator", "location_agent"],
+        messageCount: 3,
+      })
+    );
+  });
+
+  test("Unit -> analyzeConversationContext uses dynamic agent lookup", async () => {
+    mockGetAgentByName.mockReturnValue(mockRouterAgent);
+
+    await analyzeConversationContext.invoke(
+      {
+        currentAgentName: "default_router",
+        messageCount: 5,
+        messages: [],
+      },
+      { context: mockContext }
+    );
+
+    // Verify agent lookup was called
+    expect(mockGetAgentByName).toHaveBeenCalledWith("default_router");
+  });
+
+  test("Unit -> analyzeConversationContext extracts context from config", async () => {
+    const customContext = {
+      userId: "custom-user",
+      campaignId: "custom-campaign",
+      threadId: "custom-thread",
+      runId: "custom-run",
+    };
+
+    await analyzeConversationContext.invoke(
+      {
+        currentAgentName: "default_router",
+        messageCount: 5,
+        messages: [],
+      },
+      { context: customContext }
+    );
+
+    // Verify metrics received the custom context
+    expect(mockSaveRoutingMetrics).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: "custom-user",
+        campaignId: "custom-campaign",
+        threadId: "custom-thread",
+        runId: "custom-run",
+      })
+    );
+  });
+
+  test("Unit -> analyzeConversationContext validates messageCount", async () => {
+    await expect(
+      analyzeConversationContext.invoke(
+        {
+          currentAgentName: "default_router",
+          messageCount: 0, // Invalid
+          messages: [],
+        },
+        { context: mockContext }
+      )
+    ).rejects.toThrow("expected number to be >=1");
+
+    await expect(
+      analyzeConversationContext.invoke(
+        {
+          currentAgentName: "default_router",
+          messageCount: 11, // Too high
+          messages: [],
+        },
+        { context: mockContext }
+      )
+    ).rejects.toThrow("expected number to be <=10");
+  });
+
+  test("Unit -> analyzeConversationContext generates recommendations", async () => {
+    const messages = [
+      createMessage("1", "Create a character", "user", "2024-01-01T10:00:00Z"),
+      createMessage(
+        "2",
+        "Here's a character",
+        "assistant",
+        "2024-01-01T10:01:00Z"
+      ),
+    ];
+
+    const result = await analyzeConversationContext.invoke(
+      {
+        currentAgentName: "default_router",
+        messageCount: 5,
+        messages,
+      },
+      { context: mockContext }
+    );
+
+    const parsed = JSON.parse(result) as ConversationAnalysis;
+
+    expect(parsed.recommendations).toBeDefined();
+    expect(Array.isArray(parsed.recommendations)).toBe(true);
+    expect(parsed.recommendations.length).toBeGreaterThan(0);
   });
 });

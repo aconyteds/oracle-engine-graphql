@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import type { TrustedModel } from "../../modelList";
 import type { AIAgentDefinition } from "../../types";
 import { RouterType } from "../../types";
 
@@ -15,32 +14,26 @@ describe("buildRouterSystemMessage", () => {
     buildRouterSystemMessage = module.buildRouterSystemMessage;
   });
 
-  const defaultModel: TrustedModel = {
-    modelName: "gpt-4",
-    modelProvider: "OpenAI",
-    contextWindow: 8192,
-  };
+  // Mock model (simplified for testing)
+  const mockModel = {} as AIAgentDefinition["model"];
 
   // Default mock data
   const defaultAgent: AIAgentDefinition = {
     name: "TestAgent",
-    model: defaultModel,
+    model: mockModel,
     description: "Test agent description",
     specialization: "test specialization",
     systemMessage: "Test system message",
-    routerType: RouterType.Simple,
+    routerType: RouterType.None,
   };
 
   const defaultSubAgent: AIAgentDefinition = {
     name: "SubAgent",
-    model: {
-      ...defaultModel,
-      modelName: "gpt-3.5-turbo",
-    },
+    model: mockModel,
     description: "Sub agent description",
     specialization: "sub specialization",
     systemMessage: "Sub agent system message",
-    routerType: RouterType.Simple,
+    routerType: RouterType.None,
   };
 
   test("Unit -> buildRouterSystemMessage includes router name and description", () => {
@@ -169,7 +162,7 @@ describe("buildRouterSystemMessage", () => {
     ]);
 
     expect(result).toEndWith(
-      'ALWAYS use the "routeToAgent" tool to make your routing decision. Never respond directly to user requests - your only job is routing.'
+      'ALWAYS use the "analyzeConversationContext" tool to review recent messages for context before making routing decisions.\nALWAYS use the "routeToAgent" tool to confirm your routing decision. Never respond directly to user requests - your only job is routing.'
     );
   });
 

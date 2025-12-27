@@ -3,6 +3,8 @@ export * from "./captureSearchMetrics";
 export { createCampaignAsset } from "./create";
 export type { DeleteCampaignAssetResult } from "./delete";
 export { deleteCampaignAsset } from "./delete";
+export * from "./embedCampaignAsset";
+export { findCampaignAssetByName } from "./findByName";
 export { getCampaignAssetById } from "./getById";
 export { listCampaignAssets } from "./list";
 export { updateCampaignAsset } from "./update";

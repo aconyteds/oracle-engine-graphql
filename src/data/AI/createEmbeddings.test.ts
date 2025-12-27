@@ -2,7 +2,6 @@ import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 
 describe("createEmbeddings", () => {
   // Declare mock variables with 'let'
-  let mockGetModelByName: ReturnType<typeof mock>;
   let mockOpenAIEmbeddings: ReturnType<typeof mock>;
   let mockEncodingForModel: ReturnType<typeof mock>;
   let mockEncoder: {
@@ -13,13 +12,7 @@ describe("createEmbeddings", () => {
   let createEmbeddings: typeof import("./createEmbeddings").createEmbeddings;
 
   // Default mock data
-  const defaultModel = {
-    modelName: "text-embedding-3-small",
-    contextWindow: 8191,
-    maxOutputTokens: 0,
-    inputCostPer1MTokens: 0.02,
-    outputCostPer1MTokens: 0,
-  };
+  const contextWindow = 8191;
 
   const defaultEmbeddingResult = [0.1, 0.2, 0.3, 0.4, 0.5];
   const defaultQuery = "What is the meaning of life?";
@@ -29,7 +22,6 @@ describe("createEmbeddings", () => {
     mock.restore();
 
     // Create fresh mock instances
-    mockGetModelByName = mock();
     const mockEmbedQuery = mock();
     mockOpenAIEmbeddings = mock(() => ({
       embedQuery: mockEmbedQuery,
@@ -46,10 +38,6 @@ describe("createEmbeddings", () => {
     mockEncodingForModel = mock(() => mockEncoder);
 
     // Set up module mocks INSIDE beforeEach
-    mock.module("./modelList", () => ({
-      getModelByName: mockGetModelByName,
-    }));
-
     mock.module("@langchain/openai", () => ({
       OpenAIEmbeddings: mockOpenAIEmbeddings,
     }));
@@ -63,7 +51,6 @@ describe("createEmbeddings", () => {
     createEmbeddings = module.createEmbeddings;
 
     // Configure default mock behavior AFTER import
-    mockGetModelByName.mockReturnValue(defaultModel);
     mockEmbedQuery.mockResolvedValue(defaultEmbeddingResult);
     mockEncoder.encode.mockReturnValue(new Uint32Array([1, 2, 3, 4, 5]));
     mockEncoder.decode.mockReturnValue(new Uint8Array());
@@ -76,10 +63,8 @@ describe("createEmbeddings", () => {
   test("Unit -> createEmbeddings generates embeddings for valid query", async () => {
     const result = await createEmbeddings(defaultQuery);
 
-    expect(mockGetModelByName).toHaveBeenCalledWith("text-embedding-3-small");
     expect(mockOpenAIEmbeddings).toHaveBeenCalledWith({
-      apiKey: process.env.OPENAI_API_KEY,
-      model: defaultModel.modelName,
+      model: "text-embedding-3-small",
     });
     expect(mockEncodingForModel).toHaveBeenCalledWith("text-embedding-3-small");
     expect(mockEncoder.encode).toHaveBeenCalledWith(defaultQuery);
@@ -123,7 +108,7 @@ describe("createEmbeddings", () => {
       const result = await createEmbeddings("very long query");
 
       expect(mockConsoleWarn).toHaveBeenCalledWith(
-        `Query exceeds context window of ${defaultModel.contextWindow} tokens (actual: ${longTokenArray.length}). Truncating query.`
+        `Query exceeds context window of ${contextWindow} tokens (actual: ${longTokenArray.length}). Truncating query.`
       );
       expect(mockEncoder.free).toHaveBeenCalled();
       expect(result).toEqual(defaultEmbeddingResult);
@@ -179,14 +164,14 @@ describe("createEmbeddings", () => {
     }
   });
 
-  test("Unit -> createEmbeddings returns empty array when getModelByName fails", async () => {
+  test("Unit -> createEmbeddings returns empty array when OpenAI initialization fails", async () => {
     const originalConsoleError = console.error;
     const mockConsoleError = mock();
     console.error = mockConsoleError;
 
-    const modelError = new Error("Model not found");
-    mockGetModelByName.mockImplementation(() => {
-      throw modelError;
+    const initError = new Error("OpenAI initialization failed");
+    mockOpenAIEmbeddings.mockImplementation(() => {
+      throw initError;
     });
 
     try {
@@ -194,7 +179,7 @@ describe("createEmbeddings", () => {
 
       expect(mockConsoleError).toHaveBeenCalledWith(
         "Error generating query embeddings:",
-        modelError
+        initError
       );
       expect(result).toEqual([]);
     } finally {

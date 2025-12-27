@@ -5,6 +5,7 @@ export * from "./createThread";
 export * from "./getCampaignThreads";
 export * from "./lookupUser";
 export * from "./saveMessage";
+export * from "./saveRoutingMetrics";
 export * from "./saveSearchMetrics";
 export * from "./verifyCampaignOwnership";
 export * from "./verifyThreadOwnership";
