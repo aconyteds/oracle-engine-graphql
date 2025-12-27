@@ -46,3 +46,27 @@ export const InactiveAccountError = () => {
     },
   });
 };
+
+// Custom error classes for type-safe error handling
+export class NotFoundError extends GraphQLError {
+  constructor(message: string) {
+    super(message, {
+      extensions: {
+        code: ApolloServerErrorCode.BAD_REQUEST,
+      },
+    });
+    this.name = "NotFoundError";
+  }
+}
+
+export class UnauthorizedAccessError extends GraphQLError {
+  constructor(message: string) {
+    super(message, {
+      extensions: {
+        code: ApolloServerErrorCode.BAD_REQUEST,
+      },
+    });
+    this.name = "UnauthorizedAccessError";
+    console.warn("Unauthorized access attempt:", message);
+  }
+}

@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 import { AIMessage, HumanMessage } from "@langchain/core/messages";
 import type { Message, Thread } from "../../../data/MongoDB";
 import type { GenerateMessagePayload } from "../../../generated/graphql";
-import { GenerateMessageProps } from "./generateMessage";
+import type { GenerateMessageProps } from "./generateMessage";
 
 type MockThread = Thread & {
   messages: Message[];
@@ -10,13 +10,12 @@ type MockThread = Thread & {
 
 describe("Unit -> generateMessage", () => {
   // Mock variables
-  let mockFindUnique: ReturnType<typeof mock>;
+  let mockFindFirst: ReturnType<typeof mock>;
   let mockDBClient: {
     thread: {
-      findUnique: ReturnType<typeof mock>;
+      findFirst: ReturnType<typeof mock>;
     };
   };
-  let mockServerError: ReturnType<typeof mock>;
   let mockGenerateMessageWithAgent: ReturnType<typeof mock>;
   let mockRandomUUID: ReturnType<typeof mock>;
   let mockGetCampaign: ReturnType<typeof mock>;
@@ -46,7 +45,7 @@ describe("Unit -> generateMessage", () => {
     setting: "Fantasy World",
     tone: "Epic Adventure",
     ruleset: "D&D 5e",
-    userId: "user-id",
+    ownerId: "user-id",
     createdAt: new Date(),
     updatedAt: new Date(),
   };
@@ -85,13 +84,12 @@ describe("Unit -> generateMessage", () => {
     mock.restore();
 
     // Create mock functions
-    mockFindUnique = mock();
+    mockFindFirst = mock();
     mockDBClient = {
       thread: {
-        findUnique: mockFindUnique,
+        findFirst: mockFindFirst,
       },
     };
-    mockServerError = mock();
     mockGenerateMessageWithAgent = mock();
     mockRandomUUID = mock();
     mockGetCampaign = mock();
@@ -101,12 +99,6 @@ describe("Unit -> generateMessage", () => {
     void mock.module("../../../data/MongoDB/client", () => ({
       ...prismaTypes,
       DBClient: mockDBClient,
-    }));
-
-    const errors = await import("../../../graphql/errors");
-    void mock.module("../../../graphql/errors", () => ({
-      ...errors,
-      ServerError: mockServerError,
     }));
 
     // Mock the specific generateMessageWithAgent module
@@ -132,7 +124,7 @@ describe("Unit -> generateMessage", () => {
     generateMessage = module.generateMessage;
 
     // Set up default mock behavior
-    mockFindUnique.mockResolvedValue(defaultThread);
+    mockFindFirst.mockResolvedValue(defaultThread);
     mockGetCampaign.mockResolvedValue(defaultCampaign);
 
     mockGenerateMessageWithAgent.mockImplementation(async function* () {
@@ -143,7 +135,6 @@ describe("Unit -> generateMessage", () => {
     });
 
     mockRandomUUID.mockReturnValue("test-run-id");
-    mockServerError.mockImplementation((msg: string) => new Error(msg));
   });
 
   afterEach(() => {
@@ -151,7 +142,7 @@ describe("Unit -> generateMessage", () => {
   });
 
   test("Unit -> generateMessage throws error when thread not found", () => {
-    mockFindUnique.mockResolvedValue(null);
+    mockFindFirst.mockResolvedValue(null);
 
     const generator = generateMessage({
       ...defaultInput,
@@ -160,10 +151,11 @@ describe("Unit -> generateMessage", () => {
 
     expect(generator.next()).rejects.toThrow("Thread not found");
 
-    expect(mockFindUnique).toHaveBeenCalledWith({
-      where: { id: "non-existent-thread-id" },
+    expect(mockFindFirst).toHaveBeenCalledWith({
+      where: { id: "non-existent-thread-id", userId: "user-id" },
       select: {
         campaignId: true,
+        userId: true,
         messages: {
           orderBy: {
             createdAt: "asc",
@@ -181,7 +173,7 @@ describe("Unit -> generateMessage", () => {
       messages: mockMessages,
     };
 
-    mockFindUnique.mockResolvedValue(mockThread);
+    mockFindFirst.mockResolvedValue(mockThread);
 
     const generator = generateMessage(defaultInput);
     const results: GenerateMessagePayload[] = [];
@@ -252,7 +244,7 @@ describe("Unit -> generateMessage", () => {
       messages: mockMessages,
     };
 
-    mockFindUnique.mockResolvedValue(mockThread);
+    mockFindFirst.mockResolvedValue(mockThread);
 
     const generator = generateMessage(defaultInput);
     const results: GenerateMessagePayload[] = [];
@@ -294,7 +286,7 @@ describe("Unit -> generateMessage", () => {
       messages: [],
     };
 
-    mockFindUnique.mockResolvedValue(mockThread);
+    mockFindFirst.mockResolvedValue(mockThread);
 
     const generator = generateMessage(defaultInput);
     const results: GenerateMessagePayload[] = [];
@@ -343,7 +335,7 @@ describe("Unit -> generateMessage", () => {
       messages: mockMessages,
     };
 
-    mockFindUnique.mockResolvedValue(mockThread);
+    mockFindFirst.mockResolvedValue(mockThread);
 
     const generator = generateMessage(defaultInput);
     const results: GenerateMessagePayload[] = [];
@@ -387,13 +379,15 @@ describe("Unit -> generateMessage", () => {
     expect(mockGetCampaign).toHaveBeenCalledWith("campaign-id");
   });
 
-  test("Unit -> generateMessage handles campaign fetch error gracefully", async () => {
+  test("Unit -> generateMessage handles campaign fetch error gracefully for non-security errors", async () => {
     const originalConsoleError = console.error;
     const mockConsoleErrorLocal = mock();
     console.error = mockConsoleErrorLocal;
 
     try {
-      mockGetCampaign.mockRejectedValue(new Error("Campaign not found"));
+      mockGetCampaign.mockRejectedValue(
+        new Error("Database connection failed")
+      );
 
       const generator = generateMessage(defaultInput);
       const results: GenerateMessagePayload[] = [];
@@ -417,22 +411,12 @@ describe("Unit -> generateMessage", () => {
     }
   });
 
-  test("Unit -> generateMessage handles missing campaign gracefully", async () => {
+  test("Unit -> generateMessage throws error when campaign not found", async () => {
     mockGetCampaign.mockResolvedValue(null);
 
     const generator = generateMessage(defaultInput);
-    const results: GenerateMessagePayload[] = [];
 
-    for await (const result of generator) {
-      results.push(result);
-    }
-
-    // Should still work, just without campaign metadata
-    expect(results).toHaveLength(1);
-
-    // Should pass undefined campaignMetadata to generateMessageWithAgent
-    const callArgs = mockGenerateMessageWithAgent.mock.calls[0][0];
-    expect(callArgs.requestContext.campaignMetadata).toBeUndefined();
+    expect(generator.next()).rejects.toThrow("Campaign not found");
   });
 
   test("Unit -> generateMessage streams all payloads from generateMessageWithAgent", async () => {
@@ -478,5 +462,65 @@ describe("Unit -> generateMessage", () => {
       responseType: "Final",
       content: "Final response",
     });
+  });
+
+  // Security tests
+  test("Unit -> generateMessage throws error when thread belongs to different user", async () => {
+    const unauthorizedThread: MockThread = {
+      ...defaultThread,
+      userId: "different-user-id",
+    };
+
+    mockFindFirst.mockResolvedValue(unauthorizedThread);
+
+    const generator = generateMessage(defaultInput);
+
+    expect(generator.next()).rejects.toThrow("Unauthorized access to thread");
+  });
+
+  test("Unit -> generateMessage throws error when campaign belongs to different user", async () => {
+    const unauthorizedCampaign = {
+      ...defaultCampaign,
+      ownerId: "different-user-id",
+    };
+
+    mockGetCampaign.mockResolvedValue(unauthorizedCampaign);
+
+    const generator = generateMessage(defaultInput);
+
+    expect(generator.next()).rejects.toThrow("Unauthorized access to campaign");
+  });
+
+  test("Unit -> generateMessage uses findFirst with userId in query for defense-in-depth", async () => {
+    const generator = generateMessage(defaultInput);
+    await generator.next();
+
+    expect(mockFindFirst).toHaveBeenCalledWith({
+      where: {
+        id: "thread-id",
+        userId: "user-id",
+      },
+      select: {
+        campaignId: true,
+        userId: true,
+        messages: {
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
+      },
+    });
+  });
+
+  test("Unit -> generateMessage verifies campaign ownership after fetch", async () => {
+    const generator = generateMessage(defaultInput);
+    const results: GenerateMessagePayload[] = [];
+
+    for await (const result of generator) {
+      results.push(result);
+    }
+
+    expect(mockGetCampaign).toHaveBeenCalledWith("campaign-id");
+    expect(results).toHaveLength(1);
   });
 });

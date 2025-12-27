@@ -5,7 +5,10 @@ import { defaultRouter } from "../../../data/AI/Agents";
 import type { CampaignMetadata, RequestContext } from "../../../data/AI/types";
 import { DBClient } from "../../../data/MongoDB";
 import type { GenerateMessagePayload } from "../../../generated/graphql";
-import { ServerError } from "../../../graphql/errors";
+import {
+  NotFoundError,
+  UnauthorizedAccessError,
+} from "../../../graphql/errors";
 import { getCampaign } from "../../Campaign/service/getCampaign";
 
 export type GenerateMessageProps = {
@@ -17,8 +20,8 @@ export async function* generateMessage(
   props: GenerateMessageProps
 ): AsyncGenerator<GenerateMessagePayload> {
   const { threadId, userId } = props;
-  // Get the Thread
-  const thread = await DBClient.thread.findUnique({
+  // Get the Thread with explicit user ownership check
+  const thread = await DBClient.thread.findFirst({
     select: {
       messages: {
         orderBy: {
@@ -26,14 +29,21 @@ export async function* generateMessage(
         },
       },
       campaignId: true,
+      userId: true,
     },
     where: {
       id: threadId,
+      userId: userId, // Ensure thread belongs to requesting user
     },
   });
 
   if (!thread) {
-    throw ServerError("Thread not found");
+    throw new NotFoundError("Thread not found");
+  }
+
+  // Defense-in-depth: Verify thread ownership
+  if (thread.userId !== userId) {
+    throw new UnauthorizedAccessError("Unauthorized access to thread");
   }
 
   const { campaignId } = thread;
@@ -42,17 +52,31 @@ export async function* generateMessage(
   let campaignMetadata: CampaignMetadata | undefined;
   try {
     const campaign = await getCampaign(campaignId);
-    if (campaign) {
-      campaignMetadata = {
-        name: campaign.name,
-        setting: campaign.setting,
-        tone: campaign.tone,
-        ruleset: campaign.ruleset,
-      };
+    if (!campaign) {
+      throw new NotFoundError("Campaign not found");
     }
+
+    // Verify campaign ownership to prevent cross-campaign data bleed
+    if (campaign.ownerId !== userId) {
+      throw new UnauthorizedAccessError("Unauthorized access to campaign");
+    }
+
+    campaignMetadata = {
+      name: campaign.name,
+      setting: campaign.setting,
+      tone: campaign.tone,
+      ruleset: campaign.ruleset,
+    };
   } catch (error) {
     console.error("Failed to fetch campaign metadata:", error);
-    // Continue without metadata rather than failing the request
+    // Re-throw security errors (NotFoundError, UnauthorizedAccessError), don't silently continue
+    if (
+      error instanceof NotFoundError ||
+      error instanceof UnauthorizedAccessError
+    ) {
+      throw error;
+    }
+    // For other errors, continue without metadata rather than failing the request
   }
 
   const currAgent = defaultRouter;
