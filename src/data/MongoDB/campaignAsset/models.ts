@@ -3,7 +3,7 @@ import { z } from "zod";
 
 export const locationDataSchema = z.object({
   imageUrl: z
-    .url()
+    .union([z.url(), z.literal(""), z.null()])
     .optional()
     .describe("URL of an image representing the location."),
   description: z
@@ -40,7 +40,7 @@ export const locationDataSchema = z.object({
 
 export const npcDataSchema = z.object({
   imageUrl: z
-    .url()
+    .union([z.url(), z.literal(""), z.null()])
     .optional()
     .describe("URL of an image representing the NPC."),
   physicalDescription: z
