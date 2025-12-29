@@ -1,5 +1,5 @@
 import {
-  characterGenerator,
+  characterAgent,
   cheapest,
   defaultRouter,
   locationAgent,
@@ -8,7 +8,7 @@ import type { AIAgentDefinition } from "./types";
 
 // Initialize traditional agent list
 export const AGENT_LIST = new Map<string, AIAgentDefinition>(
-  [cheapest, characterGenerator, defaultRouter, locationAgent].map((agent) => [
+  [cheapest, characterAgent, defaultRouter, locationAgent].map((agent) => [
     agent.name,
     agent,
   ])
