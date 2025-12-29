@@ -21,7 +21,7 @@ export const characterAgent: AIAgentDefinition = {
     },
   }),
   description:
-    "Specializes in NPC-based campaign assets including creation, updates, retrieval, and deletion.",
+    "An agent devoted exclusively to NPC-based campaign assets including creation, updates, retrieval, and deletion.",
   specialization:
     "NPC characters: allies villains merchants enemies monsters creatures townspeople quest-givers companions adversaries beasts humanoids NPCs people personalities",
   systemMessage: `You are a specialized NPC management assistant for tabletop RPG campaigns. Help DMs create, search, update, and delete non-player characters.
