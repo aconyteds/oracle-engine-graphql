@@ -38,14 +38,14 @@ export async function characterCreationBestPractices(): Promise<string> {
 **SharedWithPlayers:** "Aldric runs the Rusty Dragon Inn with his daughter. He's friendly to paying customers and known for his excellent stew. He walks with a limp and has military tattoos. The locals respect him."
 
 ### Example 2 - Mysterious Merchant:
-**Name:** "The Velvet Voice"
-**Summary:** "Enigmatic information broker who trades in secrets, not coin"
-**PlayerSummary:** "A strange merchant who deals in information and favors"
-**PhysicalDescription:** "A figure of indeterminate gender and race, always shrouded in shimmering purple velvet robes that seem to shift color in candlelight. Silver jewelry adorns every visible inch - rings, bangles, chains. Their voice is melodious and hypnotic, with an accent from no known land. The air around them carries the scent of exotic incense - sandalwood and something sweeter, almost cloying. Age impossible to determine - could be 30 or 300."
-**Motivation:** "Collect secrets to gain leverage over powerful figures across the realm. Seeks a specific piece of forbidden knowledge: the true name of the Demon Prince Azaleth. Wants to broker a deal between mortals and demons for personal gain and amusement."
-**Mannerisms:** "Speaks entirely in metaphors and riddles - 'The river knows what the mountain forgets.' Never makes direct eye contact, always looking just past the person. Fingers constantly writing invisible symbols in the air. Laughs softly at inappropriate moments. Hums an eerie tune when thinking."
-**DmNotes:** "Actually a disguised night hag gathering souls for a demon pact. Has dirt on several city council members. Knows the players are prophesied to kill the Demon Prince - will try to manipulate them. Owns a Ring of Mind Shielding and Amulet of Proof Against Detection. Weaknesses: true name is Nyx'athara, can be banished with proper ritual. Has informants in every major city."
-**SharedWithPlayers:** "This mysterious merchant appeared in town three months ago. They trade in secrets and favors rather than gold - 'A secret for a secret, a favor for a favor.' Nobody knows where they live or their real name. They seem to know things they shouldn't. The town guard tolerates them but keeps a wary eye."
+**name:** "The Velvet Voice"
+**summary:** "Enigmatic information broker who trades in secrets, not coin"
+**playerSummary:** "A strange merchant who deals in information and favors"
+**physicalDescription:** "A figure of indeterminate gender and race, always shrouded in shimmering purple velvet robes that seem to shift color in candlelight. Silver jewelry adorns every visible inch - rings, bangles, chains. Their voice is melodious and hypnotic, with an accent from no known land. The air around them carries the scent of exotic incense - sandalwood and something sweeter, almost cloying. Age impossible to determine - could be 30 or 300."
+**motivation:** "Collect secrets to gain leverage over powerful figures across the realm. Seeks a specific piece of forbidden knowledge: the true name of the Demon Prince Azaleth. Wants to broker a deal between mortals and demons for personal gain and amusement."
+**mannerisms:** "Speaks entirely in metaphors and riddles - 'The river knows what the mountain forgets.' Never makes direct eye contact, always looking just past the person. Fingers constantly writing invisible symbols in the air. Laughs softly at inappropriate moments. Hums an eerie tune when thinking."
+**dmNotes:** "Actually a disguised night hag gathering souls for a demon pact. Has dirt on several city council members. Knows the players are prophesied to kill the Demon Prince - will try to manipulate them. Owns a Ring of Mind Shielding and Amulet of Proof Against Detection. Weaknesses: true name is Nyx'athara, can be banished with proper ritual. Has informants in every major city."
+**sharedWithPlayers:** "This mysterious merchant appeared in town three months ago. They trade in secrets and favors rather than gold - 'A secret for a secret, a favor for a favor.' Nobody knows where they live or their real name. They seem to know things they shouldn't. The town guard tolerates them but keeps a wary eye."
 
 ---
 
