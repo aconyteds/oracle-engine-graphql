@@ -144,7 +144,7 @@ Day 8+: Execute plan, face consequences"
 1. **Clear Stakes:** Both examples show what happens if players succeed/fail
 2. **Multiple Paths:** Combat, social, stealth, magic - all viable
 3. **Layered Secrets:** Not everything revealed immediately; rewards investigation
-4. **NPC/Location Links:** Specific relationships defined for relatedAssets
+4. **NPC/Location Links:** Specific relationships defined in dmNotes
 5. **Pacing Guidance:** When urgency escalates, what triggers next phase
 6. **Player Agency:** Meaningful choices with different consequences
 7. **DM Flexibility:** Contingencies for different player approaches
@@ -157,7 +157,7 @@ Day 8+: Execute plan, face consequences"
 3. **Railroading:** Plot should adapt to player choices, not force specific actions
 4. **Information Overload:** Reveal secrets gradually through play
 5. **Unclear Objectives:** Players should always know what they can do next
-6. **Disconnected:** Link plots to NPCs, locations, other plots via relatedAssets
+6. **Disconnected:** Link plots to NPCs, locations, other plots in dmNotes
 7. **Static Status:** Update status/urgency as plot progresses
 8. **No Consequences:** Player choices should matter and ripple forward`;
 }
