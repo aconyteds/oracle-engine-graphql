@@ -15,16 +15,24 @@ const baseUpdateSchema = z.object({
     .max(200)
     .optional()
     .describe("Updated name of the campaign asset."),
-  summary: z
+  gmSummary: z
     .string()
     .max(200)
     .optional()
     .describe("Updated brief summary of the campaign asset."),
+  gmNotes: z
+    .string()
+    .optional()
+    .describe("Updated GM notes for the campaign asset."),
   playerSummary: z
     .string()
     .max(200)
     .optional()
     .describe("Updated player-friendly summary."),
+  playerNotes: z
+    .string()
+    .optional()
+    .describe("Updated player notes for the campaign asset."),
   sessionEventLink: z.array(z.string()).optional(),
   relatedAssetList: z.array(z.string()).optional(),
 });
@@ -70,9 +78,12 @@ export async function updateCampaignAsset(
 
   // Add common fields if provided
   if (params.name !== undefined) updateData.name = params.name;
-  if (params.summary !== undefined) updateData.summary = params.summary;
+  if (params.gmSummary !== undefined) updateData.gmSummary = params.gmSummary;
+  if (params.gmNotes !== undefined) updateData.gmNotes = params.gmNotes;
   if (params.playerSummary !== undefined)
     updateData.playerSummary = params.playerSummary;
+  if (params.playerNotes !== undefined)
+    updateData.playerNotes = params.playerNotes;
 
   // Add type-specific data based on recordType
   // Note: Prisma composite types must be replaced entirely, not partially updated
@@ -97,11 +108,6 @@ export async function updateCampaignAsset(
             characters:
               params.locationData.characters ??
               existingAsset.locationData.characters,
-            dmNotes:
-              params.locationData.dmNotes ?? existingAsset.locationData.dmNotes,
-            sharedWithPlayers:
-              params.locationData.sharedWithPlayers ??
-              existingAsset.locationData.sharedWithPlayers,
           },
         };
       }
@@ -119,10 +125,6 @@ export async function updateCampaignAsset(
               params.npcData.motivation ?? existingAsset.npcData.motivation,
             mannerisms:
               params.npcData.mannerisms ?? existingAsset.npcData.mannerisms,
-            dmNotes: params.npcData.dmNotes ?? existingAsset.npcData.dmNotes,
-            sharedWithPlayers:
-              params.npcData.sharedWithPlayers ??
-              existingAsset.npcData.sharedWithPlayers,
           },
         };
       }
@@ -132,10 +134,6 @@ export async function updateCampaignAsset(
         // Manually merge all fields for composite type using 'set'
         updateData.plotData = {
           set: {
-            dmNotes: params.plotData.dmNotes ?? existingAsset.plotData.dmNotes,
-            sharedWithPlayers:
-              params.plotData.sharedWithPlayers ??
-              existingAsset.plotData.sharedWithPlayers,
             status: params.plotData.status ?? existingAsset.plotData.status,
             urgency: params.plotData.urgency ?? existingAsset.plotData.urgency,
           },
@@ -165,7 +163,9 @@ export async function updateCampaignAsset(
   // Regenerate embeddings if content changed
   const contentChanged =
     params.name !== undefined ||
-    params.summary !== undefined ||
+    params.gmSummary !== undefined ||
+    params.gmNotes !== undefined ||
+    params.playerNotes !== undefined ||
     ("locationData" in params && params.locationData !== undefined) ||
     ("npcData" in params && params.npcData !== undefined) ||
     ("plotData" in params && params.plotData !== undefined);

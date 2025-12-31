@@ -22,8 +22,10 @@ describe("updateNPC", () => {
     campaignId: defaultCampaignId,
     name: "Elara Moonwhisper",
     recordType: RecordType.NPC,
-    summary: "Elven ranger",
+    gmSummary: "Elven ranger",
     playerSummary: "A helpful elf",
+    gmNotes: "Secretly working for Shadow Council",
+    playerNotes: "Seems friendly",
     createdAt: new Date("2024-01-01"),
     updatedAt: new Date("2024-01-01"),
     Embeddings: [],
@@ -32,8 +34,6 @@ describe("updateNPC", () => {
       physicalDescription: "A lithe elf woman",
       motivation: "Protect the forest",
       mannerisms: "Speaks softly",
-      dmNotes: "Secretly working for Shadow Council",
-      sharedWithPlayers: "Seems friendly",
     },
     locationData: null,
     plotData: null,
@@ -42,7 +42,7 @@ describe("updateNPC", () => {
 
   const defaultUpdatedAsset: CampaignAsset = {
     ...defaultExistingAsset,
-    summary: "Elven ranger who betrayed the party",
+    gmSummary: "Elven ranger who betrayed the party",
     updatedAt: new Date("2024-01-02"),
   };
 
@@ -108,10 +108,8 @@ describe("updateNPC", () => {
   test("Unit -> updateNPC updates NPC with partial fields", async () => {
     const updateInput = {
       npcId: defaultNPCId,
-      summary: "Elven ranger who betrayed the party",
-      npcData: {
-        dmNotes: "Revealed as Shadow Council agent",
-      },
+      gmSummary: "Elven ranger who betrayed the party",
+      gmNotes: "Revealed as Shadow Council agent",
     };
 
     const result = await updateNPC(updateInput, {
@@ -135,9 +133,11 @@ describe("updateNPC", () => {
       assetId: defaultNPCId,
       recordType: RecordType.NPC,
       name: undefined,
-      summary: updateInput.summary,
+      gmSummary: updateInput.gmSummary,
       playerSummary: undefined,
-      npcData: updateInput.npcData,
+      gmNotes: updateInput.gmNotes,
+      playerNotes: undefined,
+      npcData: undefined,
     });
 
     expect(result).toContain("<success>");
@@ -145,11 +145,11 @@ describe("updateNPC", () => {
     expect(result).toContain("<npc");
   });
 
-  test("Unit -> updateNPC updates name and summary", async () => {
+  test("Unit -> updateNPC updates name and gmSummary", async () => {
     const updateInput = {
       npcId: defaultNPCId,
       name: "Elara the Betrayer",
-      summary: "Former ally turned enemy",
+      gmSummary: "Former ally turned enemy",
     };
 
     await updateNPC(updateInput, {
@@ -165,8 +165,10 @@ describe("updateNPC", () => {
       assetId: defaultNPCId,
       recordType: RecordType.NPC,
       name: updateInput.name,
-      summary: updateInput.summary,
+      gmSummary: updateInput.gmSummary,
       playerSummary: undefined,
+      gmNotes: undefined,
+      playerNotes: undefined,
       npcData: undefined,
     });
   });
@@ -175,7 +177,7 @@ describe("updateNPC", () => {
     mockGetCampaignAssetById.mockResolvedValue(null);
 
     const result = await updateNPC(
-      { npcId: "non-existent-id", summary: "Test" },
+      { npcId: "non-existent-id", gmSummary: "Test" },
       {
         context: {
           userId: defaultUserId,
@@ -200,7 +202,7 @@ describe("updateNPC", () => {
 
     try {
       const result = await updateNPC(
-        { npcId: defaultNPCId, summary: "Test" },
+        { npcId: defaultNPCId, gmSummary: "Test" },
         {
           context: {
             userId: "wrong-user",
@@ -229,7 +231,7 @@ describe("updateNPC", () => {
 
     try {
       const result = await updateNPC(
-        { npcId: defaultNPCId, summary: "Test" },
+        { npcId: defaultNPCId, gmSummary: "Test" },
         {
           context: {
             userId: defaultUserId,
@@ -258,7 +260,7 @@ describe("updateNPC", () => {
 
     try {
       const result = await updateNPC(
-        { npcId: defaultNPCId, summary: "Test" },
+        { npcId: defaultNPCId, gmSummary: "Test" },
         {
           context: {
             userId: defaultUserId,
@@ -282,7 +284,7 @@ describe("updateNPC", () => {
 
   test("Unit -> updateNPC returns XML formatted response", async () => {
     const result = await updateNPC(
-      { npcId: defaultNPCId, summary: "Updated summary" },
+      { npcId: defaultNPCId, gmSummary: "Updated gmSummary" },
       {
         context: {
           userId: defaultUserId,

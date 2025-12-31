@@ -12,7 +12,7 @@ describe("plotCreationBestPractices", () => {
     expect(result).toContain("COMMON PITFALLS");
     expect(result).toContain("The Missing Merchant Prince");
     expect(result).toContain("Siege of Thornwatch");
-    expect(result).toContain("dmNotes");
+    expect(result).toContain("GmNotes");
   });
 
   test("Unit -> plotCreationBestPractices includes plot status examples", async () => {

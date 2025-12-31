@@ -21,16 +21,16 @@ describe("updateCampaignAsset", () => {
     campaignId: "campaign-1",
     name: "Test Plot",
     recordType: RecordType.Plot,
-    summary: "Test summary",
+    gmSummary: "Test summary",
+    gmNotes: "GM notes",
     playerSummary: "Player summary",
+    playerNotes: "Shared info",
     createdAt: new Date(),
     updatedAt: new Date(),
     Embeddings: [0.1, 0.2, 0.3],
     locationData: null,
     npcData: null,
     plotData: {
-      dmNotes: "DM notes",
-      sharedWithPlayers: "Shared info",
       status: PlotStatus.InProgress,
       urgency: Urgency.TimeSensitive,
     },
@@ -42,8 +42,10 @@ describe("updateCampaignAsset", () => {
     campaignId: "campaign-1",
     name: "Test Location",
     recordType: RecordType.Location,
-    summary: "Test summary",
+    gmSummary: "Test summary",
+    gmNotes: "Secret trap",
     playerSummary: "Player summary",
+    playerNotes: "Looks dangerous",
     createdAt: new Date(),
     updatedAt: new Date(),
     Embeddings: [0.1, 0.2, 0.3],
@@ -55,8 +57,6 @@ describe("updateCampaignAsset", () => {
       condition: "Foggy",
       pointsOfInterest: "Ancient ruins",
       characters: "Guards",
-      dmNotes: "Secret trap",
-      sharedWithPlayers: "Looks dangerous",
     },
     sessionEventLink: [],
   };
@@ -66,8 +66,10 @@ describe("updateCampaignAsset", () => {
     campaignId: "campaign-1",
     name: "Test NPC",
     recordType: RecordType.NPC,
-    summary: "Test summary",
+    gmSummary: "Test summary",
+    gmNotes: "Secret identity",
     playerSummary: "Player summary",
+    playerNotes: "Mysterious figure",
     createdAt: new Date(),
     updatedAt: new Date(),
     Embeddings: [0.1, 0.2, 0.3],
@@ -78,8 +80,6 @@ describe("updateCampaignAsset", () => {
       physicalDescription: "Tall and imposing",
       motivation: "Seeks revenge",
       mannerisms: "Speaks softly",
-      dmNotes: "Secret identity",
-      sharedWithPlayers: "Mysterious figure",
     },
     sessionEventLink: [],
   };
@@ -167,8 +167,8 @@ describe("updateCampaignAsset", () => {
     expect(result).toEqual(updatedAsset);
   });
 
-  test("Unit -> updateCampaignAsset updates summary and regenerates embeddings", async () => {
-    const updatedAsset = { ...defaultPlotAsset, summary: "New summary" };
+  test("Unit -> updateCampaignAsset updates gmSummary and regenerates embeddings", async () => {
+    const updatedAsset = { ...defaultPlotAsset, gmSummary: "New summary" };
     const finalAsset = { ...updatedAsset, Embeddings: defaultEmbeddings };
     mockUpdate.mockResolvedValueOnce(updatedAsset);
     mockUpdate.mockResolvedValueOnce(finalAsset);
@@ -176,7 +176,7 @@ describe("updateCampaignAsset", () => {
     const result = await updateCampaignAsset({
       assetId: "asset-1",
       recordType: RecordType.Plot,
-      summary: "New summary",
+      gmSummary: "New summary",
     });
 
     expect(mockUpdate).toHaveBeenCalledTimes(2);
@@ -189,7 +189,6 @@ describe("updateCampaignAsset", () => {
       ...defaultPlotAsset,
       plotData: {
         ...defaultPlotAsset.plotData!,
-        dmNotes: "Updated DM notes",
         status: PlotStatus.Closed,
       },
     };
@@ -201,7 +200,6 @@ describe("updateCampaignAsset", () => {
       assetId: "asset-1",
       recordType: RecordType.Plot,
       plotData: {
-        dmNotes: "Updated DM notes",
         status: PlotStatus.Closed,
       },
     });
@@ -211,8 +209,6 @@ describe("updateCampaignAsset", () => {
       data: {
         plotData: {
           set: {
-            dmNotes: "Updated DM notes",
-            sharedWithPlayers: "Shared info",
             status: PlotStatus.Closed,
             urgency: Urgency.TimeSensitive,
           },
@@ -255,8 +251,6 @@ describe("updateCampaignAsset", () => {
             condition: "Sunny",
             pointsOfInterest: "Ancient ruins",
             characters: "Guards",
-            dmNotes: "Secret trap",
-            sharedWithPlayers: "Looks dangerous",
           },
         },
       },
@@ -296,8 +290,6 @@ describe("updateCampaignAsset", () => {
             physicalDescription: "Tall and imposing",
             motivation: "Seeks peace",
             mannerisms: "Laughs loudly",
-            dmNotes: "Secret identity",
-            sharedWithPlayers: "Mysterious figure",
           },
         },
       },
@@ -422,7 +414,7 @@ describe("updateCampaignAsset", () => {
     const updatedAsset = {
       ...defaultPlotAsset,
       name: "New Name",
-      summary: "New summary",
+      gmSummary: "New summary",
       playerSummary: "New player summary",
       plotData: {
         ...defaultPlotAsset.plotData!,
@@ -437,7 +429,7 @@ describe("updateCampaignAsset", () => {
       assetId: "asset-1",
       recordType: RecordType.Plot,
       name: "New Name",
-      summary: "New summary",
+      gmSummary: "New summary",
       playerSummary: "New player summary",
       plotData: {
         status: PlotStatus.Closed,
@@ -448,12 +440,10 @@ describe("updateCampaignAsset", () => {
       where: { id: "asset-1" },
       data: {
         name: "New Name",
-        summary: "New summary",
+        gmSummary: "New summary",
         playerSummary: "New player summary",
         plotData: {
           set: {
-            dmNotes: "DM notes",
-            sharedWithPlayers: "Shared info",
             status: PlotStatus.Closed,
             urgency: Urgency.TimeSensitive,
           },

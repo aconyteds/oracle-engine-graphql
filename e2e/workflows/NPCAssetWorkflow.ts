@@ -77,8 +77,11 @@ export class NPCAssetWorkflow extends BaseWorkflow {
       campaignId,
       recordType: "NPC",
       name: "Elara Moonwhisper",
-      summary: "A wise elven ranger and guide through the Mistwood",
+      gmSummary: "A wise elven ranger and guide through the Mistwood",
+      gmNotes:
+        "She knows the location of the ancient temple but won't reveal it until she trusts the party",
       playerSummary: "A friendly elven ranger who knows the forest well",
+      playerNotes: "She seems knowledgeable about the forest and its dangers",
       npcData: {
         imageUrl: "https://example.com/elara.jpg",
         physicalDescription:
@@ -87,10 +90,6 @@ export class NPCAssetWorkflow extends BaseWorkflow {
           "Protect the Mistwood from those who would harm it, avenge her fallen companions",
         mannerisms:
           "Speaks softly but firmly. Often touches the trees when walking through the forest. Has a habit of whistling bird calls.",
-        dmNotes:
-          "She knows the location of the ancient temple but won't reveal it until she trusts the party",
-        sharedWithPlayers:
-          "She seems knowledgeable about the forest and its dangers",
       },
     });
 
@@ -151,8 +150,12 @@ export class NPCAssetWorkflow extends BaseWorkflow {
       assetId,
       recordType: "NPC",
       name: "Elara Moonwhisper (Trusted Ally)",
-      summary:
+      gmSummary:
         "A wise elven ranger and trusted guide through the Mistwood. Now a close ally of the party.",
+      gmNotes:
+        "She has revealed the temple location and will accompany the party there. She is developing feelings for one of the PCs.",
+      playerNotes:
+        "She is now a trusted ally and has offered to guide the party to the ancient temple",
       npcData: {
         physicalDescription:
           "Tall elf with silver hair and piercing green eyes. Wears forest-green leathers and carries a longbow. Now wears a party emblem as a brooch.",
@@ -160,10 +163,6 @@ export class NPCAssetWorkflow extends BaseWorkflow {
           "Protect the Mistwood and help the party stop the corruption spreading through the forest",
         mannerisms:
           "Speaks warmly to the party. Often touches the trees when walking through the forest. Has a habit of whistling bird calls. Now shares food from her hunting.",
-        dmNotes:
-          "She has revealed the temple location and will accompany the party there. She is developing feelings for one of the PCs.",
-        sharedWithPlayers:
-          "She is now a trusted ally and has offered to guide the party to the ancient temple",
       },
     });
 

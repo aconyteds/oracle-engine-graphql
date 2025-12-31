@@ -25,7 +25,7 @@ export type SearchCampaignAssetsOutput = {
         campaignId: string;
         name: string;
         recordType: string;
-        summary: string | null;
+        gmSummary: string | null;
         playerSummary: string | null;
         createdAt: string;
         updatedAt: string;
@@ -62,7 +62,7 @@ export class SearchCampaignAssetsNode extends BaseNode<
               campaignId
               name
               recordType
-              summary
+              gmSummary
               playerSummary
               createdAt
               updatedAt

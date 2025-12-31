@@ -78,8 +78,10 @@ export class SearchCampaignAssetsWorkflow extends BaseWorkflow {
       campaignId,
       recordType: "Location",
       name: "Ancient Tower",
-      summary: "An old wizard's tower filled with arcane knowledge",
+      gmSummary: "An old wizard's tower filled with arcane knowledge",
+      gmNotes: "Contains powerful artifact on top floor",
       playerSummary: "A tall stone tower with mystical energy",
+      playerNotes: "The tower radiates magic and seems to hum softly",
       locationData: {
         imageUrl: "https://example.com/tower.jpg",
         description:
@@ -88,8 +90,6 @@ export class SearchCampaignAssetsWorkflow extends BaseWorkflow {
         pointsOfInterest:
           "Library on third floor, alchemy lab, observation deck",
         characters: "Ghostly wizard apparition, magical constructs",
-        dmNotes: "Contains powerful artifact on top floor",
-        sharedWithPlayers: "The tower radiates magic and seems to hum softly",
       },
     });
 
@@ -103,8 +103,10 @@ export class SearchCampaignAssetsWorkflow extends BaseWorkflow {
       campaignId,
       recordType: "NPC",
       name: "Mysterious Merchant",
-      summary: "A traveling merchant who sells rare potions and artifacts",
+      gmSummary: "A traveling merchant who sells rare potions and artifacts",
+      gmNotes: "Actually a disguised dragon collecting magical items",
       playerSummary: "A hooded figure with unusual wares",
+      playerNotes: "Sells potions and magical trinkets at fair prices",
       npcData: {
         imageUrl: "https://example.com/merchant.jpg",
         physicalDescription:
@@ -112,8 +114,6 @@ export class SearchCampaignAssetsWorkflow extends BaseWorkflow {
         motivation: "Collect rare items and spread them across the realm",
         mannerisms:
           "Speaks in riddles, always offers a deal, never reveals face",
-        dmNotes: "Actually a disguised dragon collecting magical items",
-        sharedWithPlayers: "Sells potions and magical trinkets at fair prices",
       },
     });
 
@@ -127,13 +127,13 @@ export class SearchCampaignAssetsWorkflow extends BaseWorkflow {
       campaignId,
       recordType: "Plot",
       name: "Dragon Threat",
-      summary: "A red dragon has been terrorizing nearby villages",
+      gmSummary: "A red dragon has been terrorizing nearby villages",
+      gmNotes:
+        "The dragon is being controlled by an evil cult. Defeating the dragon won't solve the problem.",
       playerSummary: "Villages report attacks by a large winged creature",
+      playerNotes:
+        "Villagers are offering a reward for anyone who can stop the attacks",
       plotData: {
-        dmNotes:
-          "The dragon is being controlled by an evil cult. Defeating the dragon won't solve the problem.",
-        sharedWithPlayers:
-          "Villagers are offering a reward for anyone who can stop the attacks",
         status: "InProgress",
         urgency: "Critical",
       },
@@ -149,8 +149,10 @@ export class SearchCampaignAssetsWorkflow extends BaseWorkflow {
       campaignId,
       recordType: "Location",
       name: "Dark Cave",
-      summary: "A mysterious cave entrance hidden in the forest",
+      gmSummary: "A mysterious cave entrance hidden in the forest",
+      gmNotes: "Leads to the cult's underground temple",
       playerSummary: "A dark opening in the hillside",
+      playerNotes: "Local hunters avoid this area and warn others away",
       locationData: {
         imageUrl: "https://example.com/cave.jpg",
         description:
@@ -159,8 +161,6 @@ export class SearchCampaignAssetsWorkflow extends BaseWorkflow {
         pointsOfInterest:
           "Underground river, crystal formations, ancient cave paintings",
         characters: "Unknown creatures lurking in the depths",
-        dmNotes: "Leads to the cult's underground temple",
-        sharedWithPlayers: "Local hunters avoid this area and warn others away",
       },
     });
 

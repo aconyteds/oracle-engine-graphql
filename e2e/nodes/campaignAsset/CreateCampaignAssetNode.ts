@@ -10,28 +10,24 @@ export type CreateCampaignAssetInput = {
   campaignId: string;
   recordType: "Location" | "NPC" | "Plot";
   name: string;
-  summary?: string;
+  gmSummary?: string;
+  gmNotes?: string;
   playerSummary?: string;
+  playerNotes?: string;
   locationData?: {
     imageUrl?: string;
     description: string;
     condition: string;
     pointsOfInterest: string;
     characters: string;
-    dmNotes: string;
-    sharedWithPlayers: string;
   };
   npcData?: {
     imageUrl?: string;
     physicalDescription: string;
     motivation: string;
     mannerisms: string;
-    dmNotes: string;
-    sharedWithPlayers: string;
   };
   plotData?: {
-    dmNotes: string;
-    sharedWithPlayers: string;
     status: "Unknown" | "Rumored" | "InProgress" | "WillNotDo" | "Closed";
     urgency: "Ongoing" | "TimeSensitive" | "Critical" | "Resolved";
   };
@@ -47,7 +43,7 @@ export type CreateCampaignAssetOutput = {
       campaignId: string;
       name: string;
       recordType: string;
-      summary: string | null;
+      gmSummary: string | null;
       playerSummary: string | null;
       createdAt: string;
       updatedAt: string;
@@ -80,7 +76,7 @@ export class CreateCampaignAssetNode extends BaseNode<
             campaignId
             name
             recordType
-            summary
+            gmSummary
             playerSummary
             createdAt
             updatedAt
@@ -109,8 +105,8 @@ export class CreateCampaignAssetNode extends BaseNode<
       expect(assetData?.updatedAt).toBeDefined();
 
       // Verify optional fields if provided
-      if (input.summary !== undefined) {
-        expect(assetData?.summary).toBe(input.summary);
+      if (input.gmSummary !== undefined) {
+        expect(assetData?.gmSummary).toBe(input.gmSummary);
       }
       if (input.playerSummary !== undefined) {
         expect(assetData?.playerSummary).toBe(input.playerSummary);

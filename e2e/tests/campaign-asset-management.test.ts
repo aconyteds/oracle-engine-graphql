@@ -96,13 +96,13 @@ describe("E2E -> Campaign Asset Management", () => {
       campaignId: "fake-campaign-id",
       recordType: "Location",
       name: "Test Location",
+      gmNotes: "Test",
+      playerNotes: "Test",
       locationData: {
         description: "Test",
         condition: "Test",
         pointsOfInterest: "Test",
         characters: "Test",
-        dmNotes: "Test",
-        sharedWithPlayers: "Test",
       },
     });
 
@@ -180,13 +180,13 @@ describe("E2E -> Campaign Asset Management", () => {
         campaignId,
         recordType: "Location",
         name: "Test Location",
+        gmNotes: "Test notes",
+        playerNotes: "Test notes",
         locationData: {
           description: "Test description",
           condition: "Good",
           pointsOfInterest: "None",
           characters: "None",
-          dmNotes: "Test notes",
-          sharedWithPlayers: "Visible",
         },
       });
 
@@ -198,12 +198,12 @@ describe("E2E -> Campaign Asset Management", () => {
         campaignId,
         recordType: "NPC",
         name: "Test NPC",
+        gmNotes: "Test notes",
+        playerNotes: "Test notes",
         npcData: {
           physicalDescription: "Test description",
           motivation: "Test motivation",
           mannerisms: "Test mannerisms",
-          dmNotes: "Test notes",
-          sharedWithPlayers: "Known",
         },
       });
 

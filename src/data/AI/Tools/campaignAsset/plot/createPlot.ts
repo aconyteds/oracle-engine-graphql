@@ -15,12 +15,17 @@ const createPlotSchema = z.object({
     .describe(
       "Name of the plot/quest/story arc (e.g., 'The Missing Merchant Prince', 'Siege of Thornwatch'). CRITICAL: Maximum 200 characters!"
     ),
-  summary: z
+  gmSummary: z
     .string()
     .max(200)
     .optional()
     .describe(
       "Brief Game Master (GM) summary of the core plot. CRITICAL: Maximum 200 characters! If omitted, will be auto-generated."
+    ),
+  gmNotes: z
+    .string()
+    .describe(
+      "Detailed Game Master (GM) notes including: Stakes (what happens if players succeed/fail), Key NPCs (mention names for relationship linking!), Locations (mention names!), Secrets, Clues/Evidence, Alternative paths, Contingencies. This should contain the MAJORITY of information."
     ),
   playerSummary: z
     .string()
@@ -29,12 +34,7 @@ const createPlotSchema = z.object({
     .describe(
       "Player-visible summary (no secrets/spoilers). CRITICAL: Maximum 200 characters! What players currently know about this plot."
     ),
-  dmNotes: z
-    .string()
-    .describe(
-      "Detailed Game Master (GM) notes including: Stakes (what happens if players succeed/fail), Key NPCs (mention names for relationship linking!), Locations (mention names!), Secrets, Clues/Evidence, Alternative paths, Contingencies. This should contain the MAJORITY of information."
-    ),
-  sharedWithPlayers: z
+  playerNotes: z
     .string()
     .describe(
       "What players currently know from their perspective. Should NOT include secrets unless revealed. Updates as players discover more."
@@ -65,12 +65,12 @@ export async function createPlot(
       campaignId: context.campaignId,
       recordType: RecordType.Plot,
       name: input.name,
-      summary: input.summary || "",
+      gmSummary: input.gmSummary || "",
+      gmNotes: input.gmNotes,
       playerSummary: input.playerSummary || "",
+      playerNotes: input.playerNotes,
       sessionEventLink: [],
       plotData: {
-        dmNotes: input.dmNotes,
-        sharedWithPlayers: input.sharedWithPlayers,
         status: input.status,
         urgency: input.urgency,
       },

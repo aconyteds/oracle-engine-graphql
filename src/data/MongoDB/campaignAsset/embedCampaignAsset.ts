@@ -36,14 +36,23 @@ export const embedCampaignAsset = async (
 export function stringifyCampaignAsset(
   asset: Pick<
     CampaignAsset,
-    "recordType" | "name" | "summary" | "npcData" | "locationData" | "plotData"
+    | "recordType"
+    | "name"
+    | "gmSummary"
+    | "gmNotes"
+    | "playerNotes"
+    | "npcData"
+    | "locationData"
+    | "plotData"
   >
 ): string {
   const parts: string[] = [];
 
   // Always include name and summary if present
   if (asset.name) parts.push(`Name: ${asset.name}`);
-  if (asset.summary) parts.push(`Summary: ${asset.summary}`);
+  if (asset.gmSummary) parts.push(`Summary: ${asset.gmSummary}`);
+  if (asset.gmNotes) parts.push(`GM Notes: ${asset.gmNotes}`);
+  if (asset.playerNotes) parts.push(`Player Notes: ${asset.playerNotes}`);
 
   switch (asset.recordType) {
     case RecordType.NPC:
@@ -58,9 +67,6 @@ export function stringifyCampaignAsset(
         }
         if (asset.npcData.mannerisms) {
           parts.push(`Mannerisms: ${asset.npcData.mannerisms}`);
-        }
-        if (asset.npcData.dmNotes) {
-          parts.push(`DM Notes: ${asset.npcData.dmNotes}`);
         }
       }
       break;
@@ -81,22 +87,11 @@ export function stringifyCampaignAsset(
         if (asset.locationData.characters) {
           parts.push(`Characters: ${asset.locationData.characters}`);
         }
-        if (asset.locationData.dmNotes) {
-          parts.push(`DM Notes: ${asset.locationData.dmNotes}`);
-        }
       }
       break;
 
     case RecordType.Plot:
       if (asset.plotData) {
-        if (asset.plotData.dmNotes) {
-          parts.push(`DM Notes: ${asset.plotData.dmNotes}`);
-        }
-        if (asset.plotData.sharedWithPlayers) {
-          parts.push(
-            `Shared With Players: ${asset.plotData.sharedWithPlayers}`
-          );
-        }
         if (asset.plotData.status) {
           parts.push(`Status: ${asset.plotData.status}`);
         }

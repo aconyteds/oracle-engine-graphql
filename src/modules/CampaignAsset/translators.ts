@@ -20,8 +20,10 @@ export function translateCreateInput(
     campaignId: input.campaignId,
     recordType: input.recordType as RecordType,
     name: input.name,
-    summary: input.summary ?? "",
+    gmSummary: input.gmSummary ?? "",
+    gmNotes: input.gmNotes,
     playerSummary: input.playerSummary ?? "",
+    playerNotes: input.playerNotes,
     sessionEventLink: [],
     relatedAssetList: [],
   };
@@ -40,8 +42,6 @@ export function translateCreateInput(
           condition: input.locationData.condition,
           pointsOfInterest: input.locationData.pointsOfInterest,
           characters: input.locationData.characters,
-          dmNotes: input.locationData.dmNotes,
-          sharedWithPlayers: input.locationData.sharedWithPlayers,
         },
       } as Parameters<typeof createCampaignAsset>[0];
 
@@ -56,8 +56,6 @@ export function translateCreateInput(
           physicalDescription: input.npcData.physicalDescription,
           motivation: input.npcData.motivation,
           mannerisms: input.npcData.mannerisms,
-          dmNotes: input.npcData.dmNotes,
-          sharedWithPlayers: input.npcData.sharedWithPlayers,
         },
       } as Parameters<typeof createCampaignAsset>[0];
 
@@ -68,8 +66,6 @@ export function translateCreateInput(
       return {
         ...baseInput,
         plotData: {
-          dmNotes: input.plotData.dmNotes,
-          sharedWithPlayers: input.plotData.sharedWithPlayers,
           status: input.plotData.status,
           urgency: input.plotData.urgency,
         },
@@ -91,8 +87,10 @@ export function translateUpdateInput(
     assetId: input.assetId,
     recordType: input.recordType as RecordType,
     name: input.name ?? undefined,
-    summary: input.summary ?? undefined,
+    gmSummary: input.gmSummary ?? undefined,
+    gmNotes: input.gmNotes ?? undefined,
     playerSummary: input.playerSummary ?? undefined,
+    playerNotes: input.playerNotes ?? undefined,
   };
 
   // Map type-specific data based on recordType
@@ -107,8 +105,6 @@ export function translateUpdateInput(
               condition: input.locationData.condition,
               pointsOfInterest: input.locationData.pointsOfInterest,
               characters: input.locationData.characters,
-              dmNotes: input.locationData.dmNotes,
-              sharedWithPlayers: input.locationData.sharedWithPlayers,
             }
           : undefined,
       } as Parameters<typeof updateCampaignAsset>[0];
@@ -122,8 +118,6 @@ export function translateUpdateInput(
               physicalDescription: input.npcData.physicalDescription,
               motivation: input.npcData.motivation,
               mannerisms: input.npcData.mannerisms,
-              dmNotes: input.npcData.dmNotes,
-              sharedWithPlayers: input.npcData.sharedWithPlayers,
             }
           : undefined,
       } as Parameters<typeof updateCampaignAsset>[0];
@@ -133,8 +127,6 @@ export function translateUpdateInput(
         ...baseInput,
         plotData: input.plotData
           ? {
-              dmNotes: input.plotData.dmNotes,
-              sharedWithPlayers: input.plotData.sharedWithPlayers,
               status: input.plotData.status,
               urgency: input.plotData.urgency,
             }
@@ -163,8 +155,6 @@ function translateLocationData(
     condition: locationData.condition,
     pointsOfInterest: locationData.pointsOfInterest,
     characters: locationData.characters,
-    dmNotes: locationData.dmNotes,
-    sharedWithPlayers: locationData.sharedWithPlayers,
   };
 }
 
@@ -180,8 +170,6 @@ function translateNPCData(
     physicalDescription: npcData.physicalDescription,
     motivation: npcData.motivation,
     mannerisms: npcData.mannerisms,
-    dmNotes: npcData.dmNotes,
-    sharedWithPlayers: npcData.sharedWithPlayers,
   };
 }
 
@@ -193,8 +181,6 @@ function translatePlotData(
 ): CampaignAssetModule.PlotData & { __typename: "PlotData" } {
   return {
     __typename: "PlotData",
-    dmNotes: plotData.dmNotes,
-    sharedWithPlayers: plotData.sharedWithPlayers,
     status: plotData.status,
     urgency: plotData.urgency,
   };
@@ -257,8 +243,10 @@ export function translateCampaignAsset(
     campaignId: asset.campaignId,
     name: asset.name,
     recordType: asset.recordType,
-    summary: asset.summary ?? null,
+    gmSummary: asset.gmSummary ?? null,
+    gmNotes: asset.gmNotes ?? "",
     playerSummary: asset.playerSummary ?? null,
+    playerNotes: asset.playerNotes ?? "",
     createdAt: asset.createdAt.toISOString(),
     updatedAt: asset.updatedAt.toISOString(),
     // Pass through the Prisma asset as parent for the field resolver

@@ -173,8 +173,10 @@ function buildVectorSearchPipeline({
         campaignId: 1,
         name: 1,
         recordType: 1,
-        summary: 1,
+        gmSummary: 1,
+        gmNotes: 1,
         playerSummary: 1,
+        playerNotes: 1,
         createdAt: 1,
         updatedAt: 1,
         locationData: 1,
@@ -199,8 +201,10 @@ interface RawBSONAssetDocument {
   campaignId: { $oid: string };
   name: string;
   recordType: RecordType;
-  summary: string | null;
+  gmSummary: string | null;
+  gmNotes: string | null;
   playerSummary: string | null;
+  playerNotes: string | null;
   createdAt: { $date: string };
   updatedAt: { $date: string };
   locationData: CampaignAsset["locationData"] | null;
@@ -215,8 +219,6 @@ interface RawBSONAssetDocument {
  * Based on the Plot type from Prisma schema.
  */
 interface RawBSONPlotData {
-  dmNotes: string;
-  sharedWithPlayers: string;
   status: "Unknown" | "Rumored" | "InProgress" | "WillNotDo" | "Closed";
   urgency: "Ongoing" | "TimeSensitive" | "Critical" | "Resolved";
   relatedAssetList: Array<{ $oid: string }>;
@@ -253,8 +255,6 @@ function convertDate(date: { $date: string }): Date {
  */
 function convertPlotData(rawPlot: RawBSONPlotData): Plot {
   return {
-    dmNotes: rawPlot.dmNotes,
-    sharedWithPlayers: rawPlot.sharedWithPlayers,
     status: rawPlot.status,
     urgency: rawPlot.urgency,
   };
@@ -274,7 +274,7 @@ function convertPlotData(rawPlot: RawBSONPlotData): Plot {
  * - sessionEventLink: Array<ObjectId> -> string[]
  *
  * Fields NOT requiring conversion (already correct types):
- * - name, recordType, summary, playerSummary, vectorScore
+ * - name, recordType, gmSummary, gmNotes, playerSummary, playerNotes, vectorScore
  * - locationData (all string fields)
  * - npcData (all string fields)
  *
@@ -299,8 +299,10 @@ function convertRawAssetToSearchResult(rawDoc: Document): AssetSearchResult {
     // Pass through primitive fields (no conversion needed)
     name: doc.name,
     recordType: doc.recordType,
-    summary: doc.summary,
+    gmSummary: doc.gmSummary,
+    gmNotes: doc.gmNotes,
     playerSummary: doc.playerSummary,
+    playerNotes: doc.playerNotes,
     score: doc.vectorScore,
 
     // LocationData and NPC have no BSON types - pass through

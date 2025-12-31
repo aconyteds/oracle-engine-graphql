@@ -17,8 +17,6 @@ describe("translateCampaignAssetData", () => {
     condition: "Dense foliage, difficult terrain",
     pointsOfInterest: "Ancient ruins, hidden cave",
     characters: "Forest guardian, local bandits",
-    dmNotes: "Hidden treasure map in the ruins",
-    sharedWithPlayers: "The forest is known for strange disappearances",
   };
 
   const defaultNPCData = {
@@ -26,13 +24,9 @@ describe("translateCampaignAssetData", () => {
     physicalDescription: "A tall elf with silver hair",
     motivation: "Seeking revenge for their fallen village",
     mannerisms: "Speaks softly, avoids eye contact",
-    dmNotes: "Secretly working with the villain",
-    sharedWithPlayers: "Seems trustworthy and helpful",
   };
 
   const defaultPlotData = {
-    dmNotes: "The artifact is cursed and corrupts its holder",
-    sharedWithPlayers: "A powerful artifact has been stolen",
     status: PlotStatus.InProgress,
     urgency: Urgency.TimeSensitive,
     relatedAssetList: [],
@@ -42,8 +36,10 @@ describe("translateCampaignAssetData", () => {
     id: defaultAssetId,
     campaignId: defaultCampaignId,
     name: "Test Asset",
-    summary: "Test summary",
+    gmSummary: "Test summary",
+    gmNotes: "GM notes",
     playerSummary: "Player summary",
+    playerNotes: "Player notes",
     createdAt: new Date("2024-01-01"),
     updatedAt: new Date("2024-01-02"),
     Embeddings: [],
@@ -68,8 +64,6 @@ describe("translateCampaignAssetData", () => {
       condition: defaultLocationData.condition,
       pointsOfInterest: defaultLocationData.pointsOfInterest,
       characters: defaultLocationData.characters,
-      dmNotes: defaultLocationData.dmNotes,
-      sharedWithPlayers: defaultLocationData.sharedWithPlayers,
     });
   });
 
@@ -90,8 +84,6 @@ describe("translateCampaignAssetData", () => {
       physicalDescription: defaultNPCData.physicalDescription,
       motivation: defaultNPCData.motivation,
       mannerisms: defaultNPCData.mannerisms,
-      dmNotes: defaultNPCData.dmNotes,
-      sharedWithPlayers: defaultNPCData.sharedWithPlayers,
     });
   });
 
@@ -108,8 +100,6 @@ describe("translateCampaignAssetData", () => {
 
     expect(result).toEqual({
       __typename: "PlotData",
-      dmNotes: defaultPlotData.dmNotes,
-      sharedWithPlayers: defaultPlotData.sharedWithPlayers,
       status: defaultPlotData.status,
       urgency: defaultPlotData.urgency,
     });
@@ -198,34 +188,32 @@ describe("translateCampaignAsset", () => {
   const defaultCampaignId = "507f1f77bcf86cd799439011";
   const defaultAssetId = "507f1f77bcf86cd799439012";
 
-  const defaultLocationData = {
-    imageUrl: "https://example.com/location.jpg",
-    description: "A dark and mysterious forest",
-    condition: "Dense foliage, difficult terrain",
-    pointsOfInterest: "Ancient ruins, hidden cave",
-    characters: "Forest guardian, local bandits",
-    dmNotes: "Hidden treasure map in the ruins",
-    sharedWithPlayers: "The forest is known for strange disappearances",
-  };
-
-  const baseAsset = {
+  const baseAsset2 = {
     id: defaultAssetId,
     campaignId: defaultCampaignId,
     name: "Dark Forest",
     recordType: RecordType.Location,
-    summary: "A mysterious forest",
+    gmSummary: "A mysterious forest",
+    gmNotes: "Hidden treasure map in the ruins",
     playerSummary: "Known for disappearances",
+    playerNotes: "The forest is known for strange disappearances",
     createdAt: new Date("2024-01-01T12:00:00Z"),
     updatedAt: new Date("2024-01-02T14:30:00Z"),
     Embeddings: [],
     sessionEventLink: [],
-    locationData: defaultLocationData,
+    locationData: {
+      imageUrl: "https://example.com/location.jpg",
+      description: "A dark and mysterious forest",
+      condition: "Dense foliage, difficult terrain",
+      pointsOfInterest: "Ancient ruins, hidden cave",
+      characters: "Forest guardian, local bandits",
+    },
     npcData: null,
     plotData: null,
   };
 
   test("Unit -> translateCampaignAsset translates all base fields correctly", () => {
-    const asset: CampaignAsset = baseAsset;
+    const asset: CampaignAsset = baseAsset2;
 
     const result = translateCampaignAsset(asset);
 
@@ -233,36 +221,42 @@ describe("translateCampaignAsset", () => {
     expect(result.campaignId).toBe(defaultCampaignId);
     expect(result.name).toBe("Dark Forest");
     expect(result.recordType).toBe(RecordType.Location);
-    expect(result.summary).toBe("A mysterious forest");
+    expect(result.gmSummary).toBe("A mysterious forest");
+    expect(result.gmNotes).toBe("Hidden treasure map in the ruins");
     expect(result.playerSummary).toBe("Known for disappearances");
+    expect(result.playerNotes).toBe(
+      "The forest is known for strange disappearances"
+    );
     expect(result.createdAt).toBe("2024-01-01T12:00:00.000Z");
     expect(result.updatedAt).toBe("2024-01-02T14:30:00.000Z");
   });
 
-  test("Unit -> translateCampaignAsset handles null summary", () => {
+  test("Unit -> translateCampaignAsset handles null gmSummary", () => {
     const asset: CampaignAsset = {
-      ...baseAsset,
-      summary: null,
+      ...baseAsset2,
+      gmSummary: null,
     };
 
     const result = translateCampaignAsset(asset);
 
-    expect(result.summary).toBe(null);
+    expect(result.gmSummary).toBe(null);
   });
 
-  test("Unit -> translateCampaignAsset handles null playerSummary", () => {
+  test("Unit -> translateCampaignAsset handles null playerSummary and playerNotes", () => {
     const asset: CampaignAsset = {
-      ...baseAsset,
+      ...baseAsset2,
       playerSummary: null,
+      playerNotes: null,
     };
 
     const result = translateCampaignAsset(asset);
 
-    expect(result.playerSummary).toBe(null);
+    expect(result.playerSummary).toBeNull();
+    expect(result.playerNotes).toBe(""); // Non-null field defaults to empty string
   });
 
   test("Unit -> translateCampaignAsset passes through asset for data field resolver", () => {
-    const asset: CampaignAsset = baseAsset;
+    const asset: CampaignAsset = baseAsset2;
 
     const result = translateCampaignAsset(asset);
 
@@ -272,7 +266,7 @@ describe("translateCampaignAsset", () => {
 
   test("Unit -> translateCampaignAsset converts dates to ISO strings", () => {
     const asset: CampaignAsset = {
-      ...baseAsset,
+      ...baseAsset2,
       createdAt: new Date("2024-03-15T10:30:00Z"),
       updatedAt: new Date("2024-03-16T15:45:30Z"),
     };

@@ -21,8 +21,10 @@ export type GetCampaignAssetOutput = {
       campaignId: string;
       name: string;
       recordType: string;
-      summary: string | null;
+      gmSummary: string | null;
+      gmNotes: string | null;
       playerSummary: string | null;
+      playerNotes: string | null;
       data:
         | {
             __typename: "LocationData";
@@ -31,8 +33,6 @@ export type GetCampaignAssetOutput = {
             condition: string;
             pointsOfInterest: string;
             characters: string;
-            dmNotes: string;
-            sharedWithPlayers: string;
           }
         | {
             __typename: "NPCData";
@@ -40,13 +40,9 @@ export type GetCampaignAssetOutput = {
             physicalDescription: string;
             motivation: string;
             mannerisms: string;
-            dmNotes: string;
-            sharedWithPlayers: string;
           }
         | {
             __typename: "PlotData";
-            dmNotes: string;
-            sharedWithPlayers: string;
             status: string;
             urgency: string;
           };
@@ -81,8 +77,10 @@ export class GetCampaignAssetNode extends BaseNode<
             campaignId
             name
             recordType
-            summary
+            gmSummary
+            gmNotes
             playerSummary
+            playerNotes
             data {
               __typename
               ... on LocationData {
@@ -91,20 +89,14 @@ export class GetCampaignAssetNode extends BaseNode<
                 condition
                 pointsOfInterest
                 characters
-                dmNotes
-                sharedWithPlayers
               }
               ... on NPCData {
                 imageUrl
                 physicalDescription
                 motivation
                 mannerisms
-                dmNotes
-                sharedWithPlayers
               }
               ... on PlotData {
-                dmNotes
-                sharedWithPlayers
                 status
                 urgency
               }

@@ -15,12 +15,17 @@ const createNPCSchema = z.object({
     .describe(
       "Name of the NPC (e.g., 'Elara Moonwhisper', 'Grunk the Blacksmith', 'The Hooded Stranger'). CRITICAL: Maximum 200 characters - keep it concise!"
     ),
-  summary: z
+  gmSummary: z
     .string()
     .max(200)
     .optional()
     .describe(
       "Brief summary for quick reference and popovers. Written from the Game Master (GM) perspective. CRITICAL: Maximum 200 characters - this must be SHORT! If omitted, will be auto-generated."
+    ),
+  gmNotes: z
+    .string()
+    .describe(
+      "Game Master (GM) only secrets, hidden agendas, plot connections, tactical notes. This should contain the majority of information. Include combat stats if relevant, connections to factions/NPCs, how they react under pressure."
     ),
   playerSummary: z
     .string()
@@ -28,6 +33,11 @@ const createNPCSchema = z.object({
     .optional()
     .describe(
       "Player-visible summary (no GM secrets). Written from the player perspective. CRITICAL: Maximum 200 characters - keep it concise! If omitted, uses the main summary."
+    ),
+  playerNotes: z
+    .string()
+    .describe(
+      "What players currently know. Update as they discover more. Should NOT include secrets from gmNotes unless revealed. This should be written from the player's perspective."
     ),
   imageUrl: z
     .string()
@@ -51,16 +61,6 @@ const createNPCSchema = z.object({
     .describe(
       "Speech patterns, habits, quirks. How do they talk? What gestures do they make? Include vocal patterns, catchphrases, nervous tics. Make them instantly recognizable."
     ),
-  dmNotes: z
-    .string()
-    .describe(
-      "Game Master (GM) only secrets, hidden agendas, plot connections, tactical notes. This should contain the majority of information. Include combat stats if relevant, connections to factions/NPCs, how they react under pressure."
-    ),
-  sharedWithPlayers: z
-    .string()
-    .describe(
-      "What players currently know. Update as they discover more. Should NOT include secrets from dmNotes unless revealed. This should be written from the player's perspective."
-    ),
 });
 
 type CreateNPCInput = z.infer<typeof createNPCSchema>;
@@ -77,16 +77,16 @@ export async function createNPC(
       campaignId: context.campaignId,
       recordType: RecordType.NPC,
       name: input.name,
-      summary: input.summary || "",
+      gmSummary: input.gmSummary || "",
+      gmNotes: input.gmNotes,
       playerSummary: input.playerSummary || "",
+      playerNotes: input.playerNotes,
       sessionEventLink: [],
       npcData: {
         ...(!!input.imageUrl ? { imageUrl: input.imageUrl.toString() } : {}),
         physicalDescription: input.physicalDescription,
         motivation: input.motivation,
         mannerisms: input.mannerisms,
-        dmNotes: input.dmNotes,
-        sharedWithPlayers: input.sharedWithPlayers,
       },
     });
 
