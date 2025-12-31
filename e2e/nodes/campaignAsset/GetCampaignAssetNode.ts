@@ -49,10 +49,6 @@ export type GetCampaignAssetOutput = {
             sharedWithPlayers: string;
             status: string;
             urgency: string;
-            relatedAssets: Array<{
-              relatedAssetId: string;
-              relationshipSummary: string;
-            }>;
           };
       createdAt: string;
       updatedAt: string;
@@ -111,10 +107,6 @@ export class GetCampaignAssetNode extends BaseNode<
                 sharedWithPlayers
                 status
                 urgency
-                relatedAssets {
-                  relatedAssetId
-                  relationshipSummary
-                }
               }
             }
             createdAt

@@ -15,7 +15,11 @@ const updateLocationSchema = z.object({
     .string()
     .describe("ID of location to update (from search/previous calls)"),
   name: z.string().min(2).max(200).optional().describe("Updated name"),
-  summary: z.string().max(200).optional().describe("Updated summary"),
+  summary: z
+    .string()
+    .max(200)
+    .optional()
+    .describe("Updated Game Master (GM) summary"),
   playerSummary: z
     .string()
     .max(200)

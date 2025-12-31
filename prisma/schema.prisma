@@ -148,13 +148,6 @@ type Plot {
   sharedWithPlayers String
   status            PlotStatus
   urgency           Urgency
-  relatedAssetList  String[]           @db.ObjectId
-  relatedAssets     PlotRelationship[]
-}
-
-type PlotRelationship {
-  relatedAssetId      String @db.ObjectId
-  relationshipSummary String
 }
 
 type NPC {

@@ -36,7 +36,6 @@ describe("translateCampaignAssetData", () => {
     status: PlotStatus.InProgress,
     urgency: Urgency.TimeSensitive,
     relatedAssetList: [],
-    relatedAssets: [],
   };
 
   const baseAsset = {
@@ -113,7 +112,6 @@ describe("translateCampaignAssetData", () => {
       sharedWithPlayers: defaultPlotData.sharedWithPlayers,
       status: defaultPlotData.status,
       urgency: defaultPlotData.urgency,
-      relatedAssets: [],
     });
   });
 
@@ -151,35 +149,6 @@ describe("translateCampaignAssetData", () => {
 
     expect(result).toHaveProperty("__typename", "NPCData");
     expect(result).toHaveProperty("imageUrl", null);
-  });
-
-  test("Unit -> translateCampaignAssetData includes relatedAssets for Plot assets", () => {
-    const relatedAssets = [
-      {
-        relatedAssetId: "507f1f77bcf86cd799439013",
-        relationshipSummary: "The NPC guards this location",
-      },
-      {
-        relatedAssetId: "507f1f77bcf86cd799439014",
-        relationshipSummary: "The villain seeks this artifact",
-      },
-    ];
-
-    const asset: CampaignAsset = {
-      ...baseAsset,
-      recordType: RecordType.Plot,
-      locationData: null,
-      npcData: null,
-      plotData: {
-        ...defaultPlotData,
-        relatedAssets,
-      },
-    };
-
-    const result = translateCampaignAssetData(asset);
-
-    expect(result).toHaveProperty("__typename", "PlotData");
-    expect(result).toHaveProperty("relatedAssets", relatedAssets);
   });
 
   test("Unit -> translateCampaignAssetData throws error for Location asset without locationData", () => {

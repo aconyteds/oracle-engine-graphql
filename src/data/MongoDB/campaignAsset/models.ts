@@ -9,7 +9,7 @@ export const locationDataSchema = z.object({
   description: z
     .string()
     .describe(
-      "Detailed description of the location, this would be the Read Aloud text that the DM would relay to the players."
+      "Detailed description of the location, this would be the Read Aloud text that the Game Master (GM) would relay to the players."
     ),
   condition: z
     .string()
@@ -29,12 +29,12 @@ export const locationDataSchema = z.object({
   dmNotes: z
     .string()
     .describe(
-      "DM notes for the location, this will include secrets, and things that the DM needs to be aware of like traps or loot."
+      "Game Master (GM) notes for the location, this will include secrets, and things that the GM needs to be aware of like traps or loot."
     ),
   sharedWithPlayers: z
     .string()
     .describe(
-      "Information shared with players about the location, this shouldn't include any secrets unless the DM has explicitly shared that information."
+      "Information shared with players about the location, this shouldn't include any secrets unless the GM has explicitly shared that information."
     ),
 });
 
@@ -46,7 +46,7 @@ export const npcDataSchema = z.object({
   physicalDescription: z
     .string()
     .describe(
-      "Physical description of the NPC. This would be the read aloud text that the DM would relay to the players about the NPC's appearance."
+      "Physical description of the NPC. This would be the read aloud text that the Game Master (GM) would relay to the players about the NPC's appearance."
     ),
   motivation: z
     .string()
@@ -61,12 +61,12 @@ export const npcDataSchema = z.object({
   dmNotes: z
     .string()
     .describe(
-      "DM notes for the NPC. This would include secrets, hidden agendas, and any information the DM needs to know about the NPC that the players are not aware of."
+      "Game Master (GM) notes for the NPC. This would include secrets, hidden agendas, and any information the GM needs to know about the NPC that the players are not aware of."
     ),
   sharedWithPlayers: z
     .string()
     .describe(
-      "Information shared with players about the NPC. This shouldn't include any secrets unless the DM has explicitly shared that information."
+      "Information shared with players about the NPC. This shouldn't include any secrets unless the GM has explicitly shared that information."
     ),
 });
 
@@ -74,12 +74,12 @@ export const plotDataSchema = z.object({
   dmNotes: z
     .string()
     .describe(
-      "DM notes for the plot point, including any secrets or important information the DM needs to remember."
+      "Game Master (GM) notes for the plot point, including any secrets or important information the GM needs to remember."
     ),
   sharedWithPlayers: z
     .string()
     .describe(
-      "Information shared with players about the plot point. This shouldn't include any secrets unless the DM has explicitly shared that information."
+      "Information shared with players about the plot point. This shouldn't include any secrets unless the GM has explicitly shared that information."
     ),
   status: z
     .enum(PlotStatus)

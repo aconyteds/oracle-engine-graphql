@@ -111,7 +111,6 @@ describe("createCampaignAsset", () => {
       summary: "A mysterious forest",
       playerSummary: "Known for disappearances",
       sessionEventLink: [],
-      relatedAssetList: [],
       locationData: defaultLocationData,
     };
 
@@ -165,7 +164,6 @@ describe("createCampaignAsset", () => {
       summary: "A mysterious elf",
       playerSummary: "Helpful and trustworthy",
       sessionEventLink: [],
-      relatedAssetList: [],
       npcData: defaultNPCData,
     };
 
@@ -198,8 +196,6 @@ describe("createCampaignAsset", () => {
         sharedWithPlayers: defaultPlotData.sharedWithPlayers,
         status: defaultPlotData.status,
         urgency: defaultPlotData.urgency,
-        relatedAssetList: [],
-        relatedAssets: [],
       },
     };
 
@@ -216,7 +212,6 @@ describe("createCampaignAsset", () => {
       summary: "A powerful artifact has been stolen",
       playerSummary: "The town is in uproar",
       sessionEventLink: [],
-      relatedAssetList: [],
       plotData: defaultPlotData,
     };
 
@@ -247,7 +242,6 @@ describe("createCampaignAsset", () => {
       summary: "",
       playerSummary: "",
       sessionEventLink: [],
-      relatedAssetList: [],
       locationData: defaultLocationData,
     };
 
@@ -276,7 +270,6 @@ describe("createCampaignAsset", () => {
       summary: "A mysterious forest",
       playerSummary: "Known for disappearances",
       sessionEventLink: [],
-      relatedAssetList: [],
       locationData: defaultLocationData,
     };
 
@@ -297,7 +290,6 @@ describe("createCampaignAsset", () => {
       summary: "",
       playerSummary: "",
       sessionEventLink: [],
-      relatedAssetList: [],
       // Missing locationData - should fail validation
     } as const;
 
@@ -313,7 +305,6 @@ describe("createCampaignAsset", () => {
       summary: "",
       playerSummary: "",
       sessionEventLink: [],
-      relatedAssetList: [],
       // Missing npcData - should fail validation
     } as const;
 
@@ -329,7 +320,6 @@ describe("createCampaignAsset", () => {
       summary: "",
       playerSummary: "",
       sessionEventLink: [],
-      relatedAssetList: [],
       // Missing plotData - should fail validation
     } as const;
 

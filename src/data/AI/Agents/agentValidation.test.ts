@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { AGENT_LIST } from "./agentList";
-import { RouterType } from "./types";
+import { RouterType } from "../types";
+import { AGENT_LIST } from "./index";
 
 describe("Agent Configuration Validation", () => {
   test("Controller agents should not have Handoff sub-agents", () => {

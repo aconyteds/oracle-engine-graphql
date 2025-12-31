@@ -81,8 +81,6 @@ describe("listCampaignAssets", () => {
       sharedWithPlayers: "A powerful artifact has been stolen",
       status: "InProgress",
       urgency: "TimeSensitive",
-      relatedAssetList: [],
-      relatedAssets: [],
     },
     sessionEventLink: [],
   };

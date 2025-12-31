@@ -26,7 +26,7 @@ const updateNPCSchema = z.object({
     .string()
     .max(200)
     .optional()
-    .describe("Updated DM-facing summary (maximum 200 characters)"),
+    .describe("Updated Game Master (GM) summary (maximum 200 characters)"),
   playerSummary: z
     .string()
     .max(200)

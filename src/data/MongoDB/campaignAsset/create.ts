@@ -31,7 +31,6 @@ const baseAssetSchema = z.object({
       "Similar to summary but only visible to players. This should not include any DM secrets."
     ),
   sessionEventLink: z.array(z.string()).default([]),
-  relatedAssetList: z.array(z.string()).default([]),
 });
 
 // Discriminated union ensures only the correct data field is provided for each type

@@ -20,14 +20,14 @@ const createNPCSchema = z.object({
     .max(200)
     .optional()
     .describe(
-      "Brief summary for quick reference and popovers. Written from the DM perspective. CRITICAL: Maximum 200 characters - this must be SHORT! If omitted, will be auto-generated."
+      "Brief summary for quick reference and popovers. Written from the Game Master (GM) perspective. CRITICAL: Maximum 200 characters - this must be SHORT! If omitted, will be auto-generated."
     ),
   playerSummary: z
     .string()
     .max(200)
     .optional()
     .describe(
-      "Player-visible summary (no DM secrets). Written from the player perspective. CRITICAL: Maximum 200 characters - keep it concise! If omitted, uses the main summary."
+      "Player-visible summary (no GM secrets). Written from the player perspective. CRITICAL: Maximum 200 characters - keep it concise! If omitted, uses the main summary."
     ),
   imageUrl: z
     .string()
@@ -54,7 +54,7 @@ const createNPCSchema = z.object({
   dmNotes: z
     .string()
     .describe(
-      "DM-only secrets, hidden agendas, plot connections, tactical notes. This should contain the majority of information. Include combat stats if relevant, connections to factions/NPCs, how they react under pressure."
+      "Game Master (GM) only secrets, hidden agendas, plot connections, tactical notes. This should contain the majority of information. Include combat stats if relevant, connections to factions/NPCs, how they react under pressure."
     ),
   sharedWithPlayers: z
     .string()
@@ -80,7 +80,6 @@ export async function createNPC(
       summary: input.summary || "",
       playerSummary: input.playerSummary || "",
       sessionEventLink: [],
-      relatedAssetList: [],
       npcData: {
         ...(!!input.imageUrl ? { imageUrl: input.imageUrl.toString() } : {}),
         physicalDescription: input.physicalDescription,

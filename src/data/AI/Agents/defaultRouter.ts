@@ -5,6 +5,7 @@ import { RouterType } from "../types";
 import { characterAgent } from "./characterAgent";
 import { cheapest } from "./cheapest";
 import { locationAgent } from "./locationAgent";
+import { plotAgent } from "./plotAgent";
 // Reuse the router builder to ensure the default router is properly configured
 import { buildRouterAgent } from "./Router";
 
@@ -22,7 +23,7 @@ const defaultRouterDefinition: AIAgentDefinition = {
   specialization: "intelligent request routing and delegation",
   systemMessage: `You are an intelligent router agent for a TTRPG storyteller assistant called Oracle Engine. Your job is to analyze user requests and route them to the most appropriate specialized agent based on their expertise. Use the provided findCampaignAsset tool to identify any relevant context for making your decision.`,
   availableTools: [findCampaignAsset],
-  availableSubAgents: [cheapest, characterAgent, locationAgent],
+  availableSubAgents: [cheapest, characterAgent, locationAgent, plotAgent],
   routerType: RouterType.Handoff,
 };
 

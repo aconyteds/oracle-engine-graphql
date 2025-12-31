@@ -241,23 +241,6 @@ input PlotDataInput {
   The urgency level of the plot
   """
   urgency: Urgency!
-
-  """
-  Related assets with their relationships
-  """
-  relatedAssets: [PlotRelationshipInput!]
-}
-
-input PlotRelationshipInput {
-  """
-  The ID of the related asset
-  """
-  relatedAssetId: ID!
-
-  """
-  Summary of how this asset relates to the plot
-  """
-  relationshipSummary: String!
 }
 
 # Input Types for Updates
@@ -521,23 +504,6 @@ type PlotData {
   The urgency level of the plot
   """
   urgency: Urgency!
-
-  """
-  Related assets with their relationships
-  """
-  relatedAssets: [PlotRelationship!]!
-}
-
-type PlotRelationship {
-  """
-  The ID of the related asset
-  """
-  relatedAssetId: ID!
-
-  """
-  Summary of how this asset relates to the plot
-  """
-  relationshipSummary: String!
 }
 
 # Union type for polymorphic data
