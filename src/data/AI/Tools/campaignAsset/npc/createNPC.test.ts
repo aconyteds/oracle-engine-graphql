@@ -117,7 +117,6 @@ describe("createNPC", () => {
       summary: defaultNPCInput.summary,
       playerSummary: defaultNPCInput.playerSummary,
       sessionEventLink: [],
-      relatedAssetList: [],
       npcData: {
         imageUrl: defaultNPCInput.imageUrl,
         physicalDescription: defaultNPCInput.physicalDescription,
@@ -162,7 +161,6 @@ describe("createNPC", () => {
       summary: "",
       playerSummary: "",
       sessionEventLink: [],
-      relatedAssetList: [],
       npcData: {
         physicalDescription: minimalInput.physicalDescription,
         motivation: minimalInput.motivation,

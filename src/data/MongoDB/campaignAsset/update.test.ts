@@ -33,8 +33,6 @@ describe("updateCampaignAsset", () => {
       sharedWithPlayers: "Shared info",
       status: PlotStatus.InProgress,
       urgency: Urgency.TimeSensitive,
-      relatedAssetList: ["related-1"],
-      relatedAssets: [],
     },
     sessionEventLink: [],
   };
@@ -212,10 +210,12 @@ describe("updateCampaignAsset", () => {
       where: { id: "asset-1" },
       data: {
         plotData: {
-          dmNotes: "Updated DM notes",
-          sharedWithPlayers: "Shared info",
-          status: PlotStatus.Closed,
-          urgency: Urgency.TimeSensitive,
+          set: {
+            dmNotes: "Updated DM notes",
+            sharedWithPlayers: "Shared info",
+            status: PlotStatus.Closed,
+            urgency: Urgency.TimeSensitive,
+          },
         },
       },
     });
@@ -249,13 +249,15 @@ describe("updateCampaignAsset", () => {
       where: { id: "asset-2" },
       data: {
         locationData: {
-          imageUrl: "https://example.com/image.jpg",
-          description: "Updated description",
-          condition: "Sunny",
-          pointsOfInterest: "Ancient ruins",
-          characters: "Guards",
-          dmNotes: "Secret trap",
-          sharedWithPlayers: "Looks dangerous",
+          set: {
+            imageUrl: "https://example.com/image.jpg",
+            description: "Updated description",
+            condition: "Sunny",
+            pointsOfInterest: "Ancient ruins",
+            characters: "Guards",
+            dmNotes: "Secret trap",
+            sharedWithPlayers: "Looks dangerous",
+          },
         },
       },
     });
@@ -289,12 +291,14 @@ describe("updateCampaignAsset", () => {
       where: { id: "asset-3" },
       data: {
         npcData: {
-          imageUrl: "https://example.com/npc.jpg",
-          physicalDescription: "Tall and imposing",
-          motivation: "Seeks peace",
-          mannerisms: "Laughs loudly",
-          dmNotes: "Secret identity",
-          sharedWithPlayers: "Mysterious figure",
+          set: {
+            imageUrl: "https://example.com/npc.jpg",
+            physicalDescription: "Tall and imposing",
+            motivation: "Seeks peace",
+            mannerisms: "Laughs loudly",
+            dmNotes: "Secret identity",
+            sharedWithPlayers: "Mysterious figure",
+          },
         },
       },
     });
@@ -447,10 +451,12 @@ describe("updateCampaignAsset", () => {
         summary: "New summary",
         playerSummary: "New player summary",
         plotData: {
-          dmNotes: "DM notes",
-          sharedWithPlayers: "Shared info",
-          status: PlotStatus.Closed,
-          urgency: Urgency.TimeSensitive,
+          set: {
+            dmNotes: "DM notes",
+            sharedWithPlayers: "Shared info",
+            status: PlotStatus.Closed,
+            urgency: Urgency.TimeSensitive,
+          },
         },
       },
     });

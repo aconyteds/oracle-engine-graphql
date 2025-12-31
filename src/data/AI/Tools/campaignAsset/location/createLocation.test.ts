@@ -114,7 +114,6 @@ describe("createLocation", () => {
       summary: defaultLocationInput.summary,
       playerSummary: defaultLocationInput.playerSummary,
       sessionEventLink: [],
-      relatedAssetList: [],
       locationData: {
         imageUrl: defaultLocationInput.imageUrl,
         description: defaultLocationInput.description,
@@ -161,9 +160,7 @@ describe("createLocation", () => {
       summary: "",
       playerSummary: "",
       sessionEventLink: [],
-      relatedAssetList: [],
       locationData: {
-        imageUrl: undefined,
         description: minimalInput.description,
         condition: minimalInput.condition,
         pointsOfInterest: minimalInput.pointsOfInterest,

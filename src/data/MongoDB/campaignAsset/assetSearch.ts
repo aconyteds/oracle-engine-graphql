@@ -1,9 +1,4 @@
-import type {
-  CampaignAsset,
-  Plot,
-  PlotRelationship,
-  RecordType,
-} from "@prisma/client";
+import type { CampaignAsset, Plot, RecordType } from "@prisma/client";
 import type { Document } from "mongodb";
 import { z } from "zod";
 import { createEmbeddings } from "../../AI";
@@ -257,23 +252,11 @@ function convertDate(date: { $date: string }): Date {
  * @returns Plot data with ObjectIds converted to strings
  */
 function convertPlotData(rawPlot: RawBSONPlotData): Plot {
-  let relatedAssets: PlotRelationship[] = [];
-  let relatedAssetList: string[] = [];
-  if (rawPlot.relatedAssets) {
-    relatedAssets = rawPlot.relatedAssets.map((rel) => ({
-      relatedAssetId: convertObjectId(rel.relatedAssetId),
-      relationshipSummary: rel.relationshipSummary,
-    }));
-    relatedAssetList = rawPlot.relatedAssetList.map(convertObjectId);
-  }
-
   return {
     dmNotes: rawPlot.dmNotes,
     sharedWithPlayers: rawPlot.sharedWithPlayers,
     status: rawPlot.status,
     urgency: rawPlot.urgency,
-    relatedAssetList,
-    relatedAssets,
   };
 }
 
@@ -289,8 +272,6 @@ function convertPlotData(rawPlot: RawBSONPlotData): Plot {
  * - id, campaignId: ObjectId -> string
  * - createdAt, updatedAt: BSON Date -> JavaScript Date
  * - sessionEventLink: Array<ObjectId> -> string[]
- * - plotData.relatedAssetList: Array<ObjectId> -> string[]
- * - plotData.relatedAssets[].relatedAssetId: ObjectId -> string
  *
  * Fields NOT requiring conversion (already correct types):
  * - name, recordType, summary, playerSummary, vectorScore

@@ -79,59 +79,66 @@ export async function updateCampaignAsset(
   switch (params.recordType) {
     case RecordType.Location:
       if (params.locationData && existingAsset.locationData) {
-        // Manually merge all fields for composite type
+        // Manually merge all fields for composite type using 'set'
         updateData.locationData = {
-          imageUrl:
-            params.locationData.imageUrl ?? existingAsset.locationData.imageUrl,
-          description:
-            params.locationData.description ??
-            existingAsset.locationData.description,
-          condition:
-            params.locationData.condition ??
-            existingAsset.locationData.condition,
-          pointsOfInterest:
-            params.locationData.pointsOfInterest ??
-            existingAsset.locationData.pointsOfInterest,
-          characters:
-            params.locationData.characters ??
-            existingAsset.locationData.characters,
-          dmNotes:
-            params.locationData.dmNotes ?? existingAsset.locationData.dmNotes,
-          sharedWithPlayers:
-            params.locationData.sharedWithPlayers ??
-            existingAsset.locationData.sharedWithPlayers,
+          set: {
+            imageUrl:
+              params.locationData.imageUrl ??
+              existingAsset.locationData.imageUrl,
+            description:
+              params.locationData.description ??
+              existingAsset.locationData.description,
+            condition:
+              params.locationData.condition ??
+              existingAsset.locationData.condition,
+            pointsOfInterest:
+              params.locationData.pointsOfInterest ??
+              existingAsset.locationData.pointsOfInterest,
+            characters:
+              params.locationData.characters ??
+              existingAsset.locationData.characters,
+            dmNotes:
+              params.locationData.dmNotes ?? existingAsset.locationData.dmNotes,
+            sharedWithPlayers:
+              params.locationData.sharedWithPlayers ??
+              existingAsset.locationData.sharedWithPlayers,
+          },
         };
       }
       break;
     case RecordType.NPC:
       if (params.npcData && existingAsset.npcData) {
-        // Manually merge all fields for composite type
+        // Manually merge all fields for composite type using 'set'
         updateData.npcData = {
-          imageUrl: params.npcData.imageUrl ?? existingAsset.npcData.imageUrl,
-          physicalDescription:
-            params.npcData.physicalDescription ??
-            existingAsset.npcData.physicalDescription,
-          motivation:
-            params.npcData.motivation ?? existingAsset.npcData.motivation,
-          mannerisms:
-            params.npcData.mannerisms ?? existingAsset.npcData.mannerisms,
-          dmNotes: params.npcData.dmNotes ?? existingAsset.npcData.dmNotes,
-          sharedWithPlayers:
-            params.npcData.sharedWithPlayers ??
-            existingAsset.npcData.sharedWithPlayers,
+          set: {
+            imageUrl: params.npcData.imageUrl ?? existingAsset.npcData.imageUrl,
+            physicalDescription:
+              params.npcData.physicalDescription ??
+              existingAsset.npcData.physicalDescription,
+            motivation:
+              params.npcData.motivation ?? existingAsset.npcData.motivation,
+            mannerisms:
+              params.npcData.mannerisms ?? existingAsset.npcData.mannerisms,
+            dmNotes: params.npcData.dmNotes ?? existingAsset.npcData.dmNotes,
+            sharedWithPlayers:
+              params.npcData.sharedWithPlayers ??
+              existingAsset.npcData.sharedWithPlayers,
+          },
         };
       }
       break;
     case RecordType.Plot:
       if (params.plotData && existingAsset.plotData) {
-        // Manually merge all fields for composite type
+        // Manually merge all fields for composite type using 'set'
         updateData.plotData = {
-          dmNotes: params.plotData.dmNotes ?? existingAsset.plotData.dmNotes,
-          sharedWithPlayers:
-            params.plotData.sharedWithPlayers ??
-            existingAsset.plotData.sharedWithPlayers,
-          status: params.plotData.status ?? existingAsset.plotData.status,
-          urgency: params.plotData.urgency ?? existingAsset.plotData.urgency,
+          set: {
+            dmNotes: params.plotData.dmNotes ?? existingAsset.plotData.dmNotes,
+            sharedWithPlayers:
+              params.plotData.sharedWithPlayers ??
+              existingAsset.plotData.sharedWithPlayers,
+            status: params.plotData.status ?? existingAsset.plotData.status,
+            urgency: params.plotData.urgency ?? existingAsset.plotData.urgency,
+          },
         };
       }
       break;

@@ -72,17 +72,6 @@ describe("embedCampaignAsset", () => {
       sharedWithPlayers: "Secret mission",
       status: "InProgress",
       urgency: "Critical",
-      relatedAssetList: ["npc-1", "location-1"],
-      relatedAssets: [
-        {
-          relatedAssetId: "npc-1",
-          relationshipSummary: "Frodo carries the ring",
-        },
-        {
-          relatedAssetId: "location-1",
-          relationshipSummary: "Must reach Mount Doom",
-        },
-      ],
     },
     npcData: null,
     sessionEventLink: [],
@@ -161,9 +150,6 @@ describe("embedCampaignAsset", () => {
     );
     expect(mockCreateEmbeddings).toHaveBeenCalledWith(
       expect.stringContaining("Urgency: Critical")
-    );
-    expect(mockCreateEmbeddings).toHaveBeenCalledWith(
-      expect.stringContaining("Related Assets: Frodo carries the ring")
     );
 
     expect(result).toEqual(defaultEmbeddings);
@@ -268,8 +254,6 @@ describe("embedCampaignAsset", () => {
         sharedWithPlayers: "Secret mission",
         status: "InProgress",
         urgency: "Ongoing",
-        relatedAssetList: [],
-        relatedAssets: [],
       },
     };
 
@@ -280,9 +264,6 @@ describe("embedCampaignAsset", () => {
     );
     expect(mockCreateEmbeddings).toHaveBeenCalledWith(
       expect.stringContaining("Urgency: Ongoing")
-    );
-    expect(mockCreateEmbeddings).not.toHaveBeenCalledWith(
-      expect.stringContaining("Related Assets:")
     );
     expect(result).toEqual(defaultEmbeddings);
   });

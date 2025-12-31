@@ -197,11 +197,6 @@ function translatePlotData(
     sharedWithPlayers: plotData.sharedWithPlayers,
     status: plotData.status,
     urgency: plotData.urgency,
-    relatedAssets:
-      plotData.relatedAssets?.map((rel) => ({
-        relatedAssetId: rel.relatedAssetId,
-        relationshipSummary: rel.relationshipSummary,
-      })) ?? [],
   };
 }
 

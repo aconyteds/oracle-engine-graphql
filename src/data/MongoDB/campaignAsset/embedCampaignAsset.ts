@@ -103,15 +103,6 @@ export function stringifyCampaignAsset(
         if (asset.plotData.urgency) {
           parts.push(`Urgency: ${asset.plotData.urgency}`);
         }
-        if (
-          asset.plotData.relatedAssets &&
-          asset.plotData.relatedAssets.length > 0
-        ) {
-          const relationships = asset.plotData.relatedAssets
-            .map((rel) => rel.relationshipSummary)
-            .join("; ");
-          parts.push(`Related Assets: ${relationships}`);
-        }
       }
       break;
   }

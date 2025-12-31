@@ -20,14 +20,14 @@ const createLocationSchema = z.object({
     .max(200)
     .optional()
     .describe(
-      "Brief summary for quick reference and popovers. Written from the DM perspective. CRITICAL: Maximum 200 characters - this must be SHORT! If omitted, will be auto-generated from description."
+      "Brief summary for quick reference and popovers. Written from the Game Master (GM) perspective. CRITICAL: Maximum 200 characters - this must be SHORT! If omitted, will be auto-generated from description."
     ),
   playerSummary: z
     .string()
     .max(200)
     .optional()
     .describe(
-      "Player-visible summary (no DM secrets). Written from the player perspective. CRITICAL: Maximum 200 characters - keep it concise! If omitted, uses the main summary."
+      "Player-visible summary (no GM secrets). Written from the player perspective. CRITICAL: Maximum 200 characters - keep it concise! If omitted, uses the main summary."
     ),
   // TODO:: Update this description when image creation is supported
   imageUrl: z
@@ -60,7 +60,7 @@ const createLocationSchema = z.object({
   dmNotes: z
     .string()
     .describe(
-      "DM-only information: secrets, traps, treasure, hidden passages, plot hooks. This should be easily readable, and contain the majority of information."
+      "Game Master (GM) only information: secrets, traps, treasure, hidden passages, plot hooks. This should be easily readable, and contain the majority of information."
     ),
   sharedWithPlayers: z
     .string()
@@ -86,7 +86,6 @@ export async function createLocation(
       summary: input.summary || "",
       playerSummary: input.playerSummary || "",
       sessionEventLink: [],
-      relatedAssetList: [],
       locationData: {
         ...(!!input.imageUrl ? { imageUrl: input.imageUrl.toString() } : {}),
         description: input.description,
