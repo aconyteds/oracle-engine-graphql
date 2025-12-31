@@ -165,5 +165,5 @@ Day 8+: Execute plan, face consequences"
 export const plotCreationBestPracticesTool = tool(plotCreationBestPractices, {
   name: "get_plot_creation_best_practices",
   description:
-    "Retrieves best practices, story frameworks, and detailed examples for creating engaging, well-structured plots. Use when you need inspiration, guidance on plot design, or examples demonstrating excellent story structure. Includes two complete example plots (mystery and action) with all fields and relationship examples.",
+    "Retrieves best practices, story frameworks, and detailed examples for creating engaging, well-structured plots. Use when you need inspiration, guidance on plot design, or examples demonstrating excellent story structure. Includes two complete example plots (mystery and action) with all fields fully populated.",
 });
