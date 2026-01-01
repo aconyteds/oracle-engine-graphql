@@ -324,7 +324,12 @@ input SearchCampaignAssetsInput {
   """
   Natural language search query
   """
-  query: String!
+  query: String
+
+  """
+  Keyword tags to refine the search
+  """
+  keywords: String
 
   """
   Optional: filter by asset type

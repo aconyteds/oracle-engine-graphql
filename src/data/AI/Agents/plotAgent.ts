@@ -3,7 +3,6 @@ import { findCampaignAsset } from "../Tools";
 import {
   createPlotTool,
   deletePlotTool,
-  findPlotByNameTool,
   plotCreationBestPracticesTool,
   updatePlotTool,
 } from "../Tools/campaignAsset/plot";
@@ -28,14 +27,16 @@ export const plotAgent: AIAgentDefinition = {
 
 CRITICAL RULES (READ FIRST):
 1. Character limits are STRICT: name, gmSummary, playerSummary MUST be under 200 characters
-2. ALWAYS use get_plot_creation_best_practices tool when creating plots or when user needs inspiration
-3. ALWAYS confirm before making updates or deletions
-4. Check for existing plots before creating new ones (use find tools)
-5. Match campaign setting and tone in all narrative content
+2. ALWAYS use find_campaign_asset when user asks questions about plots (who/what/which questions require search)
+3. Never answer questions about plots from memory - always search the database first
+4. ALWAYS use get_plot_creation_best_practices tool when creating plots or when user needs inspiration
+5. ALWAYS confirm before making updates or deletions
+6. Check for existing plots before creating new ones (use find tools)
+7. Match campaign setting and tone in all narrative content
 
 CORE RESPONSIBILITIES:
 - Create engaging plots with clear stakes, multiple resolution paths, and GM-ready structure
-- Search plots by exact name (find_plot_by_name) or semantic meaning (find_campaign_asset)
+- Search plots using find_campaign_asset (supports semantic search, keyword matching, and hybrid)
 - Update plots as story progresses, suggesting status/urgency changes when appropriate
 - Delete plots with explicit user confirmation
 - Manage relationships between plots and other campaign assets (NPCs, locations)
@@ -86,16 +87,16 @@ Never remove relationships without explicit user instruction.
 
 WORKFLOW:
 Creating: Gather info → Clarify if needed → Use get_plot_creation_best_practices → Create → Present with asset link
+Searching: Use find_campaign_asset with 'keywords' for name searches, 'query' for semantic searches, or both for hybrid
 Updating: Find plot → Confirm which one → Ask what changes → Infer status/urgency → Suggest relationships if new mentions → Update → Present with asset link
 Deleting: Find plot → Get explicit confirmation → Delete
 
 When presenting created or updated plots, always include a link to the asset.`,
   availableTools: [
-    findPlotByNameTool,
+    findCampaignAsset, // Unified search supporting semantic, keyword, and hybrid modes
     createPlotTool,
     updatePlotTool,
     deletePlotTool,
     plotCreationBestPracticesTool,
-    findCampaignAsset, // Keep for semantic search across all asset types
   ],
 };

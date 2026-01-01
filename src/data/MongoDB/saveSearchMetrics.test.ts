@@ -16,11 +16,13 @@ describe("saveSearchMetrics", () => {
     total: 150,
     embedding: 50,
     vectorSearch: 75,
+    textSearch: 0,
     conversion: 25,
   };
 
   const defaultInput: SaveSearchMetricsParams = {
     searchType: "campaign_asset_search",
+    searchMode: "vector_only",
     query: "find the old wizard in the tower", // Length: 32
     campaignId: "campaign-123",
     limit: 10,
@@ -281,6 +283,7 @@ describe("saveSearchMetrics", () => {
         total: 0,
         embedding: 0,
         vectorSearch: 0,
+        textSearch: 0,
         conversion: 0,
       },
     };
@@ -314,6 +317,7 @@ describe("saveSearchMetrics", () => {
   test("Unit -> saveSearchMetrics handles sampled request with all metrics", async () => {
     const sampledInput: SaveSearchMetricsParams = {
       searchType: "campaign_asset_search",
+      searchMode: "vector_only",
       query: "test query",
       campaignId: "campaign-123",
       limit: 10,

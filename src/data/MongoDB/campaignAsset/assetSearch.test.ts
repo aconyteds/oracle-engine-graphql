@@ -96,7 +96,7 @@ describe("searchCampaignAssets", () => {
       plotData: null,
       npcData: null,
       sessionEventLink: [],
-      vectorScore: 0.95,
+      score: 0.95,
     },
     {
       _id: { $oid: defaultAssetId2 },
@@ -119,7 +119,7 @@ describe("searchCampaignAssets", () => {
       },
       plotData: null,
       sessionEventLink: [],
-      vectorScore: 0.82,
+      score: 0.82,
     },
   ];
 
@@ -165,10 +165,13 @@ describe("searchCampaignAssets", () => {
   });
 
   test("Unit -> searchCampaignAssets returns matching assets with scores", async () => {
-    const result = await searchCampaignAssets({
-      query: defaultQuery,
-      campaignId: defaultCampaignId,
-    });
+    const result = await searchCampaignAssets(
+      {
+        query: defaultQuery,
+        campaignId: defaultCampaignId,
+      },
+      false
+    );
 
     expect(mockCreateEmbeddings).toHaveBeenCalledWith(defaultQuery);
     expect(mockDBClient.campaignAsset.aggregateRaw).toHaveBeenCalled();
@@ -181,26 +184,36 @@ describe("searchCampaignAssets", () => {
   });
 
   test("Unit -> searchCampaignAssets filters by campaignId in pipeline", async () => {
-    await searchCampaignAssets({
-      query: defaultQuery,
-      campaignId: defaultCampaignId,
-    });
+    await searchCampaignAssets(
+      {
+        query: defaultQuery,
+        campaignId: defaultCampaignId,
+      },
+      false
+    );
 
     const callArgs = mockDBClient.campaignAsset.aggregateRaw.mock.calls[0][0];
     const pipeline = callArgs.pipeline;
 
-    // Check that pipeline includes campaignId filter
-    const matchStage = pipeline.find((stage: Document) => stage.$match);
-    expect(matchStage).toBeDefined();
-    expect(matchStage?.$match?.campaignId).toEqual({ $oid: defaultCampaignId });
+    // Check that pipeline includes campaignId filter in $vectorSearch
+    const vectorSearchStage = pipeline.find(
+      (stage: Document) => stage.$vectorSearch
+    );
+    expect(vectorSearchStage).toBeDefined();
+    expect(vectorSearchStage?.$vectorSearch?.filter?.campaignId).toEqual({
+      $oid: defaultCampaignId,
+    });
   });
 
   test("Unit -> searchCampaignAssets filters by recordType when provided", async () => {
-    const result = await searchCampaignAssets({
-      query: defaultQuery,
-      campaignId: defaultCampaignId,
-      recordType: "Location",
-    });
+    const result = await searchCampaignAssets(
+      {
+        query: defaultQuery,
+        campaignId: defaultCampaignId,
+        recordType: "Location",
+      },
+      false
+    );
 
     expect(result.assets).toEqual(defaultResults);
     const callArgs = mockDBClient.campaignAsset.aggregateRaw.mock.calls[0][0];
@@ -217,11 +230,14 @@ describe("searchCampaignAssets", () => {
   test("Unit -> searchCampaignAssets respects custom limit", async () => {
     const customLimit = 5;
 
-    await searchCampaignAssets({
-      query: defaultQuery,
-      campaignId: defaultCampaignId,
-      limit: customLimit,
-    });
+    await searchCampaignAssets(
+      {
+        query: defaultQuery,
+        campaignId: defaultCampaignId,
+        limit: customLimit,
+      },
+      false
+    );
 
     const callArgs = mockDBClient.campaignAsset.aggregateRaw.mock.calls[0][0];
     const pipeline = callArgs.pipeline;
@@ -233,10 +249,13 @@ describe("searchCampaignAssets", () => {
   });
 
   test("Unit -> searchCampaignAssets uses default limit when not provided", async () => {
-    await searchCampaignAssets({
-      query: defaultQuery,
-      campaignId: defaultCampaignId,
-    });
+    await searchCampaignAssets(
+      {
+        query: defaultQuery,
+        campaignId: defaultCampaignId,
+      },
+      false
+    );
 
     const callArgs = mockDBClient.campaignAsset.aggregateRaw.mock.calls[0][0];
     const pipeline = callArgs.pipeline;
@@ -249,45 +268,50 @@ describe("searchCampaignAssets", () => {
   test("Unit -> searchCampaignAssets respects custom minScore", async () => {
     const customMinScore = 0.9;
 
-    await searchCampaignAssets({
-      query: defaultQuery,
-      campaignId: defaultCampaignId,
-      minScore: customMinScore,
-    });
+    await searchCampaignAssets(
+      {
+        query: defaultQuery,
+        campaignId: defaultCampaignId,
+        minScore: customMinScore,
+      },
+      false
+    );
 
     const callArgs = mockDBClient.campaignAsset.aggregateRaw.mock.calls[0][0];
     const pipeline = callArgs.pipeline;
 
     // Check that pipeline includes minScore filter
-    const matchStage = pipeline.find(
-      (stage: Document) => stage.$match?.vectorScore
-    );
+    const matchStage = pipeline.find((stage: Document) => stage.$match?.score);
     expect(matchStage).toBeDefined();
-    expect(matchStage?.$match?.vectorScore).toEqual({ $gte: customMinScore });
+    expect(matchStage?.$match?.score).toEqual({ $gte: customMinScore });
   });
 
   test("Unit -> searchCampaignAssets uses default minScore when not provided", async () => {
-    await searchCampaignAssets({
-      query: defaultQuery,
-      campaignId: defaultCampaignId,
-    });
+    await searchCampaignAssets(
+      {
+        query: defaultQuery,
+        campaignId: defaultCampaignId,
+      },
+      false
+    );
 
     const callArgs = mockDBClient.campaignAsset.aggregateRaw.mock.calls[0][0];
     const pipeline = callArgs.pipeline;
 
-    const matchStage = pipeline.find(
-      (stage: Document) => stage.$match?.vectorScore
-    );
+    const matchStage = pipeline.find((stage: Document) => stage.$match?.score);
     expect(matchStage).toBeDefined();
-    expect(matchStage?.$match?.vectorScore).toEqual({ $gte: 0.7 }); // Default minScore
+    expect(matchStage?.$match?.score).toEqual({ $gte: 0.7 }); // Default minScore
   });
 
   test("Unit -> searchCampaignAssets includes vector search stage with correct parameters", async () => {
-    await searchCampaignAssets({
-      query: defaultQuery,
-      campaignId: defaultCampaignId,
-      limit: 5,
-    });
+    await searchCampaignAssets(
+      {
+        query: defaultQuery,
+        campaignId: defaultCampaignId,
+        limit: 5,
+      },
+      false
+    );
 
     const callArgs = mockDBClient.campaignAsset.aggregateRaw.mock.calls[0][0];
     const pipeline = callArgs.pipeline;
@@ -310,10 +334,13 @@ describe("searchCampaignAssets", () => {
   test("Unit -> searchCampaignAssets returns empty array when no results found", async () => {
     mockDBClient.campaignAsset.aggregateRaw.mockResolvedValue([]);
 
-    const result = await searchCampaignAssets({
-      query: defaultQuery,
-      campaignId: defaultCampaignId,
-    });
+    const result = await searchCampaignAssets(
+      {
+        query: defaultQuery,
+        campaignId: defaultCampaignId,
+      },
+      false
+    );
 
     expect(result.assets).toEqual([]);
     expect(result.assets).toHaveLength(0);
@@ -328,10 +355,13 @@ describe("searchCampaignAssets", () => {
 
     try {
       await expect(
-        searchCampaignAssets({
-          query: defaultQuery,
-          campaignId: defaultCampaignId,
-        })
+        searchCampaignAssets(
+          {
+            query: defaultQuery,
+            campaignId: defaultCampaignId,
+          },
+          false
+        )
       ).rejects.toThrow("Failed to generate query embedding");
 
       expect(mockConsoleError).toHaveBeenCalled();
@@ -350,11 +380,14 @@ describe("searchCampaignAssets", () => {
 
     try {
       await expect(
-        searchCampaignAssets({
-          query: defaultQuery,
-          campaignId: defaultCampaignId,
-        })
-      ).rejects.toThrow("Vector search failed");
+        searchCampaignAssets(
+          {
+            query: defaultQuery,
+            campaignId: defaultCampaignId,
+          },
+          false
+        )
+      ).rejects.toThrow("Search failed: OpenAI API error");
 
       expect(mockConsoleError).toHaveBeenCalled();
     } finally {
@@ -372,15 +405,20 @@ describe("searchCampaignAssets", () => {
 
     try {
       await expect(
-        searchCampaignAssets({
-          query: defaultQuery,
-          campaignId: defaultCampaignId,
-        })
-      ).rejects.toThrow("Vector search failed: Database connection failed");
+        searchCampaignAssets(
+          {
+            query: defaultQuery,
+            campaignId: defaultCampaignId,
+          },
+          false
+        )
+      ).rejects.toThrow("Search failed: Database connection failed");
 
-      expect(mockConsoleError).toHaveBeenCalledWith("Vector search failed:", {
+      expect(mockConsoleError).toHaveBeenCalledWith("Search failed:", {
         campaignId: defaultCampaignId,
+        searchMode: "vector_only",
         query: defaultQuery,
+        keywords: undefined,
         error: dbError,
       });
     } finally {
@@ -392,87 +430,46 @@ describe("searchCampaignAssets", () => {
     // Truncation is now handled by createEmbeddings internally
     const longQuery = "word ".repeat(12000);
 
-    await searchCampaignAssets({
-      query: longQuery,
-      campaignId: defaultCampaignId,
-    });
+    await searchCampaignAssets(
+      {
+        query: longQuery,
+        campaignId: defaultCampaignId,
+      },
+      false
+    );
 
     // Should still call createEmbeddings with the full query
     expect(mockCreateEmbeddings).toHaveBeenCalledWith(longQuery);
     expect(mockDBClient.campaignAsset.aggregateRaw).toHaveBeenCalled();
   });
 
-  test("Unit -> searchCampaignAssets validates query is required", async () => {
-    const invalidInput = {
-      campaignId: defaultCampaignId,
-    };
-
+  test.each([
+    ["query or keywords required", { campaignId: defaultCampaignId }],
+    ["campaignId required", { query: defaultQuery }],
+    [
+      "recordType invalid",
+      {
+        query: defaultQuery,
+        campaignId: defaultCampaignId,
+        recordType: "InvalidType",
+      },
+    ],
+    [
+      "limit negative",
+      { query: defaultQuery, campaignId: defaultCampaignId, limit: -1 },
+    ],
+    [
+      "minScore > 1",
+      { query: defaultQuery, campaignId: defaultCampaignId, minScore: 1.5 },
+    ],
+    [
+      "minScore < 0",
+      { query: defaultQuery, campaignId: defaultCampaignId, minScore: -0.1 },
+    ],
+  ])("Unit -> searchCampaignAssets validates input: %s", async (_, input) => {
     await expect(
       // biome-ignore lint/suspicious/noExplicitAny: Testing invalid input
-      searchCampaignAssets(invalidInput as any)
-    ).rejects.toThrow();
-  });
-
-  test("Unit -> searchCampaignAssets validates campaignId is required", async () => {
-    const invalidInput = {
-      query: defaultQuery,
-    };
-
-    await expect(
-      // biome-ignore lint/suspicious/noExplicitAny: Testing invalid input
-      searchCampaignAssets(invalidInput as any)
-    ).rejects.toThrow();
-  });
-
-  test("Unit -> searchCampaignAssets validates recordType is valid enum", async () => {
-    const invalidInput = {
-      query: defaultQuery,
-      campaignId: defaultCampaignId,
-      recordType: "InvalidType",
-    };
-
-    await expect(
-      // biome-ignore lint/suspicious/noExplicitAny: Testing invalid input
-      searchCampaignAssets(invalidInput as any)
-    ).rejects.toThrow();
-  });
-
-  test("Unit -> searchCampaignAssets validates limit is positive integer", async () => {
-    const invalidInput = {
-      query: defaultQuery,
-      campaignId: defaultCampaignId,
-      limit: -1,
-    };
-
-    await expect(
-      // biome-ignore lint/suspicious/noExplicitAny: Testing invalid input
-      searchCampaignAssets(invalidInput as any)
-    ).rejects.toThrow();
-  });
-
-  test("Unit -> searchCampaignAssets validates minScore is between 0 and 1", async () => {
-    const invalidInput = {
-      query: defaultQuery,
-      campaignId: defaultCampaignId,
-      minScore: 1.5,
-    };
-
-    await expect(
-      // biome-ignore lint/suspicious/noExplicitAny: Testing invalid input
-      searchCampaignAssets(invalidInput as any)
-    ).rejects.toThrow();
-  });
-
-  test("Unit -> searchCampaignAssets validates minScore is not negative", async () => {
-    const invalidInput = {
-      query: defaultQuery,
-      campaignId: defaultCampaignId,
-      minScore: -0.1,
-    };
-
-    await expect(
-      // biome-ignore lint/suspicious/noExplicitAny: Testing invalid input
-      searchCampaignAssets(invalidInput as any)
+      searchCampaignAssets(input as any)
     ).rejects.toThrow();
   });
 
@@ -485,10 +482,13 @@ describe("searchCampaignAssets", () => {
 
     try {
       await expect(
-        searchCampaignAssets({
-          query: "   ",
-          campaignId: defaultCampaignId,
-        })
+        searchCampaignAssets(
+          {
+            query: "   ",
+            campaignId: defaultCampaignId,
+          },
+          false
+        )
       ).rejects.toThrow();
 
       expect(mockConsoleError).toHaveBeenCalled();
@@ -498,29 +498,30 @@ describe("searchCampaignAssets", () => {
   });
 
   test("Unit -> searchCampaignAssets combines all filters correctly", async () => {
-    await searchCampaignAssets({
-      query: defaultQuery,
-      campaignId: defaultCampaignId,
-      recordType: "NPC",
-      limit: 3,
-      minScore: 0.8,
-    });
+    await searchCampaignAssets(
+      {
+        query: defaultQuery,
+        campaignId: defaultCampaignId,
+        recordType: "NPC",
+        limit: 3,
+        minScore: 0.8,
+      },
+      false
+    );
 
     const callArgs = mockDBClient.campaignAsset.aggregateRaw.mock.calls[0][0];
     const pipeline = callArgs.pipeline;
 
     // Verify all filters are present
-    const campaignMatch = pipeline.find(
-      (stage: Document) => stage.$match?.campaignId
+    const vectorSearchStage = pipeline.find(
+      (stage: Document) => stage.$vectorSearch
     );
-    expect(campaignMatch?.$match?.campaignId).toEqual({
+    expect(vectorSearchStage?.$vectorSearch?.filter?.campaignId).toEqual({
       $oid: defaultCampaignId,
     });
 
-    const scoreMatch = pipeline.find(
-      (stage: Document) => stage.$match?.vectorScore
-    );
-    expect(scoreMatch?.$match?.vectorScore).toEqual({ $gte: 0.8 });
+    const scoreMatch = pipeline.find((stage: Document) => stage.$match?.score);
+    expect(scoreMatch?.$match?.score).toEqual({ $gte: 0.8 });
 
     const recordTypeMatch = pipeline.find(
       (stage: Document) => stage.$match?.recordType
@@ -538,12 +539,15 @@ describe("searchCampaignAssets", () => {
       captureSearchMetrics: mockCaptureSearchMetrics,
     }));
 
-    const result = await searchCampaignAssets({
-      query: defaultQuery,
-      campaignId: defaultCampaignId,
-      limit: 10,
-      minScore: 0.7,
-    });
+    const result = await searchCampaignAssets(
+      {
+        query: defaultQuery,
+        campaignId: defaultCampaignId,
+        limit: 10,
+        minScore: 0.7,
+      },
+      false
+    );
 
     expect(result.assets).toEqual(defaultResults);
     expect(result.timings).toBeDefined();
@@ -565,11 +569,14 @@ describe("searchCampaignAssets", () => {
     mockCreateEmbeddings.mockRejectedValue(testError);
 
     await expect(
-      searchCampaignAssets({
-        query: defaultQuery,
-        campaignId: defaultCampaignId,
-      })
-    ).rejects.toThrow("Vector search failed");
+      searchCampaignAssets(
+        {
+          query: defaultQuery,
+          campaignId: defaultCampaignId,
+        },
+        false
+      )
+    ).rejects.toThrow("Search failed: Embedding failed");
   });
 
   test("Unit -> searchCampaignAssets continues even if metrics capture fails", async () => {
@@ -585,10 +592,13 @@ describe("searchCampaignAssets", () => {
     }));
 
     try {
-      const result = await searchCampaignAssets({
-        query: defaultQuery,
-        campaignId: defaultCampaignId,
-      });
+      const result = await searchCampaignAssets(
+        {
+          query: defaultQuery,
+          campaignId: defaultCampaignId,
+        },
+        false
+      );
 
       // Search should succeed - metrics are not called by this function
       expect(result.assets).toEqual(defaultResults);
@@ -604,12 +614,67 @@ describe("searchCampaignAssets", () => {
       captureSearchMetrics: mockCaptureSearchMetrics,
     }));
 
-    const result = await searchCampaignAssets({
-      query: defaultQuery,
-      campaignId: defaultCampaignId,
-      recordType: "Location",
-    });
+    const result = await searchCampaignAssets(
+      {
+        query: defaultQuery,
+        campaignId: defaultCampaignId,
+        recordType: "Location",
+      },
+      false
+    );
 
     expect(result.assets).toEqual(defaultResults);
+  });
+
+  test("Unit -> searchCampaignAssets uses text search when only keywords provided", async () => {
+    await searchCampaignAssets(
+      {
+        keywords: "test keywords",
+        campaignId: defaultCampaignId,
+      },
+      false
+    );
+
+    expect(mockCreateEmbeddings).not.toHaveBeenCalled();
+
+    const callArgs = mockDBClient.campaignAsset.aggregateRaw.mock.calls[0][0];
+    const pipeline = callArgs.pipeline;
+
+    const searchStage = pipeline.find((stage: Document) => stage.$search);
+    expect(searchStage).toBeDefined();
+    expect(searchStage?.$search?.index).toBe("gm_asset_search");
+
+    // Check for normalizedScore in match stage
+    const matchStage = pipeline.find(
+      (stage: Document) => stage.$match?.normalizedScore
+    );
+    expect(matchStage).toBeDefined();
+  });
+
+  test("Unit -> searchCampaignAssets uses hybrid search when both query and keywords provided", async () => {
+    await searchCampaignAssets(
+      {
+        query: defaultQuery,
+        keywords: "test keywords",
+        campaignId: defaultCampaignId,
+      },
+      false
+    );
+
+    expect(mockCreateEmbeddings).toHaveBeenCalledWith(defaultQuery);
+
+    const callArgs = mockDBClient.campaignAsset.aggregateRaw.mock.calls[0][0];
+    const pipeline = callArgs.pipeline;
+
+    const rankFusionStage = pipeline.find(
+      (stage: Document) => stage.$rankFusion
+    );
+    expect(rankFusionStage).toBeDefined();
+    expect(
+      rankFusionStage?.$rankFusion?.input?.pipelines?.vectorSearch
+    ).toBeDefined();
+    expect(
+      rankFusionStage?.$rankFusion?.input?.pipelines?.textSearch
+    ).toBeDefined();
   });
 });

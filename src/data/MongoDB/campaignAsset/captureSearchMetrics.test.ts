@@ -17,6 +17,7 @@ describe("captureSearchMetrics", () => {
     total: 100,
     embedding: 30,
     vectorSearch: 50,
+    textSearch: 0,
     conversion: 20,
   };
 
@@ -42,12 +43,14 @@ describe("captureSearchMetrics", () => {
     searchInput: {
       campaignId: "campaign-123",
       query: "test query",
+      keywords: "test query",
       minScore: 0.7,
       limit: 10,
       recordType: undefined,
     },
     results: [defaultResult],
     timings: defaultTimings,
+    searchMode: "vector_only",
   };
 
   beforeEach(async () => {
@@ -118,7 +121,9 @@ describe("captureSearchMetrics", () => {
     expect(mockSaveSearchMetrics).toHaveBeenCalledTimes(1);
     expect(mockSaveSearchMetrics).toHaveBeenCalledWith({
       searchType: "campaign_asset",
+      searchMode: "vector_only",
       query: undefined, // Not sampled, so query should be undefined
+      keywords: undefined,
       campaignId: "campaign-123",
       limit: 10,
       minScore: 0.7,
@@ -141,13 +146,17 @@ describe("captureSearchMetrics", () => {
 
     await captureSearchMetrics(defaultInput);
 
-    expect(mockSearchCampaignAssets).toHaveBeenCalledWith({
-      query: "test query",
-      campaignId: "campaign-123",
-      recordType: undefined,
-      limit: 200,
-      minScore: 0.7,
-    });
+    expect(mockSearchCampaignAssets).toHaveBeenCalledWith(
+      {
+        query: "test query",
+        keywords: "test query",
+        campaignId: "campaign-123",
+        recordType: undefined,
+        limit: 200,
+        minScore: 0.7,
+      },
+      false
+    );
 
     expect(mockDBClientCount).toHaveBeenCalledWith({
       where: {
@@ -158,6 +167,7 @@ describe("captureSearchMetrics", () => {
     expect(mockSaveSearchMetrics).toHaveBeenCalledTimes(1);
     const call = mockSaveSearchMetrics.mock.calls[0][0];
     expect(call.query).toBe("test query");
+    expect(call.keywords).toBe("test query");
     expect(call.expandedResultScores).toEqual([0.85, 0.75]);
     expect(call.totalItemCount).toBe(100);
   });
@@ -322,13 +332,17 @@ describe("captureSearchMetrics", () => {
 
     await captureSearchMetrics(inputWithFilter);
 
-    expect(mockSearchCampaignAssets).toHaveBeenCalledWith({
-      query: "test query",
-      campaignId: "campaign-123",
-      recordType: "Location",
-      limit: 200,
-      minScore: 0.7,
-    });
+    expect(mockSearchCampaignAssets).toHaveBeenCalledWith(
+      {
+        query: "test query",
+        keywords: "test query",
+        campaignId: "campaign-123",
+        recordType: "Location",
+        limit: 200,
+        minScore: 0.7,
+      },
+      false
+    );
 
     expect(mockDBClientCount).toHaveBeenCalledWith({
       where: {

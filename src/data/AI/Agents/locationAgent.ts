@@ -3,7 +3,6 @@ import { findCampaignAsset } from "../Tools";
 import {
   createLocationTool,
   deleteLocationTool,
-  findLocationByNameTool,
   updateLocationTool,
 } from "../Tools/campaignAsset/location";
 import type { AIAgentDefinition } from "../types";
@@ -27,10 +26,12 @@ export const locationAgent: AIAgentDefinition = {
 
 CRITICAL RULES:
 1. Character limits are STRICT: name, gmSummary, playerSummary MUST be under 200 characters - these will be rejected if exceeded
-2. ALWAYS search for existing locations before creating new ones (prevents duplicates)
-3. ALWAYS confirm with user before updates or deletions
-4. imageUrl must be a valid HTTP/HTTPS URL or omitted entirely (do not invent URLs)
-5. When presenting created or updated locations, always include asset link
+2. ALWAYS use find_campaign_asset when user asks questions about locations (who/what/which questions require search)
+3. Never answer questions about locations from memory - always search the database first
+4. ALWAYS search for existing locations before creating new ones (prevents duplicates)
+5. ALWAYS confirm with user before updates or deletions
+6. imageUrl must be a valid HTTP/HTTPS URL or omitted entirely (do not invent URLs)
+7. When presenting created or updated locations, always include asset link
 
 CORE RESPONSIBILITIES:
 - Create immersive locations with vivid, sensory descriptions
@@ -88,7 +89,6 @@ Deleting:
 
 When presenting created or updated locations, always include a link to the asset.`,
   availableTools: [
-    findLocationByNameTool,
     createLocationTool,
     updateLocationTool,
     deleteLocationTool,

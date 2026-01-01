@@ -1,34 +1,45 @@
-import type { CampaignAsset, Plot, RecordType } from "@prisma/client";
+import type { CampaignAsset, RecordType } from "@prisma/client";
 import type { Document } from "mongodb";
 import { z } from "zod";
 import { createEmbeddings } from "../../AI";
 import { DBClient } from "../client";
 import { SearchTimings } from "../saveSearchMetrics";
+import { buildHybridSearchPipeline } from "./buildHybridSearchPipeline";
+import { buildTextSearchPipeline } from "./buildTextSearchPipeline";
+import { buildVectorSearchPipeline } from "./buildVectorSearchPipeline";
+import { captureSearchMetrics } from "./captureSearchMetrics";
 
-const assetSearchSchema = z.object({
-  query: z.string().describe("Natural language search query"),
-  campaignId: z.string().describe("Campaign ID to search within"),
-  recordType: z
-    .enum(["NPC", "Location", "Plot"])
-    .optional()
-    .describe("Optional filter by asset type"),
-  limit: z
-    .number()
-    .int()
-    .positive()
-    .optional()
-    .default(10)
-    .describe("Number of results to return"),
-  minScore: z
-    .number()
-    .min(0)
-    .max(1)
-    .optional()
-    .default(0.7)
-    .describe("Minimum similarity score"),
-});
+const assetSearchSchema = z
+  .object({
+    query: z.string().optional().describe("Natural language search query"),
+    keywords: z.string().optional().describe("Keywords for text search"),
+    campaignId: z.string().describe("Campaign ID to search within"),
+    recordType: z
+      .enum(["NPC", "Location", "Plot"])
+      .optional()
+      .describe("Optional filter by asset type"),
+    limit: z
+      .number()
+      .int()
+      .positive()
+      .optional()
+      .default(10)
+      .describe("Number of results to return"),
+    minScore: z
+      .number()
+      .min(0)
+      .max(1)
+      .optional()
+      .default(0.7)
+      .describe("Minimum similarity score"),
+  })
+  .refine((data) => data.query || data.keywords, {
+    message: "Either 'query' or 'keywords' must be provided",
+  });
 
 export type AssetSearchInput = z.input<typeof assetSearchSchema>;
+
+export type SearchMode = "vector_only" | "text_only" | "hybrid";
 
 // Omit Embeddings from search results since we don't project it (large array)
 export interface AssetSearchResult
@@ -39,156 +50,209 @@ export interface AssetSearchResult
 export interface AssetSearchPayload {
   assets: AssetSearchResult[];
   timings: SearchTimings;
+  searchMode: SearchMode;
 }
 
 /**
- * Searches campaign assets using vector similarity search with MongoDB Atlas Vector Search.
- * Converts the search query to embeddings and finds the most similar campaign assets.
+ * Determines the search mode based on which inputs are provided
+ */
+function determineSearchMode(
+  hasQuery: boolean,
+  hasKeywords: boolean
+): SearchMode {
+  if (hasQuery && hasKeywords) return "hybrid";
+  if (hasKeywords) return "text_only";
+  return "vector_only";
+}
+
+/**
+ * Searches campaign assets using vector, text, or hybrid search.
+ * Supports three modes:
+ * - Vector-only: Semantic search using embeddings (query only)
+ * - Text-only: Keyword search using Atlas Search (keywords only)
+ * - Hybrid: Combined vector + text using RRF (both query and keywords)
  *
- * @param input - Search parameters including query string, campaignId, and optional filters
- * @returns Promise<AssetSearchResult[]> - Array of matching campaign assets with similarity scores
+ * @param input - Search parameters including query/keywords, campaignId, and optional filters
+ * @returns Promise<AssetSearchPayload> - Array of matching campaign assets with similarity scores
  */
 export async function searchCampaignAssets(
-  input: AssetSearchInput
+  input: AssetSearchInput,
+  storeMetrics = true
 ): Promise<AssetSearchPayload> {
   const startTime = performance.now();
   const params = assetSearchSchema.parse(input);
 
+  // Determine search mode based on inputs
+  const searchMode = determineSearchMode(!!params.query, !!params.keywords);
+
   try {
-    // Generate query embedding using same logic as asset embeddings
-    const embeddingStart = performance.now();
-    const queryEmbedding = await createEmbeddings(params.query);
-    const embeddingDuration = performance.now() - embeddingStart;
+    let pipeline: Document[];
+    let embeddingDuration = 0;
+    let vectorSearchDuration = 0;
+    let textSearchDuration = 0;
 
-    if (queryEmbedding.length === 0) {
-      throw new Error("Failed to generate query embedding");
-    }
-
-    // Build aggregation pipeline for Atlas Vector Search
-    const pipeline = buildVectorSearchPipeline({
-      queryVector: queryEmbedding,
-      campaignId: params.campaignId,
-      recordType: params.recordType as RecordType | undefined,
-      limit: params.limit,
-      minScore: params.minScore,
-    });
-
-    // Execute raw aggregation pipeline
-    const vectorSearchStart = performance.now();
-    const results = await DBClient.campaignAsset.aggregateRaw({
-      pipeline,
-    });
-    const vectorSearchDuration = performance.now() - vectorSearchStart;
-
-    // Convert raw MongoDB BSON objects to proper JavaScript types
-    const conversionStart = performance.now();
-    const searchResults = Array.isArray(results)
-      ? results.map(convertRawAssetToSearchResult)
-      : [];
-    const conversionDuration = performance.now() - conversionStart;
-
-    const totalDuration = performance.now() - startTime;
-
-    return {
-      assets: searchResults,
+    const searchPayload: AssetSearchPayload = {
+      assets: [],
+      searchMode,
       timings: {
-        total: totalDuration,
-        embedding: embeddingDuration,
-        vectorSearch: vectorSearchDuration,
-        conversion: conversionDuration,
+        total: 0,
+        embedding: 0,
+        vectorSearch: 0,
+        textSearch: 0,
+        conversion: 0,
       },
     };
+
+    switch (searchMode) {
+      case "vector_only": {
+        // Generate query embedding
+        const embeddingStart = performance.now();
+        const queryEmbedding = await createEmbeddings(params.query!);
+        embeddingDuration = performance.now() - embeddingStart;
+
+        if (queryEmbedding.length === 0) {
+          throw new Error("Failed to generate query embedding");
+        }
+
+        // Build and execute vector search pipeline
+        pipeline = buildVectorSearchPipeline({
+          queryVector: queryEmbedding,
+          campaignId: params.campaignId,
+          recordType: params.recordType as RecordType | undefined,
+          limit: params.limit,
+          minScore: params.minScore,
+        });
+
+        const vectorStart = performance.now();
+        const results = await DBClient.campaignAsset.aggregateRaw({ pipeline });
+        vectorSearchDuration = performance.now() - vectorStart;
+
+        // Convert results
+        const conversionStart = performance.now();
+        const searchResults = Array.isArray(results)
+          ? results.map(convertRawAssetToSearchResult)
+          : [];
+        const conversionDuration = performance.now() - conversionStart;
+
+        searchPayload.assets = searchResults;
+        searchPayload.timings = {
+          total: performance.now() - startTime,
+          embedding: embeddingDuration,
+          vectorSearch: vectorSearchDuration,
+          textSearch: 0,
+          conversion: conversionDuration,
+        };
+        break;
+      }
+
+      case "text_only": {
+        // Build and execute text search pipeline
+        pipeline = buildTextSearchPipeline({
+          keywords: params.keywords!,
+          campaignId: params.campaignId,
+          recordType: params.recordType as RecordType | undefined,
+          limit: params.limit,
+          minScore: params.minScore,
+        });
+
+        const textStart = performance.now();
+        const results = await DBClient.campaignAsset.aggregateRaw({ pipeline });
+        textSearchDuration = performance.now() - textStart;
+
+        // Convert results
+        const conversionStart = performance.now();
+        const searchResults = Array.isArray(results)
+          ? results.map(convertRawAssetToSearchResult)
+          : [];
+        const conversionDuration = performance.now() - conversionStart;
+
+        searchPayload.assets = searchResults;
+        searchPayload.timings = {
+          total: performance.now() - startTime,
+          embedding: 0,
+          vectorSearch: 0,
+          textSearch: textSearchDuration,
+          conversion: conversionDuration,
+        };
+        break;
+      }
+
+      case "hybrid": {
+        // Generate query embedding for vector component
+        const embeddingStart = performance.now();
+        const queryEmbedding = await createEmbeddings(params.query!);
+        embeddingDuration = performance.now() - embeddingStart;
+
+        if (queryEmbedding.length === 0) {
+          throw new Error("Failed to generate query embedding");
+        }
+
+        // Build and execute hybrid search pipeline
+        pipeline = buildHybridSearchPipeline({
+          queryVector: queryEmbedding,
+          keywords: params.keywords!,
+          campaignId: params.campaignId,
+          recordType: params.recordType as RecordType | undefined,
+          limit: params.limit,
+          minScore: params.minScore,
+        });
+
+        const hybridStart = performance.now();
+        const results = await DBClient.campaignAsset.aggregateRaw({ pipeline });
+        const hybridDuration = performance.now() - hybridStart;
+
+        // For hybrid, track execution time in both vector and text
+        vectorSearchDuration = hybridDuration / 2;
+        textSearchDuration = hybridDuration / 2;
+
+        // Convert results
+        const conversionStart = performance.now();
+        const searchResults = Array.isArray(results)
+          ? results.map(convertRawAssetToSearchResult)
+          : [];
+        const conversionDuration = performance.now() - conversionStart;
+
+        searchPayload.assets = searchResults;
+        searchPayload.timings = {
+          total: performance.now() - startTime,
+          embedding: embeddingDuration,
+          vectorSearch: vectorSearchDuration,
+          textSearch: textSearchDuration,
+          conversion: conversionDuration,
+        };
+        break;
+      }
+    }
+
+    if (storeMetrics) {
+      // Capture metrics asynchronously (fire-and-forget)
+      void (async () => {
+        try {
+          await captureSearchMetrics({
+            searchInput: params,
+            results: searchPayload.assets,
+            timings: searchPayload.timings,
+            searchMode,
+          });
+        } catch (error) {
+          console.error("Search metrics capture failed:", error);
+          // Never throw - metrics should not break search
+        }
+      })();
+    }
+    return searchPayload;
   } catch (error) {
-    console.error("Vector search failed:", {
+    console.error("Search failed:", {
       campaignId: params.campaignId,
+      searchMode,
       query: params.query,
+      keywords: params.keywords,
       error,
     });
     throw new Error(
-      `Vector search failed: ${error instanceof Error ? error.message : String(error)}`
+      `Search failed: ${error instanceof Error ? error.message : String(error)}`
     );
   }
-}
-
-type VectorSearchPipelineParams = {
-  queryVector: number[];
-  campaignId: string;
-  recordType?: RecordType;
-  limit: number;
-  minScore: number;
-};
-
-/**
- * Builds a MongoDB aggregation pipeline for Atlas Vector Search.
- * Pipeline stages: vectorSearch -> addFields (score) -> match (filters) -> limit -> project
- *
- * @param params - Pipeline parameters including query vector and filters
- * @returns MongoDB aggregation pipeline array
- */
-function buildVectorSearchPipeline({
-  queryVector,
-  campaignId,
-  recordType,
-  limit,
-  minScore,
-}: VectorSearchPipelineParams): Document[] {
-  const pipeline: Document[] = [
-    {
-      $vectorSearch: {
-        index: "campaign_asset_vector_index",
-        path: "Embeddings",
-        queryVector: queryVector,
-        numCandidates: limit * 10, // Overquery for better results
-        limit: limit * 2, // Get extra for filtering
-      },
-    },
-    {
-      $addFields: {
-        vectorScore: { $meta: "vectorSearchScore" },
-      },
-    },
-    {
-      $match: {
-        campaignId: { $oid: campaignId },
-        vectorScore: { $gte: minScore },
-      },
-    },
-  ];
-
-  // Add recordType filter if specified
-  if (recordType) {
-    pipeline.push({
-      $match: {
-        recordType: recordType,
-      },
-    });
-  }
-
-  // Final limit and projection
-  pipeline.push(
-    { $limit: limit },
-    {
-      $project: {
-        _id: 1,
-        campaignId: 1,
-        name: 1,
-        recordType: 1,
-        gmSummary: 1,
-        gmNotes: 1,
-        playerSummary: 1,
-        playerNotes: 1,
-        createdAt: 1,
-        updatedAt: 1,
-        locationData: 1,
-        plotData: 1,
-        npcData: 1,
-        sessionEventLink: 1,
-        vectorScore: 1,
-      },
-    }
-  );
-
-  return pipeline;
 }
 
 /**
@@ -208,24 +272,10 @@ interface RawBSONAssetDocument {
   createdAt: { $date: string };
   updatedAt: { $date: string };
   locationData: CampaignAsset["locationData"] | null;
-  plotData: RawBSONPlotData | null;
+  plotData: CampaignAsset["plotData"] | null;
   npcData: CampaignAsset["npcData"] | null;
   sessionEventLink: Array<{ $oid: string }>;
-  vectorScore: number;
-}
-
-/**
- * Plot data contains ObjectId arrays that need conversion.
- * Based on the Plot type from Prisma schema.
- */
-interface RawBSONPlotData {
-  status: "Unknown" | "Rumored" | "InProgress" | "WillNotDo" | "Closed";
-  urgency: "Ongoing" | "TimeSensitive" | "Critical" | "Resolved";
-  relatedAssetList: Array<{ $oid: string }>;
-  relatedAssets: Array<{
-    relatedAssetId: { $oid: string };
-    relationshipSummary: string;
-  }>;
+  score?: number;
 }
 
 /**
@@ -247,20 +297,6 @@ function convertDate(date: { $date: string }): Date {
 }
 
 /**
- * Converts raw Plot data with BSON ObjectIds to proper JavaScript types.
- * Only converts the ObjectId fields - all other fields pass through unchanged.
- *
- * @param rawPlot - Raw plot data from MongoDB with BSON ObjectIds
- * @returns Plot data with ObjectIds converted to strings
- */
-function convertPlotData(rawPlot: RawBSONPlotData): Plot {
-  return {
-    status: rawPlot.status,
-    urgency: rawPlot.urgency,
-  };
-}
-
-/**
  * Converts raw MongoDB BSON document from aggregateRaw to AssetSearchResult.
  * Explicitly handles known BSON types based on the Prisma schema definition.
  *
@@ -272,9 +308,10 @@ function convertPlotData(rawPlot: RawBSONPlotData): Plot {
  * - id, campaignId: ObjectId -> string
  * - createdAt, updatedAt: BSON Date -> JavaScript Date
  * - sessionEventLink: Array<ObjectId> -> string[]
+ * - score: vectorScore/textScore/hybridScore -> unified score field
  *
  * Fields NOT requiring conversion (already correct types):
- * - name, recordType, gmSummary, gmNotes, playerSummary, playerNotes, vectorScore
+ * - name, recordType, gmSummary, gmNotes, playerSummary, playerNotes
  * - locationData (all string fields)
  * - npcData (all string fields)
  *
@@ -303,13 +340,9 @@ function convertRawAssetToSearchResult(rawDoc: Document): AssetSearchResult {
     gmNotes: doc.gmNotes,
     playerSummary: doc.playerSummary,
     playerNotes: doc.playerNotes,
-    score: doc.vectorScore,
-
-    // LocationData and NPC have no BSON types - pass through
+    score: doc.score ?? 0,
     locationData: doc.locationData,
     npcData: doc.npcData,
-
-    // Plot data contains nested ObjectIds that need conversion
-    plotData: doc.plotData ? convertPlotData(doc.plotData) : null,
+    plotData: doc.plotData,
   };
 }
