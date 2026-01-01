@@ -87,143 +87,94 @@ export async function searchCampaignAssets(
 
   try {
     let pipeline: Document[];
+    let queryEmbedding: number[] = [];
+
+    // Timings
     let embeddingDuration = 0;
     let vectorSearchDuration = 0;
     let textSearchDuration = 0;
+    let conversionDuration = 0;
 
-    const searchPayload: AssetSearchPayload = {
-      assets: [],
-      searchMode,
-      timings: {
-        total: 0,
-        embedding: 0,
-        vectorSearch: 0,
-        textSearch: 0,
-        conversion: 0,
-      },
-    };
+    // 1. Generate Embeddings (Shared for vector_only and hybrid)
+    if (searchMode !== "text_only") {
+      const embeddingStart = performance.now();
+      queryEmbedding = await createEmbeddings(params.query!);
+      embeddingDuration = performance.now() - embeddingStart;
 
-    switch (searchMode) {
-      case "vector_only": {
-        // Generate query embedding
-        const embeddingStart = performance.now();
-        const queryEmbedding = await createEmbeddings(params.query!);
-        embeddingDuration = performance.now() - embeddingStart;
-
-        if (queryEmbedding.length === 0) {
-          throw new Error("Failed to generate query embedding");
-        }
-
-        // Build and execute vector search pipeline
-        pipeline = buildVectorSearchPipeline({
-          queryVector: queryEmbedding,
-          campaignId: params.campaignId,
-          recordType: params.recordType as RecordType | undefined,
-          limit: params.limit,
-          minScore: params.minScore,
-        });
-
-        const vectorStart = performance.now();
-        const results = await DBClient.campaignAsset.aggregateRaw({ pipeline });
-        vectorSearchDuration = performance.now() - vectorStart;
-
-        // Convert results
-        const conversionStart = performance.now();
-        const searchResults = Array.isArray(results)
-          ? results.map(convertRawAssetToSearchResult)
-          : [];
-        const conversionDuration = performance.now() - conversionStart;
-
-        searchPayload.assets = searchResults;
-        searchPayload.timings = {
-          total: performance.now() - startTime,
-          embedding: embeddingDuration,
-          vectorSearch: vectorSearchDuration,
-          textSearch: 0,
-          conversion: conversionDuration,
-        };
-        break;
-      }
-
-      case "text_only": {
-        // Build and execute text search pipeline
-        pipeline = buildTextSearchPipeline({
-          keywords: params.keywords!,
-          campaignId: params.campaignId,
-          recordType: params.recordType as RecordType | undefined,
-          limit: params.limit,
-          minScore: params.minScore,
-        });
-
-        const textStart = performance.now();
-        const results = await DBClient.campaignAsset.aggregateRaw({ pipeline });
-        textSearchDuration = performance.now() - textStart;
-
-        // Convert results
-        const conversionStart = performance.now();
-        const searchResults = Array.isArray(results)
-          ? results.map(convertRawAssetToSearchResult)
-          : [];
-        const conversionDuration = performance.now() - conversionStart;
-
-        searchPayload.assets = searchResults;
-        searchPayload.timings = {
-          total: performance.now() - startTime,
-          embedding: 0,
-          vectorSearch: 0,
-          textSearch: textSearchDuration,
-          conversion: conversionDuration,
-        };
-        break;
-      }
-
-      case "hybrid": {
-        // Generate query embedding for vector component
-        const embeddingStart = performance.now();
-        const queryEmbedding = await createEmbeddings(params.query!);
-        embeddingDuration = performance.now() - embeddingStart;
-
-        if (queryEmbedding.length === 0) {
-          throw new Error("Failed to generate query embedding");
-        }
-
-        // Build and execute hybrid search pipeline
-        pipeline = buildHybridSearchPipeline({
-          queryVector: queryEmbedding,
-          keywords: params.keywords!,
-          campaignId: params.campaignId,
-          recordType: params.recordType as RecordType | undefined,
-          limit: params.limit,
-          minScore: params.minScore,
-        });
-
-        const hybridStart = performance.now();
-        const results = await DBClient.campaignAsset.aggregateRaw({ pipeline });
-        const hybridDuration = performance.now() - hybridStart;
-
-        // For hybrid, track execution time in both vector and text
-        vectorSearchDuration = hybridDuration / 2;
-        textSearchDuration = hybridDuration / 2;
-
-        // Convert results
-        const conversionStart = performance.now();
-        const searchResults = Array.isArray(results)
-          ? results.map(convertRawAssetToSearchResult)
-          : [];
-        const conversionDuration = performance.now() - conversionStart;
-
-        searchPayload.assets = searchResults;
-        searchPayload.timings = {
-          total: performance.now() - startTime,
-          embedding: embeddingDuration,
-          vectorSearch: vectorSearchDuration,
-          textSearch: textSearchDuration,
-          conversion: conversionDuration,
-        };
-        break;
+      if (queryEmbedding.length === 0) {
+        throw new Error("Failed to generate query embedding");
       }
     }
 
+    // 2. Build Pipeline
+    const pipelineParams = {
+      campaignId: params.campaignId,
+      recordType: params.recordType as RecordType | undefined,
+      limit: params.limit,
+      minScore: params.minScore,
+    };
+
+    switch (searchMode) {
+      case "vector_only":
+        pipeline = buildVectorSearchPipeline({
+          ...pipelineParams,
+          queryVector: queryEmbedding,
+        });
+        break;
+
+      case "text_only":
+        pipeline = buildTextSearchPipeline({
+          ...pipelineParams,
+          keywords: params.keywords!,
+        });
+        break;
+
+      case "hybrid":
+        pipeline = buildHybridSearchPipeline({
+          ...pipelineParams,
+          queryVector: queryEmbedding,
+          keywords: params.keywords!,
+        });
+        break;
+    }
+
+    // 3. Execute Pipeline (Shared)
+    const searchStart = performance.now();
+    const results = await DBClient.campaignAsset.aggregateRaw({ pipeline });
+    const searchDuration = performance.now() - searchStart;
+
+    // Distribute search duration based on mode
+    if (searchMode === "vector_only") {
+      vectorSearchDuration = searchDuration;
+    } else if (searchMode === "text_only") {
+      textSearchDuration = searchDuration;
+    } else {
+      // Hybrid
+      vectorSearchDuration = searchDuration / 2;
+      textSearchDuration = searchDuration / 2;
+    }
+
+    // 4. Convert Results (Shared)
+    const conversionStart = performance.now();
+    const searchResults = Array.isArray(results)
+      ? results.map(convertRawAssetToSearchResult)
+      : [];
+    conversionDuration = performance.now() - conversionStart;
+
+    // 5. Construct Payload
+    const searchPayload: AssetSearchPayload = {
+      assets: searchResults,
+      searchMode,
+      timings: {
+        total: performance.now() - startTime,
+        embedding: embeddingDuration,
+        vectorSearch: vectorSearchDuration,
+        textSearch: textSearchDuration,
+        conversion: conversionDuration,
+      },
+    };
+
+    // 6. Capture Metrics (Shared)
     if (storeMetrics) {
       // Capture metrics asynchronously (fire-and-forget)
       void (async () => {
