@@ -8,6 +8,9 @@
 export interface AtlasSearchField {
   type: "string";
   analyzer: "lucene.standard" | "lucene.english";
+  indexOptions: "docs" | "freqs" | "positions" | "offsets";
+  store: boolean;
+  norms: "include" | "omit";
 }
 
 export interface AtlasSearchFilterField {
@@ -63,14 +66,23 @@ export const campaignAssetSearchIndex: AtlasSearchIndexDefinition = {
         name: {
           type: "string",
           analyzer: "lucene.standard",
+          indexOptions: "docs",
+          store: false,
+          norms: "omit",
         },
         gmSummary: {
           type: "string",
           analyzer: "lucene.standard",
+          indexOptions: "docs",
+          store: false,
+          norms: "omit",
         },
         gmNotes: {
           type: "string",
           analyzer: "lucene.standard",
+          indexOptions: "freqs",
+          store: false,
+          norms: "include",
         },
         campaignId: {
           type: "objectId",
