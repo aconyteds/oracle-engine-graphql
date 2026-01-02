@@ -22,21 +22,23 @@ const updateNPCSchema = z.object({
     .max(200)
     .optional()
     .describe("Updated name (maximum 200 characters)"),
-  summary: z
+  gmSummary: z
     .string()
     .max(200)
     .optional()
     .describe("Updated Game Master (GM) summary (maximum 200 characters)"),
+  gmNotes: z.string().optional().describe("Updated GM notes"),
   playerSummary: z
     .string()
     .max(200)
     .optional()
     .describe("Updated player-facing summary (maximum 200 characters)"),
+  playerNotes: z.string().optional().describe("Updated player notes"),
   npcData: npcDataSchema
     .partial()
     .optional()
     .describe(
-      "Updated NPC data fields. Only include fields you want to change. Available fields: imageUrl, physicalDescription, motivation, mannerisms, dmNotes, sharedWithPlayers"
+      "Updated NPC data fields. Only include fields you want to change. Available fields: imageUrl, physicalDescription, motivation, mannerisms"
     ),
 });
 
@@ -65,8 +67,10 @@ export async function updateNPC(
       assetId: input.npcId,
       recordType: RecordType.NPC,
       name: input.name,
-      summary: input.summary,
+      gmSummary: input.gmSummary,
+      gmNotes: input.gmNotes,
       playerSummary: input.playerSummary,
+      playerNotes: input.playerNotes,
       npcData: input.npcData,
     });
 

@@ -3,19 +3,30 @@ import { z } from "zod";
 import { searchCampaignAssets, stringifyCampaignAsset } from "../../../MongoDB";
 import { RequestContext } from "../../types";
 
-const findCampaignAssetSchema = z.object({
-  query: z
-    .string()
-    .describe(
-      "An enriched string which will be used to find relevant campaign assets. This should be a summary of what the user is looking for."
-    ),
-  recordType: z
-    .enum(["NPC", "Location", "Plot"])
-    .optional()
-    .describe(
-      "Optional filter by asset type. If not provided, searches all asset types."
-    ),
-});
+const findCampaignAssetSchema = z
+  .object({
+    query: z
+      .string()
+      .optional()
+      .describe(
+        "Natural language description for semantic search (e.g., 'the old wizard who lives in the tower'). Use for conceptual/thematic searches."
+      ),
+    keywords: z
+      .string()
+      .optional()
+      .describe(
+        "Specific keywords or name fragments for text-based search (e.g., 'Gandalf', 'Dragon Tavern'). Use for name-based or keyword searches. Supports fuzzy matching and partial names."
+      ),
+    recordType: z
+      .enum(["NPC", "Location", "Plot"])
+      .optional()
+      .describe(
+        "Optional filter by asset type. If not provided, searches all asset types."
+      ),
+  })
+  .refine((data) => data.query || data.keywords, {
+    message: "Either 'query' or 'keywords' must be provided",
+  });
 
 export const findCampaignAsset = tool(
   async (rawInput, config): Promise<string> => {
@@ -26,8 +37,9 @@ export const findCampaignAsset = tool(
       const results = await searchCampaignAssets({
         campaignId: context.campaignId,
         query: input.query,
-        limit: 5,
-        minScore: 0.65,
+        keywords: input.keywords,
+        limit: 10,
+        minScore: 0.6,
         recordType: input.recordType,
       });
 
@@ -51,8 +63,19 @@ export const findCampaignAsset = tool(
   },
   {
     name: "find_campaign_asset",
-    description:
-      "Searches through campaign assets to find the most relevant items based on what the user is asking about. Will return relevant contextual information for each asset. Use to find assets related to locations, NPCs, or plots.",
+    description: `Searches campaign assets using semantic understanding and/or keyword matching.
+
+SEARCH STRATEGIES:
+- Use 'query' only: Semantic search for conceptual matches (e.g., "characters who can cast fire magic")
+- Use 'keywords' only: Name-based or keyword search with fuzzy matching (e.g., "Gandalf" will find "Gandalf the Grey")
+- Use both: Hybrid search combining semantic relevance with keyword precision
+
+EXAMPLES:
+- Finding by name (exact or partial): keywords="Elara" or keywords="Tower Wizard"
+- Finding by description: query="the innkeeper who knows about the missing prince"
+- Finding with both: query="fire mage", keywords="red robes"
+
+Returns up to 10 most relevant assets with detailed information.`,
     schema: findCampaignAssetSchema,
   }
 );

@@ -26,16 +26,6 @@ export const locationDataSchema = z.object({
     .describe(
       "Notable characters present in the location, which will include linked NPCs or smaller characters that the players may interact with."
     ),
-  dmNotes: z
-    .string()
-    .describe(
-      "Game Master (GM) notes for the location, this will include secrets, and things that the GM needs to be aware of like traps or loot."
-    ),
-  sharedWithPlayers: z
-    .string()
-    .describe(
-      "Information shared with players about the location, this shouldn't include any secrets unless the GM has explicitly shared that information."
-    ),
 });
 
 export const npcDataSchema = z.object({
@@ -58,29 +48,9 @@ export const npcDataSchema = z.object({
     .describe(
       "Mannerisms of the NPC. This would include their speech patterns, habits, and any quirks they may have."
     ),
-  dmNotes: z
-    .string()
-    .describe(
-      "Game Master (GM) notes for the NPC. This would include secrets, hidden agendas, and any information the GM needs to know about the NPC that the players are not aware of."
-    ),
-  sharedWithPlayers: z
-    .string()
-    .describe(
-      "Information shared with players about the NPC. This shouldn't include any secrets unless the GM has explicitly shared that information."
-    ),
 });
 
 export const plotDataSchema = z.object({
-  dmNotes: z
-    .string()
-    .describe(
-      "Game Master (GM) notes for the plot point, including any secrets or important information the GM needs to remember."
-    ),
-  sharedWithPlayers: z
-    .string()
-    .describe(
-      "Information shared with players about the plot point. This shouldn't include any secrets unless the GM has explicitly shared that information."
-    ),
   status: z
     .enum(PlotStatus)
     .describe(

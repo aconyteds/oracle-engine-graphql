@@ -129,12 +129,22 @@ input CreateCampaignAssetInput {
   """
   A brief summary (used for quick linking)
   """
-  summary: String
+  gmSummary: String
+
+  """
+  GM-only notes
+  """
+  gmNotes: String!
 
   """
   Player-friendly summary (only player knowledge)
   """
   playerSummary: String
+
+  """
+  Information shared with players
+  """
+  playerNotes: String!
 
   """
   Location-specific data (required if recordType is Location)
@@ -177,16 +187,6 @@ input LocationDataInput {
   Characters present at this location
   """
   characters: String!
-
-  """
-  DM-only notes
-  """
-  dmNotes: String!
-
-  """
-  Information shared with players
-  """
-  sharedWithPlayers: String!
 }
 
 input NPCDataInput {
@@ -209,29 +209,9 @@ input NPCDataInput {
   The NPC's mannerisms and speech patterns
   """
   mannerisms: String!
-
-  """
-  DM-only notes
-  """
-  dmNotes: String!
-
-  """
-  Information shared with players
-  """
-  sharedWithPlayers: String!
 }
 
 input PlotDataInput {
-  """
-  DM-only notes
-  """
-  dmNotes: String!
-
-  """
-  Information shared with players
-  """
-  sharedWithPlayers: String!
-
   """
   The current status of the plot
   """
@@ -264,12 +244,22 @@ input UpdateCampaignAssetInput {
   """
   The updated summary
   """
-  summary: String
+  gmSummary: String
+
+  """
+  The updated GM notes
+  """
+  gmNotes: String
 
   """
   The updated player-friendly summary
   """
   playerSummary: String
+
+  """
+  The updated player notes
+  """
+  playerNotes: String
 
   """
   Updated location data (only for Location assets)
@@ -334,7 +324,12 @@ input SearchCampaignAssetsInput {
   """
   Natural language search query
   """
-  query: String!
+  query: String
+
+  """
+  Keyword tags to refine the search
+  """
+  keywords: String
 
   """
   Optional: filter by asset type
@@ -440,16 +435,6 @@ type LocationData {
   Characters present at this location
   """
   characters: String!
-
-  """
-  DM-only notes
-  """
-  dmNotes: String!
-
-  """
-  Information shared with players
-  """
-  sharedWithPlayers: String!
 }
 
 type NPCData {
@@ -472,29 +457,9 @@ type NPCData {
   The NPC's mannerisms and speech patterns
   """
   mannerisms: String!
-
-  """
-  DM-only notes
-  """
-  dmNotes: String!
-
-  """
-  Information shared with players
-  """
-  sharedWithPlayers: String!
 }
 
 type PlotData {
-  """
-  DM-only notes
-  """
-  dmNotes: String!
-
-  """
-  Information shared with players
-  """
-  sharedWithPlayers: String!
-
   """
   The current status of the plot
   """
@@ -534,14 +499,24 @@ type CampaignAsset {
   recordType: RecordType!
 
   """
-  A brief summary of the asset
+  A brief summary of the asset visible to the GM
   """
-  summary: String
+  gmSummary: String
 
   """
-  Player-friendly summary
+  GM-only notes
+  """
+  gmNotes: String!
+
+  """
+  Player-friendly summary of the asset which can be used to quickly identify it
   """
   playerSummary: String
+
+  """
+  Information shared with players, or publically available
+  """
+  playerNotes: String!
 
   """
   The type-specific data as a union

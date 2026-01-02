@@ -102,8 +102,10 @@ model CampaignAsset {
   campaign         Campaign       @relation(fields: [campaignId], references: [id])
   name             String
   recordType       RecordType
-  summary          String? // Used for Quick linking to populate popover text for the Asset
+  gmSummary        String? // Used for Quick linking to populate popover text for the Asset
+  gmNotes          String? // GM-only notes
   playerSummary    String? // Used for player friendly quick linking to populate popover text using only player knowledge
+  playerNotes      String? // Information shared with players
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
   Embeddings       Float[] // Used for Vector Search
@@ -119,13 +121,11 @@ model CampaignAsset {
 }
 
 type LocationData {
-  imageUrl          String?
-  description       String
-  condition         String
-  pointsOfInterest  String
-  characters        String
-  dmNotes           String
-  sharedWithPlayers String
+  imageUrl         String?
+  description      String
+  condition        String
+  pointsOfInterest String
+  characters       String
 }
 
 enum PlotStatus {
@@ -144,10 +144,8 @@ enum Urgency {
 }
 
 type Plot {
-  dmNotes           String
-  sharedWithPlayers String
-  status            PlotStatus
-  urgency           Urgency
+  status  PlotStatus
+  urgency Urgency
 }
 
 type NPC {
@@ -155,8 +153,6 @@ type NPC {
   physicalDescription String
   motivation          String
   mannerisms          String
-  dmNotes             String
-  sharedWithPlayers   String
 }
 
 model SessionEvent {
@@ -177,6 +173,7 @@ model SearchMetric {
   id         String   @id @default(auto()) @map("_id") @db.ObjectId
   createdAt  DateTime @default(now())
   searchType String // e.g., "campaign_asset_search"
+  searchMode String // "vector_only" | "text_only" | "hybrid"
 
   campaignId       String  @db.ObjectId
   hasResults       Boolean
@@ -186,8 +183,10 @@ model SearchMetric {
   executionTimeMs  Float
   embeddingTimeMs  Float
   vectorTimeMs     Float
+  textTimeMs       Float // Timing for text search operations
   conversionTimeMs Float
-  query            String
+  query            String?
+  keywords         String? // Keywords used (if text/hybrid search)
   queryLength      Int
 
   precisionAtK   Float?

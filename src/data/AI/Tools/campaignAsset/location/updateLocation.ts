@@ -15,16 +15,18 @@ const updateLocationSchema = z.object({
     .string()
     .describe("ID of location to update (from search/previous calls)"),
   name: z.string().min(2).max(200).optional().describe("Updated name"),
-  summary: z
+  gmSummary: z
     .string()
     .max(200)
     .optional()
     .describe("Updated Game Master (GM) summary"),
+  gmNotes: z.string().optional().describe("Updated GM notes"),
   playerSummary: z
     .string()
     .max(200)
     .optional()
     .describe("Updated player summary"),
+  playerNotes: z.string().optional().describe("Updated player notes"),
   locationData: locationDataSchema
     .partial()
     .optional()
@@ -56,8 +58,10 @@ export async function updateLocation(
       assetId: input.locationId,
       recordType: RecordType.Location,
       name: input.name,
-      summary: input.summary,
+      gmSummary: input.gmSummary,
+      gmNotes: input.gmNotes,
       playerSummary: input.playerSummary,
+      playerNotes: input.playerNotes,
       locationData: input.locationData,
     });
 

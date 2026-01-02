@@ -23,8 +23,6 @@ describe("createCampaignAsset", () => {
     condition: "Dense foliage, difficult terrain",
     pointsOfInterest: "Ancient ruins, hidden cave",
     characters: "Forest guardian, local bandits",
-    dmNotes: "Hidden treasure map in the ruins",
-    sharedWithPlayers: "The forest is known for strange disappearances",
   };
 
   const defaultNPCData = {
@@ -32,13 +30,9 @@ describe("createCampaignAsset", () => {
     physicalDescription: "A tall elf with silver hair",
     motivation: "Seeking revenge for their fallen village",
     mannerisms: "Speaks softly, avoids eye contact",
-    dmNotes: "Secretly working with the villain",
-    sharedWithPlayers: "Seems trustworthy and helpful",
   };
 
   const defaultPlotData = {
-    dmNotes: "The artifact is cursed and corrupts its holder",
-    sharedWithPlayers: "A powerful artifact has been stolen",
     status: PlotStatus.InProgress,
     urgency: Urgency.TimeSensitive,
   };
@@ -48,8 +42,10 @@ describe("createCampaignAsset", () => {
     campaignId: defaultCampaignId,
     name: "Dark Forest",
     recordType: RecordType.Location,
-    summary: "A mysterious forest",
+    gmSummary: "A mysterious forest",
+    gmNotes: "Hidden treasure map in the ruins",
     playerSummary: "Known for disappearances",
+    playerNotes: "The forest is known for strange disappearances",
     createdAt: new Date(),
     updatedAt: new Date(),
     Embeddings: [],
@@ -108,8 +104,10 @@ describe("createCampaignAsset", () => {
       campaignId: defaultCampaignId,
       name: "Dark Forest",
       recordType: RecordType.Location,
-      summary: "A mysterious forest",
+      gmSummary: "A mysterious forest",
+      gmNotes: "Hidden treasure map in the ruins",
       playerSummary: "Known for disappearances",
+      playerNotes: "The forest is known for strange disappearances",
       sessionEventLink: [],
       locationData: defaultLocationData,
     };
@@ -122,8 +120,10 @@ describe("createCampaignAsset", () => {
         campaignId: defaultCampaignId,
         name: "Dark Forest",
         recordType: RecordType.Location,
-        summary: "A mysterious forest",
+        gmSummary: "A mysterious forest",
+        gmNotes: "Hidden treasure map in the ruins",
         playerSummary: "Known for disappearances",
+        playerNotes: "The forest is known for strange disappearances",
         Embeddings: [],
         locationData: defaultLocationData,
       },
@@ -147,6 +147,10 @@ describe("createCampaignAsset", () => {
       ...defaultLocationAsset,
       name: "Elven Ranger",
       recordType: RecordType.NPC,
+      gmSummary: "A mysterious elf",
+      gmNotes: "Secretly working with the villain",
+      playerSummary: "Helpful and trustworthy",
+      playerNotes: "Seems trustworthy and helpful",
       locationData: null,
       npcData: defaultNPCData,
     };
@@ -161,8 +165,10 @@ describe("createCampaignAsset", () => {
       campaignId: defaultCampaignId,
       name: "Elven Ranger",
       recordType: RecordType.NPC,
-      summary: "A mysterious elf",
+      gmSummary: "A mysterious elf",
+      gmNotes: "Secretly working with the villain",
       playerSummary: "Helpful and trustworthy",
+      playerNotes: "Seems trustworthy and helpful",
       sessionEventLink: [],
       npcData: defaultNPCData,
     };
@@ -174,8 +180,10 @@ describe("createCampaignAsset", () => {
         campaignId: defaultCampaignId,
         name: "Elven Ranger",
         recordType: RecordType.NPC,
-        summary: "A mysterious elf",
+        gmSummary: "A mysterious elf",
+        gmNotes: "Secretly working with the villain",
         playerSummary: "Helpful and trustworthy",
+        playerNotes: "Seems trustworthy and helpful",
         Embeddings: [],
         npcData: defaultNPCData,
       },
@@ -190,10 +198,12 @@ describe("createCampaignAsset", () => {
       ...defaultLocationAsset,
       name: "Missing Artifact",
       recordType: RecordType.Plot,
+      gmSummary: "A powerful artifact has been stolen",
+      gmNotes: "The artifact is cursed and corrupts its holder",
+      playerSummary: "The town is in uproar",
+      playerNotes: "A powerful artifact has been stolen from the town",
       locationData: null,
       plotData: {
-        dmNotes: defaultPlotData.dmNotes,
-        sharedWithPlayers: defaultPlotData.sharedWithPlayers,
         status: defaultPlotData.status,
         urgency: defaultPlotData.urgency,
       },
@@ -209,8 +219,10 @@ describe("createCampaignAsset", () => {
       campaignId: defaultCampaignId,
       name: "Missing Artifact",
       recordType: RecordType.Plot,
-      summary: "A powerful artifact has been stolen",
+      gmSummary: "A powerful artifact has been stolen",
+      gmNotes: "The artifact is cursed and corrupts its holder",
       playerSummary: "The town is in uproar",
+      playerNotes: "A powerful artifact has been stolen from the town",
       sessionEventLink: [],
       plotData: defaultPlotData,
     };
@@ -222,15 +234,16 @@ describe("createCampaignAsset", () => {
         campaignId: defaultCampaignId,
         name: "Missing Artifact",
         recordType: RecordType.Plot,
-        summary: "A powerful artifact has been stolen",
+        gmSummary: "A powerful artifact has been stolen",
+        gmNotes: "The artifact is cursed and corrupts its holder",
         playerSummary: "The town is in uproar",
+        playerNotes: "A powerful artifact has been stolen from the town",
         Embeddings: [],
         plotData: defaultPlotData,
       },
     });
 
     expect(result.recordType).toBe(RecordType.Plot);
-    expect(result.plotData?.dmNotes).toEqual(defaultPlotData.dmNotes);
     expect(result.plotData?.status).toEqual(defaultPlotData.status);
   });
 
@@ -239,8 +252,10 @@ describe("createCampaignAsset", () => {
       campaignId: defaultCampaignId,
       name: "Simple Location",
       recordType: RecordType.Location,
-      summary: "",
+      gmSummary: "",
+      gmNotes: "",
       playerSummary: "",
+      playerNotes: "",
       sessionEventLink: [],
       locationData: defaultLocationData,
     };
@@ -249,8 +264,10 @@ describe("createCampaignAsset", () => {
 
     expect(mockDBClient.campaignAsset.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
-        summary: null,
+        gmSummary: null,
+        gmNotes: null,
         playerSummary: null,
+        playerNotes: null,
       }),
     });
   });
@@ -267,8 +284,10 @@ describe("createCampaignAsset", () => {
       campaignId: defaultCampaignId,
       name: "Dark Forest",
       recordType: RecordType.Location,
-      summary: "A mysterious forest",
+      gmSummary: "A mysterious forest",
+      gmNotes: "Hidden treasure map in the ruins",
       playerSummary: "Known for disappearances",
+      playerNotes: "The forest is known for strange disappearances",
       sessionEventLink: [],
       locationData: defaultLocationData,
     };
@@ -287,8 +306,10 @@ describe("createCampaignAsset", () => {
       campaignId: defaultCampaignId,
       name: "Test",
       recordType: RecordType.Location,
-      summary: "",
+      gmSummary: "",
+      gmNotes: "",
       playerSummary: "",
+      playerNotes: "",
       sessionEventLink: [],
       // Missing locationData - should fail validation
     } as const;
@@ -302,8 +323,10 @@ describe("createCampaignAsset", () => {
       campaignId: defaultCampaignId,
       name: "Test NPC",
       recordType: RecordType.NPC,
-      summary: "",
+      gmSummary: "",
+      gmNotes: "",
       playerSummary: "",
+      playerNotes: "",
       sessionEventLink: [],
       // Missing npcData - should fail validation
     } as const;
@@ -317,8 +340,10 @@ describe("createCampaignAsset", () => {
       campaignId: defaultCampaignId,
       name: "Test Plot",
       recordType: RecordType.Plot,
-      summary: "",
+      gmSummary: "",
+      gmNotes: "",
       playerSummary: "",
+      playerNotes: "",
       sessionEventLink: [],
       // Missing plotData - should fail validation
     } as const;

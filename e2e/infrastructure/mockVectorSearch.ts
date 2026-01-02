@@ -44,10 +44,12 @@ export function createMockVectorSearch(
     if (!mapping) {
       return {
         assets: applyFilters(defaultAssets, input),
+        searchMode: "vector_only",
         timings: {
           total: 0,
           embedding: 0,
           vectorSearch: 0,
+          textSearch: 0,
           conversion: 0,
         },
       };
@@ -61,8 +63,10 @@ export function createMockVectorSearch(
       campaignId: input.campaignId,
       name: `Mock Asset ${result.assetId}`,
       recordType: "Location" as RecordType,
-      summary: null,
+      gmSummary: null,
+      gmNotes: "",
       playerSummary: null,
+      playerNotes: "",
       createdAt: new Date(),
       updatedAt: new Date(),
       locationData: null,
@@ -74,10 +78,12 @@ export function createMockVectorSearch(
 
     return {
       assets: applyFilters(results, input),
+      searchMode: "vector_only",
       timings: {
         total: 0,
         embedding: 0,
         vectorSearch: 0,
+        textSearch: 0,
         conversion: 0,
       },
     };

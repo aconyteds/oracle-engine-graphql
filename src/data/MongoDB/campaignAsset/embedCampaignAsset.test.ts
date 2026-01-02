@@ -14,8 +14,10 @@ describe("embedCampaignAsset", () => {
     campaignId: "campaign-1",
     name: "Gandalf",
     recordType: "NPC",
-    summary: "A wise wizard",
+    gmSummary: "A wise wizard",
+    gmNotes: "Very powerful",
     playerSummary: null,
+    playerNotes: "Known ally",
     createdAt: new Date(),
     updatedAt: new Date(),
     Embeddings: [],
@@ -26,8 +28,6 @@ describe("embedCampaignAsset", () => {
       physicalDescription: "Tall wizard with grey beard",
       motivation: "Protect Middle Earth",
       mannerisms: "Speaks in riddles",
-      dmNotes: "Very powerful",
-      sharedWithPlayers: "Known ally",
     },
     sessionEventLink: [],
   };
@@ -37,8 +37,10 @@ describe("embedCampaignAsset", () => {
     campaignId: "campaign-1",
     name: "Rivendell",
     recordType: "Location",
-    summary: "Elven sanctuary",
+    gmSummary: "Elven sanctuary",
+    gmNotes: "Safe haven",
     playerSummary: null,
+    playerNotes: "Known to all",
     createdAt: new Date(),
     updatedAt: new Date(),
     Embeddings: [],
@@ -48,8 +50,6 @@ describe("embedCampaignAsset", () => {
       condition: "Pristine and magical",
       pointsOfInterest: "Council chamber, healing halls",
       characters: "Elrond, Arwen",
-      dmNotes: "Safe haven",
-      sharedWithPlayers: "Known to all",
     },
     plotData: null,
     npcData: null,
@@ -61,15 +61,15 @@ describe("embedCampaignAsset", () => {
     campaignId: "campaign-1",
     name: "Destroy the Ring",
     recordType: "Plot",
-    summary: "The quest to destroy the One Ring",
+    gmSummary: "The quest to destroy the One Ring",
+    gmNotes: "Journey to Mount Doom to destroy the One Ring",
     playerSummary: null,
+    playerNotes: "Secret mission",
     createdAt: new Date(),
     updatedAt: new Date(),
     Embeddings: [],
     locationData: null,
     plotData: {
-      dmNotes: "Journey to Mount Doom to destroy the One Ring",
-      sharedWithPlayers: "Secret mission",
       status: "InProgress",
       urgency: "Critical",
     },
@@ -159,7 +159,10 @@ describe("embedCampaignAsset", () => {
     const emptyAsset: CampaignAsset = {
       ...defaultNPCAsset,
       name: "",
-      summary: null,
+      gmSummary: null,
+      gmNotes: null,
+      playerSummary: null,
+      playerNotes: null,
       npcData: null,
     };
 
@@ -208,8 +211,6 @@ describe("embedCampaignAsset", () => {
         physicalDescription: "A warrior",
         motivation: "",
         mannerisms: "",
-        dmNotes: "",
-        sharedWithPlayers: "",
       },
     };
 
@@ -233,8 +234,6 @@ describe("embedCampaignAsset", () => {
         condition: "",
         pointsOfInterest: "",
         characters: "",
-        dmNotes: "",
-        sharedWithPlayers: "",
       },
     };
 
@@ -249,9 +248,9 @@ describe("embedCampaignAsset", () => {
   test("Unit -> embedCampaignAsset handles Plot with no related assets", async () => {
     const plotWithoutRelations: CampaignAsset = {
       ...defaultPlotAsset,
+      gmNotes: "A simple quest",
+      playerNotes: "Secret mission",
       plotData: {
-        dmNotes: "A simple quest",
-        sharedWithPlayers: "Secret mission",
         status: "InProgress",
         urgency: "Ongoing",
       },
@@ -273,7 +272,7 @@ describe("embedCampaignAsset", () => {
     const longText = "word ".repeat(12000);
     const assetWithLongText: CampaignAsset = {
       ...defaultNPCAsset,
-      summary: longText,
+      gmSummary: longText,
     };
 
     const result = await embedCampaignAsset(assetWithLongText);

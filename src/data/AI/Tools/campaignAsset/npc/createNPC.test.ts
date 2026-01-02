@@ -16,7 +16,7 @@ describe("createNPC", () => {
 
   const defaultNPCInput = {
     name: "Elara Moonwhisper",
-    summary: "Elven ranger tracking a dangerous beast",
+    gmSummary: "Elven ranger tracking a dangerous beast",
     playerSummary: "A helpful elf ranger",
     imageUrl: "https://example.com/elara.jpg",
     physicalDescription:
@@ -25,29 +25,34 @@ describe("createNPC", () => {
       "Protect the forest from encroaching corruption and avenge her murdered mentor",
     mannerisms:
       "Speaks softly, constantly checking surroundings, whistles to birds, touches trees when nervous",
-    dmNotes:
+    gmNotes:
       "Secretly working for the Shadow Council. Has information about the ancient temple. Stats: AC 16, HP 52, skilled archer.",
-    sharedWithPlayers:
+    playerNotes:
       "She seems friendly and offers to guide the party through the Mistwood",
   };
 
   const defaultCreatedAsset: CampaignAsset = {
     id: "asset-npc-1",
     campaignId: defaultCampaignId,
-    name: defaultNPCInput.name,
+    name: "Elara Moonwhisper",
     recordType: RecordType.NPC,
-    summary: defaultNPCInput.summary,
-    playerSummary: defaultNPCInput.playerSummary,
+    gmSummary: "Elven ranger tracking a dangerous beast",
+    playerSummary: "A helpful elf ranger",
+    gmNotes:
+      "Secretly working for the Shadow Council. Has information about the ancient temple. Stats: AC 16, HP 52, skilled archer.",
+    playerNotes:
+      "She seems friendly and offers to guide the party through the Mistwood",
     createdAt: new Date("2024-01-01"),
     updatedAt: new Date("2024-01-01"),
     Embeddings: [],
     npcData: {
-      imageUrl: defaultNPCInput.imageUrl,
-      physicalDescription: defaultNPCInput.physicalDescription,
-      motivation: defaultNPCInput.motivation,
-      mannerisms: defaultNPCInput.mannerisms,
-      dmNotes: defaultNPCInput.dmNotes,
-      sharedWithPlayers: defaultNPCInput.sharedWithPlayers,
+      imageUrl: "https://example.com/elara.jpg",
+      physicalDescription:
+        "A lithe elf woman in her 120s, dressed in forest greens. Her silver hair is tied back, and her green eyes scan constantly. She smells of pine and carries a longbow. Her voice is soft but carries authority.",
+      motivation:
+        "Protect the forest from encroaching corruption and avenge her murdered mentor",
+      mannerisms:
+        "Speaks softly, constantly checking surroundings, whistles to birds, touches trees when nervous",
     },
     locationData: null,
     plotData: null,
@@ -114,16 +119,16 @@ describe("createNPC", () => {
       campaignId: defaultCampaignId,
       recordType: RecordType.NPC,
       name: defaultNPCInput.name,
-      summary: defaultNPCInput.summary,
+      gmSummary: defaultNPCInput.gmSummary,
       playerSummary: defaultNPCInput.playerSummary,
+      gmNotes: defaultNPCInput.gmNotes,
+      playerNotes: defaultNPCInput.playerNotes,
       sessionEventLink: [],
       npcData: {
         imageUrl: defaultNPCInput.imageUrl,
         physicalDescription: defaultNPCInput.physicalDescription,
         motivation: defaultNPCInput.motivation,
         mannerisms: defaultNPCInput.mannerisms,
-        dmNotes: defaultNPCInput.dmNotes,
-        sharedWithPlayers: defaultNPCInput.sharedWithPlayers,
       },
     });
 
@@ -140,8 +145,8 @@ describe("createNPC", () => {
       physicalDescription: "A gruff orc blacksmith in his 40s",
       motivation: "Make the finest weapons",
       mannerisms: "Grunts often, spits when angry",
-      dmNotes: "Has legendary sword hidden in shop",
-      sharedWithPlayers: "The local blacksmith",
+      gmNotes: "Has legendary sword hidden in shop",
+      gmSummary: "asdf",
       imageUrl: "",
     };
 
@@ -158,15 +163,15 @@ describe("createNPC", () => {
       campaignId: defaultCampaignId,
       recordType: RecordType.NPC,
       name: minimalInput.name,
-      summary: "",
+      gmSummary: minimalInput.gmSummary,
       playerSummary: "",
+      gmNotes: minimalInput.gmNotes,
+      playerNotes: "",
       sessionEventLink: [],
       npcData: {
         physicalDescription: minimalInput.physicalDescription,
         motivation: minimalInput.motivation,
         mannerisms: minimalInput.mannerisms,
-        dmNotes: minimalInput.dmNotes,
-        sharedWithPlayers: minimalInput.sharedWithPlayers,
       },
     });
   });
@@ -236,10 +241,10 @@ describe("createNPC", () => {
     ).rejects.toThrow();
   });
 
-  test("Unit -> createNPC validates summary character limit (200 max)", async () => {
+  test("Unit -> createNPC validates gmSummary character limit (200 max)", async () => {
     const invalidInput = {
       ...defaultNPCInput,
-      summary: "A".repeat(201), // Exceeds 200 character limit
+      gmSummary: "A".repeat(201), // Exceeds 200 character limit
     };
 
     await expect(
@@ -290,10 +295,10 @@ describe("createNPC", () => {
     ).rejects.toThrow();
   });
 
-  test("Unit -> createNPC accepts exactly 200 characters for summary", async () => {
+  test("Unit -> createNPC accepts exactly 200 characters for gmSummary", async () => {
     const validInput = {
       ...defaultNPCInput,
-      summary: "A".repeat(200), // Exactly 200 characters
+      gmSummary: "A".repeat(200), // Exactly 200 characters
     };
 
     const result = await createNPC(validInput, {

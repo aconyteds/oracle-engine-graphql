@@ -22,21 +22,23 @@ const updatePlotSchema = z.object({
     .max(200)
     .optional()
     .describe("Updated name (maximum 200 characters)"),
-  summary: z
+  gmSummary: z
     .string()
     .max(200)
     .optional()
     .describe("Updated Game Master (GM) summary (maximum 200 characters)"),
+  gmNotes: z.string().optional().describe("Updated GM notes"),
   playerSummary: z
     .string()
     .max(200)
     .optional()
     .describe("Updated player-facing summary (maximum 200 characters)"),
+  playerNotes: z.string().optional().describe("Updated player notes"),
   plotData: plotDataSchema
     .partial()
     .optional()
     .describe(
-      "Updated plot fields. Only include fields you want to change. Available fields: dmNotes, sharedWithPlayers, status, urgency"
+      "Updated plot fields. Only include fields you want to change. Available fields: status, urgency"
     ),
 });
 
@@ -65,8 +67,10 @@ export async function updatePlot(
       assetId: input.plotId,
       recordType: RecordType.Plot,
       name: input.name,
-      summary: input.summary,
+      gmSummary: input.gmSummary,
+      gmNotes: input.gmNotes,
       playerSummary: input.playerSummary,
+      playerNotes: input.playerNotes,
       plotData: input.plotData,
     });
 

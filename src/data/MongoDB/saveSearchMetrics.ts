@@ -8,12 +8,15 @@ export interface SearchTimings {
   total: number;
   embedding: number;
   vectorSearch: number;
+  textSearch: number;
   conversion: number;
 }
 
 export type SaveSearchMetricsParams = {
   searchType: string;
+  searchMode: string;
   query?: string;
+  keywords?: string;
   campaignId: string;
   limit: number;
   minScore: number;
@@ -46,7 +49,9 @@ export async function saveSearchMetrics(
 ): Promise<void> {
   const {
     searchType,
+    searchMode,
     query,
+    keywords,
     campaignId,
     limit,
     minScore,
@@ -92,6 +97,7 @@ export async function saveSearchMetrics(
     await DBClient.searchMetric.create({
       data: {
         searchType,
+        searchMode,
         campaignId,
         hasResults: resultScores.length > 0,
         resultCount: resultScores.length,
@@ -100,11 +106,13 @@ export async function saveSearchMetrics(
         executionTimeMs: timings.total,
         embeddingTimeMs: timings.embedding,
         vectorTimeMs: timings.vectorSearch,
+        textTimeMs: timings.textSearch,
         conversionTimeMs: timings.conversion,
         queryLength: query?.length ?? 0,
 
         // Query text - only store when sampled for privacy/storage
         query: sampled ? (query ?? "") : "",
+        keywords: sampled ? (keywords ?? null) : null,
 
         // Sampling flag
         sampled,

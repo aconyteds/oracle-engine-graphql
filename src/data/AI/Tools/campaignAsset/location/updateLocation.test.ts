@@ -22,8 +22,10 @@ describe("updateLocation", () => {
     campaignId: defaultCampaignId,
     name: "The Rusty Dragon Inn",
     recordType: RecordType.Location,
-    summary: "A popular tavern in town",
+    gmSummary: "A popular tavern in town",
+    gmNotes: "Secret passage in cellar",
     playerSummary: "A cozy inn",
+    playerNotes: "The inn is popular with adventurers",
     createdAt: new Date("2024-01-01"),
     updatedAt: new Date("2024-01-01"),
     Embeddings: [],
@@ -33,8 +35,6 @@ describe("updateLocation", () => {
       condition: "Well-maintained",
       pointsOfInterest: "Bar, rooms upstairs",
       characters: "Innkeeper, patrons",
-      dmNotes: "Secret passage in cellar",
-      sharedWithPlayers: "The inn is popular with adventurers",
     },
     plotData: null,
     npcData: null,
@@ -43,10 +43,10 @@ describe("updateLocation", () => {
 
   const defaultUpdatedAsset: CampaignAsset = {
     ...defaultExistingAsset,
+    playerNotes: "The inn has been beautifully renovated",
     locationData: {
       ...defaultExistingAsset.locationData!,
       condition: "Recently renovated",
-      sharedWithPlayers: "The inn has been beautifully renovated",
     },
     updatedAt: new Date("2024-01-02"),
   };
@@ -116,9 +116,9 @@ describe("updateLocation", () => {
     const result = await updateLocation(
       {
         locationId: defaultLocationId,
+        playerNotes: "The inn has been beautifully renovated",
         locationData: {
           condition: "Recently renovated",
-          sharedWithPlayers: "The inn has been beautifully renovated",
         },
       },
       {
@@ -143,11 +143,12 @@ describe("updateLocation", () => {
       assetId: defaultLocationId,
       recordType: RecordType.Location,
       name: undefined,
-      summary: undefined,
+      gmSummary: undefined,
+      gmNotes: undefined,
       playerSummary: undefined,
+      playerNotes: "The inn has been beautifully renovated",
       locationData: {
         condition: "Recently renovated",
-        sharedWithPlayers: "The inn has been beautifully renovated",
       },
     });
 
@@ -156,12 +157,12 @@ describe("updateLocation", () => {
     expect(result).toContain(defaultStringifiedAsset);
   });
 
-  test("Unit -> updateLocation updates name and summary", async () => {
+  test("Unit -> updateLocation updates name and gmSummary", async () => {
     await updateLocation(
       {
         locationId: defaultLocationId,
         name: "The Golden Dragon Inn",
-        summary: "A newly renovated tavern",
+        gmSummary: "A newly renovated tavern",
       },
       {
         context: {
@@ -177,8 +178,10 @@ describe("updateLocation", () => {
       assetId: defaultLocationId,
       recordType: RecordType.Location,
       name: "The Golden Dragon Inn",
-      summary: "A newly renovated tavern",
+      gmSummary: "A newly renovated tavern",
+      gmNotes: undefined,
       playerSummary: undefined,
+      playerNotes: undefined,
       locationData: undefined,
     });
   });

@@ -16,15 +16,15 @@ describe("createLocation", () => {
 
   const defaultLocationInput = {
     name: "The Rusty Dragon Inn",
-    summary: "A popular tavern in town",
+    gmSummary: "A popular tavern in town",
+    gmNotes: "Secret passage in cellar leads to smuggler's cave",
     playerSummary: "A cozy inn",
+    playerNotes: "The inn is popular with adventurers",
     imageUrl: "https://example.com/inn.jpg",
     description: "A warm, inviting tavern with crackling fireplace",
     condition: "Well-maintained",
     pointsOfInterest: "Bar, rooms upstairs, secret cellar",
     characters: "Innkeeper Ameiko, various patrons",
-    dmNotes: "Secret passage in cellar leads to smuggler's cave",
-    sharedWithPlayers: "The inn is popular with adventurers",
   };
 
   const defaultCreatedAsset: CampaignAsset = {
@@ -32,8 +32,10 @@ describe("createLocation", () => {
     campaignId: defaultCampaignId,
     name: defaultLocationInput.name,
     recordType: RecordType.Location,
-    summary: defaultLocationInput.summary,
+    gmSummary: defaultLocationInput.gmSummary,
+    gmNotes: defaultLocationInput.gmNotes,
     playerSummary: defaultLocationInput.playerSummary,
+    playerNotes: defaultLocationInput.playerNotes,
     createdAt: new Date("2024-01-01"),
     updatedAt: new Date("2024-01-01"),
     Embeddings: [],
@@ -43,8 +45,6 @@ describe("createLocation", () => {
       condition: defaultLocationInput.condition,
       pointsOfInterest: defaultLocationInput.pointsOfInterest,
       characters: defaultLocationInput.characters,
-      dmNotes: defaultLocationInput.dmNotes,
-      sharedWithPlayers: defaultLocationInput.sharedWithPlayers,
     },
     plotData: null,
     npcData: null,
@@ -111,8 +111,10 @@ describe("createLocation", () => {
       campaignId: defaultCampaignId,
       recordType: RecordType.Location,
       name: defaultLocationInput.name,
-      summary: defaultLocationInput.summary,
+      gmSummary: defaultLocationInput.gmSummary,
+      gmNotes: defaultLocationInput.gmNotes,
       playerSummary: defaultLocationInput.playerSummary,
+      playerNotes: defaultLocationInput.playerNotes,
       sessionEventLink: [],
       locationData: {
         imageUrl: defaultLocationInput.imageUrl,
@@ -120,8 +122,6 @@ describe("createLocation", () => {
         condition: defaultLocationInput.condition,
         pointsOfInterest: defaultLocationInput.pointsOfInterest,
         characters: defaultLocationInput.characters,
-        dmNotes: defaultLocationInput.dmNotes,
-        sharedWithPlayers: defaultLocationInput.sharedWithPlayers,
       },
     });
 
@@ -135,12 +135,12 @@ describe("createLocation", () => {
   test("Unit -> createLocation creates location with minimal required fields", async () => {
     const minimalInput = {
       name: "Simple Cave",
+      gmNotes: "Hidden treasure",
+      gmSummary: "asdf",
       description: "A dark cave",
       condition: "Natural",
       pointsOfInterest: "None",
       characters: "None",
-      dmNotes: "Hidden treasure",
-      sharedWithPlayers: "Entrance visible from road",
       imageUrl: "",
     };
 
@@ -157,16 +157,16 @@ describe("createLocation", () => {
       campaignId: defaultCampaignId,
       recordType: RecordType.Location,
       name: minimalInput.name,
-      summary: "",
+      gmSummary: minimalInput.gmSummary,
+      gmNotes: minimalInput.gmNotes,
       playerSummary: "",
+      playerNotes: "",
       sessionEventLink: [],
       locationData: {
         description: minimalInput.description,
         condition: minimalInput.condition,
         pointsOfInterest: minimalInput.pointsOfInterest,
         characters: minimalInput.characters,
-        dmNotes: minimalInput.dmNotes,
-        sharedWithPlayers: minimalInput.sharedWithPlayers,
       },
     });
   });
@@ -236,10 +236,10 @@ describe("createLocation", () => {
     ).rejects.toThrow();
   });
 
-  test("Unit -> createLocation validates summary character limit (200 max)", async () => {
+  test("Unit -> createLocation validates gmSummary character limit (200 max)", async () => {
     const invalidInput = {
       ...defaultLocationInput,
-      summary: "A".repeat(201), // Exceeds 200 character limit
+      gmSummary: "A".repeat(201), // Exceeds 200 character limit
     };
 
     await expect(
@@ -290,10 +290,10 @@ describe("createLocation", () => {
     ).rejects.toThrow();
   });
 
-  test("Unit -> createLocation accepts exactly 200 characters for summary", async () => {
+  test("Unit -> createLocation accepts exactly 200 characters for gmSummary", async () => {
     const validInput = {
       ...defaultLocationInput,
-      summary: "A".repeat(200), // Exactly 200 characters
+      gmSummary: "A".repeat(200), // Exactly 200 characters
     };
 
     const result = await createLocation(validInput, {

@@ -14,11 +14,11 @@ describe("createPlot", () => {
 
   const defaultPlotInput = {
     name: "The Missing Merchant Prince",
-    summary: "Wealthy heir vanished from locked tower",
+    gmSummary: "Wealthy heir vanished from locked tower",
     playerSummary: "Lord Castellan hires you to find his missing son",
-    dmNotes:
+    gmNotes:
       "Secret kidnapping by Marcus the Jester. Stakes: If not found in 3 days, war erupts.",
-    sharedWithPlayers:
+    playerNotes:
       "Vanished from locked tower three nights ago. 1000 gold reward.",
     status: PlotStatus.InProgress,
     urgency: Urgency.TimeSensitive,
@@ -29,14 +29,14 @@ describe("createPlot", () => {
     campaignId: defaultCampaignId,
     name: defaultPlotInput.name,
     recordType: RecordType.Plot,
-    summary: defaultPlotInput.summary!,
+    gmSummary: defaultPlotInput.gmSummary!,
     playerSummary: defaultPlotInput.playerSummary!,
+    gmNotes: defaultPlotInput.gmNotes,
+    playerNotes: defaultPlotInput.playerNotes,
     createdAt: new Date("2024-01-01"),
     updatedAt: new Date("2024-01-01"),
     Embeddings: [],
     plotData: {
-      dmNotes: defaultPlotInput.dmNotes,
-      sharedWithPlayers: defaultPlotInput.sharedWithPlayers,
       status: defaultPlotInput.status,
       urgency: defaultPlotInput.urgency,
     },
@@ -99,12 +99,12 @@ describe("createPlot", () => {
       campaignId: defaultCampaignId,
       recordType: RecordType.Plot,
       name: defaultPlotInput.name,
-      summary: defaultPlotInput.summary,
+      gmSummary: defaultPlotInput.gmSummary,
       playerSummary: defaultPlotInput.playerSummary,
+      gmNotes: defaultPlotInput.gmNotes,
+      playerNotes: defaultPlotInput.playerNotes,
       sessionEventLink: [],
       plotData: {
-        dmNotes: defaultPlotInput.dmNotes,
-        sharedWithPlayers: defaultPlotInput.sharedWithPlayers,
         status: defaultPlotInput.status,
         urgency: defaultPlotInput.urgency,
       },
@@ -118,8 +118,8 @@ describe("createPlot", () => {
   test("Unit -> createPlot creates plot with minimal required fields", async () => {
     const minimalInput = {
       name: "Test Plot",
-      dmNotes: "Test DM notes",
-      sharedWithPlayers: "Test shared info",
+      gmNotes: "Test GM notes",
+      gmSummary: "asdf",
       status: PlotStatus.Unknown,
       urgency: Urgency.Ongoing,
     };
@@ -137,12 +137,12 @@ describe("createPlot", () => {
       campaignId: defaultCampaignId,
       recordType: RecordType.Plot,
       name: "Test Plot",
-      summary: "",
+      gmSummary: minimalInput.gmSummary,
       playerSummary: "",
+      gmNotes: "Test GM notes",
+      playerNotes: "",
       sessionEventLink: [],
       plotData: {
-        dmNotes: "Test DM notes",
-        sharedWithPlayers: "Test shared info",
         status: PlotStatus.Unknown,
         urgency: Urgency.Ongoing,
       },

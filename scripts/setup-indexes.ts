@@ -23,6 +23,10 @@
 import type { Collection } from "mongodb";
 import { MongoClient } from "mongodb";
 import {
+  type AtlasSearchIndexDefinition,
+  atlasSearchIndexes,
+} from "./atlas-indexes/searchIndexDefinitions";
+import {
   type StandardIndexDefinition,
   standardIndexes,
 } from "./atlas-indexes/standardIndexDefinitions";
@@ -49,6 +53,48 @@ if (!DATABASE_URL) {
 }
 
 /**
+ * Deep equality check for objects and arrays
+ * Handles key order differences in objects
+ */
+function deepEqual(obj1: unknown, obj2: unknown): boolean {
+  if (obj1 === obj2) return true;
+
+  if (
+    typeof obj1 !== "object" ||
+    obj1 === null ||
+    typeof obj2 !== "object" ||
+    obj2 === null
+  ) {
+    return false;
+  }
+
+  if (Array.isArray(obj1) !== Array.isArray(obj2)) return false;
+
+  if (Array.isArray(obj1) && Array.isArray(obj2)) {
+    if (obj1.length !== obj2.length) return false;
+    for (let i = 0; i < obj1.length; i++) {
+      if (!deepEqual(obj1[i], obj2[i])) return false;
+    }
+    return true;
+  }
+
+  const o1 = obj1 as Record<string, unknown>;
+  const o2 = obj2 as Record<string, unknown>;
+
+  const keys1 = Object.keys(o1);
+  const keys2 = Object.keys(o2);
+
+  if (keys1.length !== keys2.length) return false;
+
+  for (const key of keys1) {
+    if (!Object.prototype.hasOwnProperty.call(o2, key)) return false;
+    if (!deepEqual(o1[key], o2[key])) return false;
+  }
+
+  return true;
+}
+
+/**
  * Compares two index definitions to determine if they're equivalent
  */
 function areIndexDefinitionsEqual(
@@ -71,17 +117,14 @@ function areIndexDefinitionsEqual(
       return false;
     }
 
-    // Create comparison objects for deep equality check
-    const existingFieldsNormalized = existingFields.map((field: unknown) =>
-      JSON.stringify(field)
-    );
-    const desiredFieldsNormalized = desiredFields.map((field) =>
-      JSON.stringify(field)
-    );
-
     // Check if all desired fields exist in the existing index
-    for (const desiredField of desiredFieldsNormalized) {
-      if (!existingFieldsNormalized.includes(desiredField)) {
+    // Using deepEqual to handle object comparison within the array
+    for (const desiredField of desiredFields) {
+      const matchFound = existingFields.some((existingField) =>
+        deepEqual(existingField, desiredField)
+      );
+
+      if (!matchFound) {
         return false;
       }
     }
@@ -154,6 +197,98 @@ async function ensureIndex(
     console.log("   Check Atlas UI for index status");
   } catch (error) {
     console.error(`❌ Failed to ensure index "${indexDef.name}":`, error);
+    throw error;
+  }
+}
+
+/**
+ * Compares two Atlas Search index definitions to determine if they're equivalent
+ */
+function areSearchIndexDefinitionsEqual(
+  existing: ExistingIndex,
+  desired: AtlasSearchIndexDefinition
+): boolean {
+  try {
+    // Extract the definition from existing index
+    const existingDef = existing.latestDefinition || existing.definition;
+
+    if (!existingDef) {
+      return false;
+    }
+
+    // Use deepEqual to compare the full definition object (mappings, etc.)
+    // This handles key order differences in the fields object
+    return deepEqual(existingDef, desired.definition);
+  } catch (error) {
+    console.warn("⚠️  Error comparing search index definitions:", error);
+    return false;
+  }
+}
+
+/**
+ * Creates or updates a single Atlas Search index (text search)
+ */
+async function ensureSearchIndex(
+  collection: Collection,
+  indexDef: AtlasSearchIndexDefinition
+): Promise<void> {
+  try {
+    // List all search indexes for this collection
+    const indexes = await collection.listSearchIndexes().toArray();
+
+    // Check if index exists
+    const existingIndex = indexes.find(
+      (idx: unknown) => (idx as ExistingIndex).name === indexDef.name
+    ) as ExistingIndex | undefined;
+
+    if (existingIndex) {
+      console.log(`ℹ️  Search Index "${indexDef.name}" already exists`);
+
+      // Compare definitions
+      const isEqual = areSearchIndexDefinitionsEqual(existingIndex, indexDef);
+
+      if (isEqual) {
+        console.log(`✅ Search Index "${indexDef.name}" definition matches`);
+      } else {
+        console.warn(`⚠️  Search Index "${indexDef.name}" definition differs!`);
+        console.warn(
+          "   Existing definition:",
+          JSON.stringify(
+            existingIndex.latestDefinition || existingIndex.definition,
+            null,
+            2
+          )
+        );
+        console.warn(
+          "   Desired definition:",
+          JSON.stringify(indexDef.definition, null, 2)
+        );
+        console.warn(
+          "   To update, please drop the index via Atlas UI and re-run this script"
+        );
+      }
+      return;
+    }
+
+    // Create new index
+    console.log(`🔨 Creating search index "${indexDef.name}"...`);
+
+    const indexSpec = {
+      name: indexDef.name,
+      type: indexDef.type,
+      definition: indexDef.definition,
+    };
+
+    await collection.createSearchIndex(indexSpec);
+
+    console.log(`✅ Search Index "${indexDef.name}" created successfully!`);
+    console.log("⏳ Note: Index building may take a few minutes in Atlas");
+    console.log("   Check Atlas UI for index status");
+  } catch (error) {
+    console.error(
+      `❌ Failed to ensure search index "${indexDef.name}":`,
+      error
+    );
     throw error;
   }
 }
@@ -239,6 +374,16 @@ async function setupIndexes() {
       vectorIndexesByCollection.set(indexDef.collection, existing);
     }
 
+    const searchIndexesByCollection = new Map<
+      string,
+      AtlasSearchIndexDefinition[]
+    >();
+    for (const indexDef of atlasSearchIndexes) {
+      const existing = searchIndexesByCollection.get(indexDef.collection) || [];
+      existing.push(indexDef);
+      searchIndexesByCollection.set(indexDef.collection, existing);
+    }
+
     const standardIndexesByCollection = new Map<
       string,
       StandardIndexDefinition[]
@@ -252,6 +397,7 @@ async function setupIndexes() {
 
     const allCollections = new Set([
       ...vectorIndexesByCollection.keys(),
+      ...searchIndexesByCollection.keys(),
       ...standardIndexesByCollection.keys(),
     ]);
 
@@ -267,6 +413,11 @@ async function setupIndexes() {
       const vectorIndexes = vectorIndexesByCollection.get(collectionName) || [];
       for (const indexDef of vectorIndexes) {
         await ensureIndex(collection, indexDef);
+      }
+
+      const searchIndexes = searchIndexesByCollection.get(collectionName) || [];
+      for (const indexDef of searchIndexes) {
+        await ensureSearchIndex(collection, indexDef);
       }
 
       const stdIndexes = standardIndexesByCollection.get(collectionName) || [];

@@ -12,7 +12,7 @@ const applicationContextDescription = trimMultilineString(`
   Oracle Engine is an AI-powered TTRPG storyteller assistant designed to help Dungeon Masters create immersive narratives, dynamic characters, and engaging locations for tabletop role-playing games. User data is tied to a Campaign, which provides context for world-building and storytelling. Campaign Assets refer to specific elements within that world, such as locations, NPCs, and plot hooks.
   </description>
   <purpose>
-  The purpose of Oracle Engine is to streamline the world-building process, provide creative inspiration, and enhance the overall storytelling experience for both DMs and players.
+  The purpose of Oracle Engine is to streamline the world-building process, provide creative inspiration, and enhance the overall storytelling experience for both GMs and players.
   </purpose>
   <capabilities>
   - Generate detailed descriptions for locations, characters, and plots.

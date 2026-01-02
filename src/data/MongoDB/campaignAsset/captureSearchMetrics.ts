@@ -1,7 +1,11 @@
 import { SEARCH_METRICS_CONFIG } from "../../../config/metrics";
 import { DBClient } from "../client";
 import { SearchTimings, saveSearchMetrics } from "../saveSearchMetrics";
-import type { AssetSearchInput, AssetSearchResult } from "./assetSearch";
+import type {
+  AssetSearchInput,
+  AssetSearchResult,
+  SearchMode,
+} from "./assetSearch";
 import { searchCampaignAssets } from "./assetSearch";
 
 /**
@@ -12,6 +16,7 @@ export interface CaptureSearchMetricsInput {
   searchInput: AssetSearchInput;
   results: AssetSearchResult[];
   timings: SearchTimings;
+  searchMode: SearchMode;
 }
 
 /**
@@ -72,7 +77,7 @@ export async function captureSearchMetrics(
       embeddingTimeMs: input.timings.embedding,
       vectorSearchTimeMs: input.timings.vectorSearch,
       conversionTimeMs: input.timings.conversion,
-      queryLength: input.searchInput.query.length,
+      queryLength: input.searchInput.query?.length ?? 0,
       recordTypeFilter: input.searchInput.recordType ?? null,
     };
 
@@ -81,10 +86,14 @@ export async function captureSearchMetrics(
     let totalItemCount: number | null = null;
     if (shouldSample) {
       // Execute expanded search with same parameters but limit=200
-      const { assets: expandedResults } = await searchCampaignAssets({
-        ...input.searchInput,
-        limit: 200,
-      });
+      const { assets: expandedResults } = await searchCampaignAssets(
+        {
+          ...input.searchInput,
+          limit: 200,
+        },
+        // Don't store these metrics, that would potentially cause an infinite loop
+        false
+      );
       expandedResultScores = expandedResults.map((r) => r.score);
       totalItemCount = await DBClient.campaignAsset.count({
         where: {
@@ -99,7 +108,9 @@ export async function captureSearchMetrics(
     // Save metrics to MongoDB
     await saveSearchMetrics({
       searchType: "campaign_asset",
+      searchMode: input.searchMode,
       query: shouldSample ? input.searchInput.query : undefined,
+      keywords: shouldSample ? input.searchInput.keywords : undefined,
       campaignId: basicMetrics.campaignId,
       limit: basicMetrics.requestedLimit,
       minScore: basicMetrics.minScore,

@@ -19,7 +19,7 @@ export async function plotCreationBestPractices(): Promise<string> {
 - Clues that reward investigation
 - Consequences that ripple through the campaign
 
-### DM-Friendly:
+### GM-Friendly:
 - Flexible structure that adapts to player choices
 - Clear next steps and contingencies
 - NPC/Location relationships clearly defined
@@ -85,7 +85,7 @@ CONTINGENCIES:
 - If players take too long: Marcus 'finds' body (fake), war begins
 - If players ally with Marcus: He betrays them after inheriting"
 
-**SharedWithPlayers:** "Lord Castellan's heir vanished from a locked tower three nights ago. The door was barred from inside, windows shuttered. His rival, Lady Seraphine, denies involvement but benefits most from his death. Lord Castellan offers 1000 gold pieces for his son's safe return. You have three days before the families go to war."
+**playerNotes:** "Lord Castellan's heir vanished from a locked tower three nights ago. The door was barred from inside, windows shuttered. His rival, Lady Seraphine, denies involvement but benefits most from his death. Lord Castellan offers 1000 gold pieces for his son's safe return. You have three days before the families go to war."
 
 **Status:** InProgress
 **Urgency:** TimeSensitive
@@ -132,7 +132,7 @@ Day 4-5: Learn about undead threat (scouting or orc prisoner)
 Day 6-7: Make decision, prepare for chosen path
 Day 8+: Execute plan, face consequences"
 
-**SharedWithPlayers:** "You're trapped inside Thornwatch with 200 civilians. The orc warband has the town surrounded - 300 warriors to your garrison of 40. Supplies will last two weeks. Captain Ironwood wants to fight. Elder Thornberry wants to find another way. The orcs haven't attacked yet... they're waiting for something."
+**playerNotes:** "You're trapped inside Thornwatch with 200 civilians. The orc warband has the town surrounded - 300 warriors to your garrison of 40. Supplies will last two weeks. Captain Ironwood wants to fight. Elder Thornberry wants to find another way. The orcs haven't attacked yet... they're waiting for something."
 
 **Status:** InProgress
 **Urgency:** Critical
@@ -144,10 +144,10 @@ Day 8+: Execute plan, face consequences"
 1. **Clear Stakes:** Both examples show what happens if players succeed/fail
 2. **Multiple Paths:** Combat, social, stealth, magic - all viable
 3. **Layered Secrets:** Not everything revealed immediately; rewards investigation
-4. **NPC/Location Links:** Specific relationships defined in dmNotes
+4. **NPC/Location Links:** Specific relationships defined in gmNotes
 5. **Pacing Guidance:** When urgency escalates, what triggers next phase
 6. **Player Agency:** Meaningful choices with different consequences
-7. **DM Flexibility:** Contingencies for different player approaches
+7. **GM Flexibility:** Contingencies for different player approaches
 8. **Status/Urgency Tracking:** Both examples show appropriate values
 
 ## COMMON PITFALLS TO AVOID:
@@ -157,7 +157,7 @@ Day 8+: Execute plan, face consequences"
 3. **Railroading:** Plot should adapt to player choices, not force specific actions
 4. **Information Overload:** Reveal secrets gradually through play
 5. **Unclear Objectives:** Players should always know what they can do next
-6. **Disconnected:** Link plots to NPCs, locations, other plots in dmNotes
+6. **Disconnected:** Link plots to NPCs, locations, other plots in gmNotes
 7. **Static Status:** Update status/urgency as plot progresses
 8. **No Consequences:** Player choices should matter and ripple forward`;
 }

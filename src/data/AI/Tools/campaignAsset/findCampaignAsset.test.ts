@@ -101,8 +101,9 @@ describe("findCampaignAsset", () => {
     expect(mockSearchCampaignAssets).toHaveBeenCalledWith({
       campaignId: "campaign-123",
       query: "wise wizard",
-      limit: 5,
-      minScore: 0.65,
+      keywords: undefined,
+      limit: 10,
+      minScore: 0.6,
       recordType: undefined,
     });
 
@@ -127,8 +128,9 @@ describe("findCampaignAsset", () => {
     expect(mockSearchCampaignAssets).toHaveBeenCalledWith({
       campaignId: "campaign-123",
       query: "ancient tower",
-      limit: 5,
-      minScore: 0.65,
+      keywords: undefined,
+      limit: 10,
+      minScore: 0.6,
       recordType: "Location",
     });
   });
@@ -263,9 +265,7 @@ describe("findCampaignAsset", () => {
 
   test("Unit -> findCampaignAsset has correct tool metadata", () => {
     expect(findCampaignAsset.name).toBe("find_campaign_asset");
-    expect(findCampaignAsset.description).toContain(
-      "Searches through campaign assets"
-    );
+    expect(findCampaignAsset.description).toContain("Searches campaign assets");
     expect(findCampaignAsset.schema).toBeDefined();
   });
 
@@ -280,8 +280,8 @@ describe("findCampaignAsset", () => {
     );
 
     const callArgs = mockSearchCampaignAssets.mock.calls[0][0];
-    expect(callArgs.limit).toBe(5);
-    expect(callArgs.minScore).toBe(0.65);
+    expect(callArgs.limit).toBe(10);
+    expect(callArgs.minScore).toBe(0.6);
   });
 
   test("Unit -> findCampaignAsset handles all valid recordTypes", async () => {
@@ -304,5 +304,66 @@ describe("findCampaignAsset", () => {
         })
       );
     }
+  });
+
+  test("Unit -> findCampaignAsset supports keywords-only search", async () => {
+    await findCampaignAsset.invoke(
+      {
+        keywords: "Gandalf",
+      },
+      {
+        context: defaultContext,
+      }
+    );
+
+    expect(mockSearchCampaignAssets).toHaveBeenCalledWith({
+      campaignId: "campaign-123",
+      query: undefined,
+      keywords: "Gandalf",
+      limit: 10,
+      minScore: 0.6,
+      recordType: undefined,
+    });
+  });
+
+  test("Unit -> findCampaignAsset supports hybrid search with both query and keywords", async () => {
+    await findCampaignAsset.invoke(
+      {
+        query: "wise wizard",
+        keywords: "Gandalf",
+      },
+      {
+        context: defaultContext,
+      }
+    );
+
+    expect(mockSearchCampaignAssets).toHaveBeenCalledWith({
+      campaignId: "campaign-123",
+      query: "wise wizard",
+      keywords: "Gandalf",
+      limit: 10,
+      minScore: 0.6,
+      recordType: undefined,
+    });
+  });
+
+  test("Unit -> findCampaignAsset requires at least query or keywords", async () => {
+    await expect(
+      findCampaignAsset.invoke(
+        {
+          recordType: "NPC",
+        },
+        {
+          context: defaultContext,
+        }
+      )
+    ).rejects.toThrow();
+  });
+
+  test("Unit -> findCampaignAsset description includes search strategy guidance", () => {
+    expect(findCampaignAsset.description).toContain("SEARCH STRATEGIES");
+    expect(findCampaignAsset.description).toContain("Semantic");
+    expect(findCampaignAsset.description).toContain("keywords");
+    expect(findCampaignAsset.description).toContain("Hybrid");
   });
 });

@@ -15,12 +15,16 @@ const createLocationSchema = z.object({
     .describe(
       "Name of the location (e.g., 'The Rusty Dragon Inn', 'Cragmaw Castle'). CRITICAL: Maximum 200 characters - keep it concise!"
     ),
-  summary: z
+  gmSummary: z
     .string()
     .max(200)
-    .optional()
     .describe(
       "Brief summary for quick reference and popovers. Written from the Game Master (GM) perspective. CRITICAL: Maximum 200 characters - this must be SHORT! If omitted, will be auto-generated from description."
+    ),
+  gmNotes: z
+    .string()
+    .describe(
+      "Game Master (GM) only information: secrets, traps, treasure, hidden passages, plot hooks. This should be easily readable, and contain the majority of information."
     ),
   playerSummary: z
     .string()
@@ -28,6 +32,12 @@ const createLocationSchema = z.object({
     .optional()
     .describe(
       "Player-visible summary (no GM secrets). Written from the player perspective. CRITICAL: Maximum 200 characters - keep it concise! If omitted, uses the main summary."
+    ),
+  playerNotes: z
+    .string()
+    .optional()
+    .describe(
+      "What players currently know. Update as they discover more. Should NOT include secrets from gmNotes unless revealed. This should be written from the player's perspective."
     ),
   // TODO:: Update this description when image creation is supported
   imageUrl: z
@@ -57,16 +67,6 @@ const createLocationSchema = z.object({
     .describe(
       "NPCs present here. Include linked NPC assets or mention minor characters."
     ),
-  dmNotes: z
-    .string()
-    .describe(
-      "Game Master (GM) only information: secrets, traps, treasure, hidden passages, plot hooks. This should be easily readable, and contain the majority of information."
-    ),
-  sharedWithPlayers: z
-    .string()
-    .describe(
-      "What players currently know. Update as they discover more. Should NOT include secrets from dmNotes unless revealed. This should be written from the player's perspective."
-    ),
 });
 
 type CreateLocationInput = z.infer<typeof createLocationSchema>;
@@ -83,8 +83,10 @@ export async function createLocation(
       campaignId: context.campaignId,
       recordType: RecordType.Location,
       name: input.name,
-      summary: input.summary || "",
+      gmSummary: input.gmSummary || "",
+      gmNotes: input.gmNotes || "",
       playerSummary: input.playerSummary || "",
+      playerNotes: input.playerNotes || "",
       sessionEventLink: [],
       locationData: {
         ...(!!input.imageUrl ? { imageUrl: input.imageUrl.toString() } : {}),
@@ -92,8 +94,6 @@ export async function createLocation(
         condition: input.condition,
         pointsOfInterest: input.pointsOfInterest,
         characters: input.characters,
-        dmNotes: input.dmNotes,
-        sharedWithPlayers: input.sharedWithPlayers,
       },
     });
 

@@ -77,15 +77,16 @@ export class PlotAssetWorkflow extends BaseWorkflow {
       campaignId,
       recordType: "Plot",
       name: "The Corruption of the Mistwood",
-      summary:
+      gmSummary:
         "Dark forces are corrupting the ancient forest, turning creatures hostile and spreading blight",
+      gmNotes:
+        "The BBEG is actually the mayor's advisor. The ritual can be stopped by destroying 3 corruption nodes OR by convincing the druid circle to intervene.",
       playerSummary:
         "Something is wrong with the forest - animals are acting strangely and plants are dying",
+      playerNotes:
+        "The forest rangers mention that animals are fleeing the deep woods and strange purple mist has been seen at night.",
+
       plotData: {
-        dmNotes:
-          "The BBEG is actually the mayor's advisor. The ritual can be stopped by destroying 3 corruption nodes OR by convincing the druid circle to intervene.",
-        sharedWithPlayers:
-          "The forest rangers mention that animals are fleeing the deep woods and strange purple mist has been seen at night.",
         status: "Rumored",
         urgency: "TimeSensitive",
       },
@@ -148,13 +149,13 @@ export class PlotAssetWorkflow extends BaseWorkflow {
       assetId,
       recordType: "Plot",
       name: "The Corruption of the Mistwood [ACTIVE]",
-      summary:
+      gmSummary:
         "The party has discovered the cult's ritual and is actively working to stop it. Time is running out!",
+      gmNotes:
+        "Party confronted the advisor who fled to the ritual site. Druid circle has agreed to help if party can buy them time. Next session will be the final confrontation.",
+      playerNotes:
+        "You have destroyed 3 corruption nodes. The ritual site is at the ancient oak in the forest's center. You have 2 days to stop the final ritual.",
       plotData: {
-        dmNotes:
-          "Party confronted the advisor who fled to the ritual site. Druid circle has agreed to help if party can buy them time. Next session will be the final confrontation.",
-        sharedWithPlayers:
-          "You have destroyed 3 corruption nodes. The ritual site is at the ancient oak in the forest's center. You have 2 days to stop the final ritual.",
         status: "InProgress",
         urgency: "Critical",
       },

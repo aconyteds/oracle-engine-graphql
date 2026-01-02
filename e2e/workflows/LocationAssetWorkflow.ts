@@ -77,8 +77,10 @@ export class LocationAssetWorkflow extends BaseWorkflow {
       campaignId,
       recordType: "Location",
       name: "The Dragon's Lair",
-      summary: "A dangerous cave system inhabited by a red dragon",
+      gmSummary: "A dangerous cave system inhabited by a red dragon",
+      gmNotes: "The dragon is actually cursed and can be reasoned with",
       playerSummary: "A cave with strange smoke rising from it",
+      playerNotes: "The entrance is guarded by kobolds",
       locationData: {
         imageUrl: "https://example.com/dragons-lair.jpg",
         description:
@@ -87,8 +89,6 @@ export class LocationAssetWorkflow extends BaseWorkflow {
         pointsOfInterest:
           "Dragon's hoard chamber, lava falls, ancient dwarven ruins",
         characters: "Volcanus the Red Dragon, kobold servants",
-        dmNotes: "The dragon is actually cursed and can be reasoned with",
-        sharedWithPlayers: "The entrance is guarded by kobolds",
       },
     });
 
@@ -149,8 +149,12 @@ export class LocationAssetWorkflow extends BaseWorkflow {
       assetId,
       recordType: "Location",
       name: "The Dragon's Lair (Cleared)",
-      summary:
+      gmSummary:
         "A dangerous cave system once inhabited by a red dragon (now defeated)",
+      gmNotes: "The curse on the dragon has been lifted",
+      playerSummary:
+        "A cave with strange smoke rising from it (dragon defeated)",
+      playerNotes: "The entrance is unguarded, kobolds are fleeing in terror",
       locationData: {
         description:
           "A vast network of volcanic caves with rivers of lava flowing through them. The dragon is gone.",
@@ -158,9 +162,6 @@ export class LocationAssetWorkflow extends BaseWorkflow {
         pointsOfInterest:
           "Dragon's hoard chamber (empty), lava falls, ancient dwarven ruins",
         characters: "Scattered kobolds fleeing the area",
-        dmNotes: "The curse on the dragon has been lifted",
-        sharedWithPlayers:
-          "The entrance is unguarded, kobolds are fleeing in terror",
       },
     });
 

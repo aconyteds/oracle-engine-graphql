@@ -16,19 +16,31 @@ const baseAssetSchema = z.object({
     .describe(
       "Name of the campaign asset. This might be the name of a location, NPC, or plot point."
     ),
-  summary: z
+  gmSummary: z
     .string()
     .max(200)
     .default("")
     .describe(
       "A brief summary of the campaign asset. This is used for quick links to populate popover text."
     ),
+  gmNotes: z
+    .string()
+    .default("")
+    .describe(
+      "Game Master (GM) notes for the asset, including secrets and important information the GM needs to remember."
+    ),
   playerSummary: z
     .string()
     .max(200)
     .default("")
     .describe(
-      "Similar to summary but only visible to players. This should not include any DM secrets."
+      "Similar to summary but only visible to players. This should not include any GM secrets."
+    ),
+  playerNotes: z
+    .string()
+    .default("")
+    .describe(
+      "Information shared with players about the asset. This shouldn't include any secrets unless the GM has explicitly shared that information."
     ),
   sessionEventLink: z.array(z.string()).default([]),
 });
@@ -59,8 +71,10 @@ export async function createCampaignAsset(
     campaignId: params.campaignId,
     name: params.name,
     recordType: params.recordType,
-    summary: params.summary || null,
+    gmSummary: params.gmSummary || null,
+    gmNotes: params.gmNotes || null,
     playerSummary: params.playerSummary || null,
+    playerNotes: params.playerNotes || null,
     Embeddings: [], // Will be populated after creation
   };
 
