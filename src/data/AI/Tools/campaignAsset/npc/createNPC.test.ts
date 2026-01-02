@@ -146,7 +146,7 @@ describe("createNPC", () => {
       motivation: "Make the finest weapons",
       mannerisms: "Grunts often, spits when angry",
       gmNotes: "Has legendary sword hidden in shop",
-      playerNotes: "The local blacksmith",
+      gmSummary: "asdf",
       imageUrl: "",
     };
 
@@ -163,10 +163,10 @@ describe("createNPC", () => {
       campaignId: defaultCampaignId,
       recordType: RecordType.NPC,
       name: minimalInput.name,
-      gmSummary: "",
+      gmSummary: minimalInput.gmSummary,
       playerSummary: "",
       gmNotes: minimalInput.gmNotes,
-      playerNotes: minimalInput.playerNotes,
+      playerNotes: "",
       sessionEventLink: [],
       npcData: {
         physicalDescription: minimalInput.physicalDescription,

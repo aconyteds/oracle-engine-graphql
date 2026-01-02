@@ -136,7 +136,7 @@ describe("createLocation", () => {
     const minimalInput = {
       name: "Simple Cave",
       gmNotes: "Hidden treasure",
-      playerNotes: "Entrance visible from road",
+      gmSummary: "asdf",
       description: "A dark cave",
       condition: "Natural",
       pointsOfInterest: "None",
@@ -157,10 +157,10 @@ describe("createLocation", () => {
       campaignId: defaultCampaignId,
       recordType: RecordType.Location,
       name: minimalInput.name,
-      gmSummary: "",
+      gmSummary: minimalInput.gmSummary,
       gmNotes: minimalInput.gmNotes,
       playerSummary: "",
-      playerNotes: minimalInput.playerNotes,
+      playerNotes: "",
       sessionEventLink: [],
       locationData: {
         description: minimalInput.description,

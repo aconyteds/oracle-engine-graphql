@@ -119,7 +119,7 @@ describe("createPlot", () => {
     const minimalInput = {
       name: "Test Plot",
       gmNotes: "Test GM notes",
-      playerNotes: "Test player info",
+      gmSummary: "asdf",
       status: PlotStatus.Unknown,
       urgency: Urgency.Ongoing,
     };
@@ -137,10 +137,10 @@ describe("createPlot", () => {
       campaignId: defaultCampaignId,
       recordType: RecordType.Plot,
       name: "Test Plot",
-      gmSummary: "",
+      gmSummary: minimalInput.gmSummary,
       playerSummary: "",
       gmNotes: "Test GM notes",
-      playerNotes: "Test player info",
+      playerNotes: "",
       sessionEventLink: [],
       plotData: {
         status: PlotStatus.Unknown,
