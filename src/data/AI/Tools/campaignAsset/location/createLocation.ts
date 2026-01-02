@@ -18,7 +18,6 @@ const createLocationSchema = z.object({
   gmSummary: z
     .string()
     .max(200)
-    .optional()
     .describe(
       "Brief summary for quick reference and popovers. Written from the Game Master (GM) perspective. CRITICAL: Maximum 200 characters - this must be SHORT! If omitted, will be auto-generated from description."
     ),
@@ -36,6 +35,7 @@ const createLocationSchema = z.object({
     ),
   playerNotes: z
     .string()
+    .optional()
     .describe(
       "What players currently know. Update as they discover more. Should NOT include secrets from gmNotes unless revealed. This should be written from the player's perspective."
     ),
@@ -84,9 +84,9 @@ export async function createLocation(
       recordType: RecordType.Location,
       name: input.name,
       gmSummary: input.gmSummary || "",
-      gmNotes: input.gmNotes,
+      gmNotes: input.gmNotes || "",
       playerSummary: input.playerSummary || "",
-      playerNotes: input.playerNotes,
+      playerNotes: input.playerNotes || "",
       sessionEventLink: [],
       locationData: {
         ...(!!input.imageUrl ? { imageUrl: input.imageUrl.toString() } : {}),

@@ -18,7 +18,6 @@ const createPlotSchema = z.object({
   gmSummary: z
     .string()
     .max(200)
-    .optional()
     .describe(
       "Brief Game Master (GM) summary of the core plot. CRITICAL: Maximum 200 characters! If omitted, will be auto-generated."
     ),
@@ -36,6 +35,7 @@ const createPlotSchema = z.object({
     ),
   playerNotes: z
     .string()
+    .optional()
     .describe(
       "What players currently know from their perspective. Should NOT include secrets unless revealed. Updates as players discover more."
     ),
@@ -66,9 +66,9 @@ export async function createPlot(
       recordType: RecordType.Plot,
       name: input.name,
       gmSummary: input.gmSummary || "",
-      gmNotes: input.gmNotes,
+      gmNotes: input.gmNotes || "",
       playerSummary: input.playerSummary || "",
-      playerNotes: input.playerNotes,
+      playerNotes: input.playerNotes || "",
       sessionEventLink: [],
       plotData: {
         status: input.status,
