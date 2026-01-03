@@ -3,14 +3,18 @@ import { AIMessage } from "@langchain/core/messages";
 import * as Sentry from "@sentry/bun";
 import type { GenerateMessagePayload } from "../../generated/graphql";
 import { ServerError } from "../../graphql/errors";
-import { TranslateMessage } from "../../modules/utils";
 import type { MessageWorkspace } from "../MongoDB";
 import { saveMessage } from "../MongoDB";
 import { getAgentByName } from "./agentList";
 import { PrismaCheckpointSaver } from "./Checkpointers";
 import { getAgentDefinition } from "./getAgentDefinition";
+import { MessageFactory } from "./messageFactory";
 import type { HandoffRoutingResponse } from "./schemas";
-import type { AIAgentDefinition, RequestContext } from "./types";
+import type {
+  AIAgentDefinition,
+  RequestContext,
+  YieldMessageFunction,
+} from "./types";
 import { RouterType } from "./types";
 
 export type GenerateMessageWithAgentProps = {
@@ -19,44 +23,66 @@ export type GenerateMessageWithAgentProps = {
   agent: AIAgentDefinition;
   messageHistory: BaseMessage[];
   requestContext: RequestContext;
+  enqueueMessage: (payload: GenerateMessagePayload) => void;
 };
 
 /**
  * Unified message generation using LangChain v1 createAgent API
  * Replaces both generateMessageWithRouter and generateMessageWithStandardWorkflow
+ * Now uses message queue for real-time streaming instead of generator pattern
  */
-export async function* generateMessageWithAgent({
+export async function generateMessageWithAgent({
   threadId,
   runId,
   agent,
   messageHistory,
   requestContext,
-}: GenerateMessageWithAgentProps): AsyncGenerator<GenerateMessagePayload> {
+  enqueueMessage,
+}: GenerateMessageWithAgentProps): Promise<void> {
   const { userId, campaignId } = requestContext;
 
+  // Prepare workspace entries for debugging/auditing
+  const workspaceEntries: MessageWorkspace[] = [];
+
+  // Create enqueue function for tools to call
+  const yieldMessage: YieldMessageFunction = (payload) => {
+    // Add to workspace for final message storage
+    workspaceEntries.push({
+      messageType: payload.responseType,
+      content: payload.content || "",
+      timestamp: new Date(),
+      elapsedTime: null,
+    });
+
+    // Enqueue for real-time streaming
+    enqueueMessage(payload);
+  };
+
+  // Enrich context with yield function
+  const enrichedContext: RequestContext = {
+    ...requestContext,
+    yieldMessage,
+  };
+
   // Get agent instance with tools and checkpointer configured
-  const agentInstance = await getAgentDefinition(agent, requestContext);
+  const agentInstance = await getAgentDefinition(agent, enrichedContext);
 
   if (!agentInstance) {
     throw ServerError("Invalid agent configuration detected.");
   }
 
-  // Prepare workspace entries for debugging/auditing
-  const workspaceEntries: MessageWorkspace[] = [];
-
   // Debug info about available tools
   const toolCount = agent.availableTools?.length || 0;
   const subAgentCount = agent.availableSubAgents?.length || 0;
 
-  const toolsDebug = `🔧 Agent: ${agent.name} | Tools: ${toolCount} | Sub-agents: ${subAgentCount}`;
-  yield {
-    responseType: "Debug",
-    content: toolsDebug,
-  };
+  const debugPayload = MessageFactory.debug(
+    `🔧 Agent: ${agent.name} | Tools: ${toolCount} | Sub-agents: ${subAgentCount}`
+  );
+  enqueueMessage(debugPayload);
 
   workspaceEntries.push({
-    messageType: "Debug",
-    content: toolsDebug,
+    messageType: debugPayload.responseType,
+    content: debugPayload.content || "",
     timestamp: new Date(),
     elapsedTime: null,
   });
@@ -86,14 +112,14 @@ export async function* generateMessageWithAgent({
     }
     // If no checkpoint exists, we pass the full history (messagesToPass = messageHistory)
 
-    // Invoke agent with checkpointer and context
+    // Invoke agent with checkpointer and enriched context
     const result = await agentInstance.invoke(
       { messages: messagesToPass },
       {
         configurable: {
           thread_id: compositeThreadId,
         },
-        context: requestContext,
+        context: enrichedContext,
       }
     );
 
@@ -112,10 +138,8 @@ export async function* generateMessageWithAgent({
         console.debug(`✓ Handoff detected: ${agent.name} → ${targetAgentName}`);
 
         // Router made a handoff decision - invoke target agent
-        yield {
-          responseType: "Intermediate",
-          content: `🔀 Routing to ${targetAgentName}...`,
-        };
+        const routingPayload = MessageFactory.routing(targetAgentName);
+        enqueueMessage(routingPayload);
 
         workspaceEntries.push({
           messageType: "routing",
@@ -132,12 +156,14 @@ export async function* generateMessageWithAgent({
 
         // Recursively call with the target agent
         // Pass empty message history as state is already in checkpoint
-        yield* generateMessageWithAgent({
+        // Pass enqueue function down to maintain real-time streaming
+        await generateMessageWithAgent({
           threadId,
           runId,
           agent: targetAgent,
           messageHistory: [],
-          requestContext,
+          requestContext: enrichedContext,
+          enqueueMessage,
         });
         return; // Exit after handoff - don't process router's response
       }
@@ -179,10 +205,8 @@ export async function* generateMessageWithAgent({
         .filter((name): name is string => !!name);
 
       if (toolNames.length > 0) {
-        yield {
-          responseType: "Intermediate",
-          content: `🛠️ Used tools: ${toolNames.join(", ")}`,
-        };
+        const toolUsagePayload = MessageFactory.toolUsage(toolNames);
+        enqueueMessage(toolUsagePayload);
 
         workspaceEntries.push({
           messageType: "tool_usage",
@@ -202,13 +226,8 @@ export async function* generateMessageWithAgent({
       runId,
     });
 
-    // Yield final payload to client
-    const finalPayload: GenerateMessagePayload = {
-      responseType: "Final",
-      content: savedMessage.content,
-      message: TranslateMessage(savedMessage),
-    };
-    yield finalPayload;
+    // Enqueue final payload to client
+    enqueueMessage(MessageFactory.final(savedMessage));
   } catch (error) {
     console.error("Error in agent generation:", error);
     Sentry.captureException(error, {

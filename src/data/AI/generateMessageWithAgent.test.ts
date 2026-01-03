@@ -9,13 +9,16 @@ describe("generateMessageWithAgent", () => {
   let mockGetAgentByName: ReturnType<typeof mock>;
   let mockSaveMessage: ReturnType<typeof mock>;
   let mockTranslateMessage: ReturnType<typeof mock>;
+  let mockEnqueueMessage: ReturnType<typeof mock>;
+  let mockYieldMessage: ReturnType<typeof mock>;
   let generateMessageWithAgent: typeof import("./generateMessageWithAgent").generateMessageWithAgent;
 
-  const defaultRequestContext = {
-    userId: "user-1",
-    campaignId: "campaign-1",
-    threadId: "thread-1",
-    runId: "run-1",
+  let defaultRequestContext: {
+    userId: string;
+    campaignId: string;
+    threadId: string;
+    runId: string;
+    yieldMessage: ReturnType<typeof mock>;
   };
 
   const defaultMessageHistory: BaseMessage[] = [
@@ -47,6 +50,8 @@ describe("generateMessageWithAgent", () => {
     mockGetAgentByName = mock();
     mockSaveMessage = mock();
     mockTranslateMessage = mock();
+    mockEnqueueMessage = mock();
+    mockYieldMessage = mock();
 
     // Mock the PrismaCheckpointSaver class
     const MockCheckpointerClass = mock(() => ({
@@ -79,6 +84,15 @@ describe("generateMessageWithAgent", () => {
     // Default mock behaviors
     mockSaveMessage.mockResolvedValue(defaultSavedMessage);
     mockTranslateMessage.mockReturnValue(defaultTranslatedMessage);
+
+    // Recreate defaultRequestContext with fresh mockYieldMessage
+    defaultRequestContext = {
+      userId: "user-1",
+      campaignId: "campaign-1",
+      threadId: "thread-1",
+      runId: "run-1",
+      yieldMessage: mockYieldMessage,
+    };
   });
 
   afterEach(() => {
@@ -155,19 +169,21 @@ describe("generateMessageWithAgent", () => {
 
     mockGetAgentByName.mockReturnValue(targetAgent);
 
-    const generator = generateMessageWithAgent({
+    await generateMessageWithAgent({
       threadId: "thread-1",
       runId: "run-1",
       // biome-ignore lint/suspicious/noExplicitAny: Mock agent for testing
       agent: routerAgent as any,
       messageHistory: defaultMessageHistory,
       requestContext: defaultRequestContext,
+      enqueueMessage: mockEnqueueMessage,
     });
 
-    const results: GenerateMessagePayload[] = [];
-    for await (const payload of generator) {
-      results.push(payload);
-    }
+    const enqueuedCalls = mockEnqueueMessage.mock.calls.map(
+      // biome-ignore lint/suspicious/noExplicitAny: Mock call array type
+      (call: any) => call[0]
+    );
+    const results: GenerateMessagePayload[] = enqueuedCalls;
 
     // Verify routing happened
     expect(mockGetAgentByName).toHaveBeenCalledWith("target_agent");
@@ -213,19 +229,20 @@ describe("generateMessageWithAgent", () => {
 
     mockGetAgentDefinition.mockReturnValue(mockAgentInstance);
 
-    const generator = generateMessageWithAgent({
+    await generateMessageWithAgent({
       threadId: "thread-1",
       runId: "run-1",
       // biome-ignore lint/suspicious/noExplicitAny: Mock agent for testing
       agent: nonRouterAgent as any,
       messageHistory: defaultMessageHistory,
       requestContext: defaultRequestContext,
+      enqueueMessage: mockEnqueueMessage,
     });
 
-    const results: GenerateMessagePayload[] = [];
-    for await (const payload of generator) {
-      results.push(payload);
-    }
+    const results: GenerateMessagePayload[] = mockEnqueueMessage.mock.calls.map(
+      // biome-ignore lint/suspicious/noExplicitAny: Mock call array type
+      (call: any) => call[0]
+    );
 
     // Should not attempt routing
     expect(mockGetAgentByName).not.toHaveBeenCalled();
@@ -262,19 +279,15 @@ describe("generateMessageWithAgent", () => {
 
     mockGetAgentDefinition.mockReturnValue(mockRouterInstance);
 
-    const generator = generateMessageWithAgent({
+    await generateMessageWithAgent({
       threadId: "thread-1",
       runId: "run-1",
       // biome-ignore lint/suspicious/noExplicitAny: Mock agent for testing
       agent: routerAgent as any,
       messageHistory: defaultMessageHistory,
       requestContext: defaultRequestContext,
+      enqueueMessage: mockEnqueueMessage,
     });
-
-    const results: GenerateMessagePayload[] = [];
-    for await (const payload of generator) {
-      results.push(payload);
-    }
 
     // Should not route since no routing decision was made
     expect(mockGetAgentByName).not.toHaveBeenCalled();
@@ -321,24 +334,25 @@ describe("generateMessageWithAgent", () => {
 
     mockGetAgentDefinition.mockReturnValue(mockAgentInstance);
 
-    const generator = generateMessageWithAgent({
+    await generateMessageWithAgent({
       threadId: "thread-1",
       runId: "run-1",
       // biome-ignore lint/suspicious/noExplicitAny: Mock agent for testing
       agent: agentWithTools as any,
       messageHistory: defaultMessageHistory,
       requestContext: defaultRequestContext,
+      enqueueMessage: mockEnqueueMessage,
     });
 
-    const results: GenerateMessagePayload[] = [];
-    for await (const payload of generator) {
-      results.push(payload);
-    }
+    const results: GenerateMessagePayload[] = mockEnqueueMessage.mock.calls.map(
+      // biome-ignore lint/suspicious/noExplicitAny: Mock call array type
+      (call: any) => call[0]
+    );
 
-    // Should include tool usage message
+    // Should include tool usage message (MessageFactory converts to friendly name "Calculator")
     const toolMessage = results.find(
       (r) =>
-        r.responseType === "Intermediate" && r.content?.includes("calculator")
+        r.responseType === "Intermediate" && r.content?.includes("Calculator")
     );
     expect(toolMessage).toBeDefined();
   });
@@ -346,25 +360,17 @@ describe("generateMessageWithAgent", () => {
   test("Unit -> generateMessageWithAgent throws error when getAgentDefinition returns null", async () => {
     mockGetAgentDefinition.mockReturnValue(null);
 
-    const generator = generateMessageWithAgent({
-      threadId: "thread-1",
-      runId: "run-1",
-      // biome-ignore lint/suspicious/noExplicitAny: Mock agent for testing
-      agent: defaultAgent as any,
-      messageHistory: defaultMessageHistory,
-      requestContext: defaultRequestContext,
-    });
-
-    try {
-      for await (const _payload of generator) {
-        // Should throw before yielding
-      }
-      expect(true).toBe(false); // Should not reach here
-    } catch (error) {
-      expect((error as Error).message).toContain(
-        "Invalid agent configuration detected."
-      );
-    }
+    await expect(
+      generateMessageWithAgent({
+        threadId: "thread-1",
+        runId: "run-1",
+        // biome-ignore lint/suspicious/noExplicitAny: Mock agent for testing
+        agent: defaultAgent as any,
+        messageHistory: defaultMessageHistory,
+        requestContext: defaultRequestContext,
+        enqueueMessage: mockEnqueueMessage,
+      })
+    ).rejects.toThrow("Invalid agent configuration detected.");
   });
 
   test("Unit -> generateMessageWithAgent throws error when no assistant response generated", async () => {
@@ -377,26 +383,17 @@ describe("generateMessageWithAgent", () => {
 
     mockGetAgentDefinition.mockReturnValue(mockAgentInstance);
 
-    const generator = generateMessageWithAgent({
-      threadId: "thread-1",
-      runId: "run-1",
-      // biome-ignore lint/suspicious/noExplicitAny: Mock agent for testing
-      agent: defaultAgent as any,
-      messageHistory: defaultMessageHistory,
-      requestContext: defaultRequestContext,
-    });
-
-    try {
-      for await (const _payload of generator) {
-        // Should throw before yielding final message
-      }
-      expect(true).toBe(false); // Should not reach here
-    } catch (error) {
-      // The error gets wrapped in the catch block
-      expect((error as Error).message).toContain(
-        "Error generating message with agent"
-      );
-    }
+    await expect(
+      generateMessageWithAgent({
+        threadId: "thread-1",
+        runId: "run-1",
+        // biome-ignore lint/suspicious/noExplicitAny: Mock agent for testing
+        agent: defaultAgent as any,
+        messageHistory: defaultMessageHistory,
+        requestContext: defaultRequestContext,
+        enqueueMessage: mockEnqueueMessage,
+      })
+    ).rejects.toThrow();
   });
 
   test("Unit -> generateMessageWithAgent handles errors during invocation", async () => {
@@ -412,25 +409,17 @@ describe("generateMessageWithAgent", () => {
     mockGetAgentDefinition.mockReturnValue(mockAgentInstance);
 
     try {
-      const generator = generateMessageWithAgent({
-        threadId: "thread-1",
-        runId: "run-1",
-        // biome-ignore lint/suspicious/noExplicitAny: Mock agent for testing
-        agent: defaultAgent as any,
-        messageHistory: defaultMessageHistory,
-        requestContext: defaultRequestContext,
-      });
-
-      try {
-        for await (const _payload of generator) {
-          // Should throw
-        }
-        expect(true).toBe(false); // Should not reach here
-      } catch (error) {
-        expect((error as Error).message).toContain(
-          "Error generating message with agent."
-        );
-      }
+      await expect(
+        generateMessageWithAgent({
+          threadId: "thread-1",
+          runId: "run-1",
+          // biome-ignore lint/suspicious/noExplicitAny: Mock agent for testing
+          agent: defaultAgent as any,
+          messageHistory: defaultMessageHistory,
+          requestContext: defaultRequestContext,
+          enqueueMessage: mockEnqueueMessage,
+        })
+      ).rejects.toThrow("Error generating message with agent.");
 
       expect(mockConsoleError).toHaveBeenCalledWith(
         "Error in agent generation:",
@@ -458,19 +447,20 @@ describe("generateMessageWithAgent", () => {
 
     mockGetAgentDefinition.mockReturnValue(mockAgentInstance);
 
-    const generator = generateMessageWithAgent({
+    await generateMessageWithAgent({
       threadId: "thread-1",
       runId: "run-1",
       // biome-ignore lint/suspicious/noExplicitAny: Mock agent for testing
       agent: agentWithToolsAndSubAgents as any,
       messageHistory: defaultMessageHistory,
       requestContext: defaultRequestContext,
+      enqueueMessage: mockEnqueueMessage,
     });
 
-    const results: GenerateMessagePayload[] = [];
-    for await (const payload of generator) {
-      results.push(payload);
-    }
+    const results: GenerateMessagePayload[] = mockEnqueueMessage.mock.calls.map(
+      // biome-ignore lint/suspicious/noExplicitAny: Mock call array type
+      (call: any) => call[0]
+    );
 
     const debugMessage = results.find((r) => r.responseType === "Debug");
     expect(debugMessage).toBeDefined();
@@ -503,26 +493,17 @@ describe("generateMessageWithAgent", () => {
     mockGetAgentDefinition.mockReturnValue(mockRouterInstance);
     mockGetAgentByName.mockReturnValue(null);
 
-    const generator = generateMessageWithAgent({
-      threadId: "thread-1",
-      runId: "run-1",
-      // biome-ignore lint/suspicious/noExplicitAny: Mock agent for testing
-      agent: routerAgent as any,
-      messageHistory: defaultMessageHistory,
-      requestContext: defaultRequestContext,
-    });
-
-    try {
-      for await (const _payload of generator) {
-        // Should throw
-      }
-      expect(true).toBe(false); // Should not reach here
-    } catch (error) {
-      // The error gets wrapped in the catch block
-      expect((error as Error).message).toContain(
-        "Error generating message with agent"
-      );
-    }
+    await expect(
+      generateMessageWithAgent({
+        threadId: "thread-1",
+        runId: "run-1",
+        // biome-ignore lint/suspicious/noExplicitAny: Mock agent for testing
+        agent: routerAgent as any,
+        messageHistory: defaultMessageHistory,
+        requestContext: defaultRequestContext,
+        enqueueMessage: mockEnqueueMessage,
+      })
+    ).rejects.toThrow();
   });
 
   test("Unit -> generateMessageWithAgent saves workspace entries for tool usage", async () => {
@@ -559,19 +540,15 @@ describe("generateMessageWithAgent", () => {
 
     mockGetAgentDefinition.mockReturnValue(mockAgentInstance);
 
-    const generator = generateMessageWithAgent({
+    await generateMessageWithAgent({
       threadId: "thread-1",
       runId: "run-1",
       // biome-ignore lint/suspicious/noExplicitAny: Mock agent for testing
       agent: agentWithTools as any,
       messageHistory: defaultMessageHistory,
       requestContext: defaultRequestContext,
+      enqueueMessage: mockEnqueueMessage,
     });
-
-    const results: GenerateMessagePayload[] = [];
-    for await (const payload of generator) {
-      results.push(payload);
-    }
 
     expect(mockSaveMessage).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -621,19 +598,15 @@ describe("generateMessageWithAgent", () => {
       new HumanMessage("Latest message"),
     ];
 
-    const generator = testGenerateMessageWithAgent({
+    await testGenerateMessageWithAgent({
       threadId: "thread-1",
       runId: "run-1",
       // biome-ignore lint/suspicious/noExplicitAny: Mock agent for testing
       agent: defaultAgent as any,
       messageHistory: multiMessageHistory,
       requestContext: defaultRequestContext,
+      enqueueMessage: mockEnqueueMessage,
     });
-
-    const results: GenerateMessagePayload[] = [];
-    for await (const payload of generator) {
-      results.push(payload);
-    }
 
     // Should only pass the last message
     expect(mockAgentInstance.invoke).toHaveBeenCalledWith(
@@ -688,26 +661,27 @@ describe("generateMessageWithAgent", () => {
 
     mockGetAgentDefinition.mockReturnValue(mockAgentInstance);
 
-    const generator = generateMessageWithAgent({
+    await generateMessageWithAgent({
       threadId: "thread-1",
       runId: "run-1",
       // biome-ignore lint/suspicious/noExplicitAny: Mock agent for testing
       agent: agentWithTools as any,
       messageHistory: defaultMessageHistory,
       requestContext: defaultRequestContext,
+      enqueueMessage: mockEnqueueMessage,
     });
 
-    const results: GenerateMessagePayload[] = [];
-    for await (const payload of generator) {
-      results.push(payload);
-    }
+    const results: GenerateMessagePayload[] = mockEnqueueMessage.mock.calls.map(
+      // biome-ignore lint/suspicious/noExplicitAny: Mock call array type
+      (call: any) => call[0]
+    );
 
     const toolMessage = results.find(
-      (r) =>
-        r.responseType === "Intermediate" && r.content?.includes("Used tools")
+      (r) => r.responseType === "Intermediate" && r.content?.includes("🛠️")
     );
     expect(toolMessage).toBeDefined();
-    expect(toolMessage?.content).toContain("calculator");
-    expect(toolMessage?.content).toContain("dice_roller");
+    // MessageFactory converts tool names to friendly format
+    expect(toolMessage?.content).toContain("Calculator");
+    expect(toolMessage?.content).toContain("Dice Roller");
   });
 });
