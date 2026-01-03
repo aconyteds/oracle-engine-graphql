@@ -1,6 +1,8 @@
 import { ToolMessage } from "@langchain/core/messages";
 import * as Sentry from "@sentry/bun";
 import { createMiddleware } from "langchain";
+import { MessageFactory } from "../messageFactory";
+import type { RequestContext } from "../types";
 
 /**
  * Middleware to handle tool input validation errors gracefully.
@@ -41,6 +43,14 @@ export const toolErrorHandlingMiddleware = createMiddleware({
             tool_name: request.toolCall.name,
           },
         });
+
+        // Yield validation error message to user if yieldMessage is available
+        const context = request.runtime.context as RequestContext | undefined;
+        context?.yieldMessage(
+          MessageFactory.error(
+            `Tool validation failed for ${request.toolCall.name}`
+          )
+        );
 
         // Return error as a ToolMessage so the LLM can see it and retry
         // Extract the validation error details from the error message

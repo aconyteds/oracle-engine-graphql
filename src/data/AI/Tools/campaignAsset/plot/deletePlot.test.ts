@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 import type { CampaignAsset } from "@prisma/client";
 import { PlotStatus, RecordType, Urgency } from "@prisma/client";
+import { RequestContext } from "../../../types";
 
 describe("deletePlot", () => {
   // Declare mock variables
@@ -14,6 +15,13 @@ describe("deletePlot", () => {
   const defaultUserId = "user-456";
   const defaultThreadId = "thread-789";
   const defaultRunId = "run-abc";
+  const defaultContext: RequestContext = {
+    userId: defaultUserId,
+    campaignId: defaultCampaignId,
+    threadId: defaultThreadId,
+    runId: defaultRunId,
+    yieldMessage: () => {},
+  };
   const defaultPlotId = "plot-001";
 
   const defaultExistingAsset: CampaignAsset = {
@@ -91,12 +99,7 @@ describe("deletePlot", () => {
     const result = await deletePlot(
       { plotId: defaultPlotId },
       {
-        context: {
-          userId: defaultUserId,
-          campaignId: defaultCampaignId,
-          threadId: defaultThreadId,
-          runId: defaultRunId,
-        },
+        context: defaultContext,
       }
     );
 
@@ -121,12 +124,7 @@ describe("deletePlot", () => {
     await deletePlot(
       { plotId: defaultPlotId },
       {
-        context: {
-          userId: defaultUserId,
-          campaignId: defaultCampaignId,
-          threadId: defaultThreadId,
-          runId: defaultRunId,
-        },
+        context: defaultContext,
       }
     );
 
@@ -143,12 +141,7 @@ describe("deletePlot", () => {
     const result = await deletePlot(
       { plotId: "non-existent-id" },
       {
-        context: {
-          userId: defaultUserId,
-          campaignId: defaultCampaignId,
-          threadId: defaultThreadId,
-          runId: defaultRunId,
-        },
+        context: defaultContext,
       }
     );
 
@@ -170,10 +163,8 @@ describe("deletePlot", () => {
         { plotId: defaultPlotId },
         {
           context: {
+            ...defaultContext,
             userId: "wrong-user",
-            campaignId: defaultCampaignId,
-            threadId: defaultThreadId,
-            runId: defaultRunId,
           },
         }
       );
@@ -193,12 +184,7 @@ describe("deletePlot", () => {
     const result = await deletePlot(
       { plotId: defaultPlotId },
       {
-        context: {
-          userId: defaultUserId,
-          campaignId: defaultCampaignId,
-          threadId: defaultThreadId,
-          runId: defaultRunId,
-        },
+        context: defaultContext,
       }
     );
 
@@ -218,12 +204,7 @@ describe("deletePlot", () => {
       const result = await deletePlot(
         { plotId: defaultPlotId },
         {
-          context: {
-            userId: defaultUserId,
-            campaignId: defaultCampaignId,
-            threadId: defaultThreadId,
-            runId: defaultRunId,
-          },
+          context: defaultContext,
         }
       );
 
@@ -242,12 +223,7 @@ describe("deletePlot", () => {
     const result = await deletePlot(
       { plotId: defaultPlotId },
       {
-        context: {
-          userId: defaultUserId,
-          campaignId: defaultCampaignId,
-          threadId: defaultThreadId,
-          runId: defaultRunId,
-        },
+        context: defaultContext,
       }
     );
 

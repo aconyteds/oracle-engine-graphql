@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 import type { CampaignAsset } from "@prisma/client";
 import { RecordType } from "@prisma/client";
+import { RequestContext } from "../../../types";
 
 describe("deleteNPC", () => {
   // Declare mock variables
@@ -15,6 +16,13 @@ describe("deleteNPC", () => {
   const defaultThreadId = "thread-789";
   const defaultRunId = "run-abc";
   const defaultNPCId = "npc-001";
+  let defaultContext: RequestContext = {
+    userId: defaultUserId,
+    campaignId: defaultCampaignId,
+    threadId: defaultThreadId,
+    runId: defaultRunId,
+    yieldMessage: () => {},
+  };
 
   const defaultExistingAsset: CampaignAsset = {
     id: defaultNPCId,
@@ -83,6 +91,13 @@ describe("deleteNPC", () => {
     mockVerifyCampaignAssetOwnership.mockResolvedValue(undefined);
     mockGetCampaignAssetById.mockResolvedValue(defaultExistingAsset);
     mockDeleteCampaignAsset.mockResolvedValue({ success: true });
+    defaultContext = {
+      userId: defaultUserId,
+      campaignId: defaultCampaignId,
+      threadId: defaultThreadId,
+      runId: defaultRunId,
+      yieldMessage: () => {},
+    };
   });
 
   afterEach(() => {
@@ -93,12 +108,7 @@ describe("deleteNPC", () => {
     const result = await deleteNPC(
       { npcId: defaultNPCId },
       {
-        context: {
-          userId: defaultUserId,
-          campaignId: defaultCampaignId,
-          threadId: defaultThreadId,
-          runId: defaultRunId,
-        },
+        context: defaultContext,
       }
     );
 
@@ -123,12 +133,7 @@ describe("deleteNPC", () => {
     await deleteNPC(
       { npcId: defaultNPCId },
       {
-        context: {
-          userId: defaultUserId,
-          campaignId: defaultCampaignId,
-          threadId: defaultThreadId,
-          runId: defaultRunId,
-        },
+        context: defaultContext,
       }
     );
 
@@ -145,12 +150,7 @@ describe("deleteNPC", () => {
     const result = await deleteNPC(
       { npcId: "non-existent-id" },
       {
-        context: {
-          userId: defaultUserId,
-          campaignId: defaultCampaignId,
-          threadId: defaultThreadId,
-          runId: defaultRunId,
-        },
+        context: defaultContext,
       }
     );
 
@@ -172,10 +172,8 @@ describe("deleteNPC", () => {
         { npcId: defaultNPCId },
         {
           context: {
+            ...defaultContext,
             userId: "wrong-user",
-            campaignId: defaultCampaignId,
-            threadId: defaultThreadId,
-            runId: defaultRunId,
           },
         }
       );
@@ -195,12 +193,7 @@ describe("deleteNPC", () => {
     const result = await deleteNPC(
       { npcId: defaultNPCId },
       {
-        context: {
-          userId: defaultUserId,
-          campaignId: defaultCampaignId,
-          threadId: defaultThreadId,
-          runId: defaultRunId,
-        },
+        context: defaultContext,
       }
     );
 
@@ -220,12 +213,7 @@ describe("deleteNPC", () => {
       const result = await deleteNPC(
         { npcId: defaultNPCId },
         {
-          context: {
-            userId: defaultUserId,
-            campaignId: defaultCampaignId,
-            threadId: defaultThreadId,
-            runId: defaultRunId,
-          },
+          context: defaultContext,
         }
       );
 
@@ -244,12 +232,7 @@ describe("deleteNPC", () => {
     const result = await deleteNPC(
       { npcId: defaultNPCId },
       {
-        context: {
-          userId: defaultUserId,
-          campaignId: defaultCampaignId,
-          threadId: defaultThreadId,
-          runId: defaultRunId,
-        },
+        context: defaultContext,
       }
     );
 

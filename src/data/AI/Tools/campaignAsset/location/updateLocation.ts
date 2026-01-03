@@ -8,6 +8,7 @@ import {
   verifyCampaignAssetOwnership,
 } from "../../../../MongoDB";
 import { locationDataSchema } from "../../../../MongoDB/campaignAsset/models";
+import { MessageFactory } from "../../../messageFactory";
 import type { RequestContext, ToolConfig } from "../../../types";
 
 const updateLocationSchema = z.object({
@@ -41,7 +42,7 @@ export async function updateLocation(
 ): Promise<string> {
   const input = updateLocationSchema.parse(rawInput);
   const context = config.context as RequestContext;
-
+  const { yieldMessage } = context;
   try {
     await verifyCampaignAssetOwnership(input.locationId, context.userId);
 
@@ -54,6 +55,9 @@ export async function updateLocation(
       return `<error>Location with ID "${input.locationId}" not found or is not a location.</error>`;
     }
 
+    yieldMessage(
+      MessageFactory.progress(`Updating location "${existingAsset.name}"...`)
+    );
     const asset = await updateCampaignAsset({
       assetId: input.locationId,
       recordType: RecordType.Location,
@@ -65,11 +69,14 @@ export async function updateLocation(
       locationData: input.locationData,
     });
 
+    yieldMessage(MessageFactory.assetUpdated("Location", asset.id, asset.name));
+
     const assetDetails = await stringifyCampaignAsset(asset);
     return `<success>Location updated successfully!</success><location id="${asset.id}" name="${asset.name}">${assetDetails}</location>`;
   } catch (error) {
     console.error("Error in updateLocation tool:", error);
 
+    yieldMessage(MessageFactory.error("Failed to update location"));
     if (error instanceof Error && error.message.includes("not authorized")) {
       return "<error>You are not authorized to update this location.</error>";
     }

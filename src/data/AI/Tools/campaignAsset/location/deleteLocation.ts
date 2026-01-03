@@ -6,6 +6,7 @@ import {
   getCampaignAssetById,
   verifyCampaignAssetOwnership,
 } from "../../../../MongoDB";
+import { MessageFactory } from "../../../messageFactory";
 import type { RequestContext, ToolConfig } from "../../../types";
 
 const deleteLocationSchema = z.object({
@@ -22,6 +23,7 @@ export async function deleteLocation(
 ): Promise<string> {
   const input = deleteLocationSchema.parse(rawInput);
   const context = config.context as RequestContext;
+  const { yieldMessage } = context;
 
   try {
     await verifyCampaignAssetOwnership(input.locationId, context.userId);
@@ -35,17 +37,25 @@ export async function deleteLocation(
       return `<error>Location with ID "${input.locationId}" not found or is not a location.</error>`;
     }
 
+    yieldMessage(
+      MessageFactory.progress(`Deleting location "${existingAsset.name}"...`)
+    );
+
     // HITL middleware will intercept if allowEdits: false
     const result = await deleteCampaignAsset({
       assetId: input.locationId,
     });
 
     if (result.success) {
+      yieldMessage(MessageFactory.assetDeleted("Location", existingAsset.name));
+
       return `<success>Location "${existingAsset.name}" (ID: ${input.locationId}) permanently deleted.</success>`;
     }
     return "<error>Failed to delete location.</error>";
   } catch (error) {
     console.error("Error in deleteLocation tool:", error);
+
+    yieldMessage(MessageFactory.error("Failed to delete location"));
 
     if (error instanceof Error && error.message.includes("not authorized")) {
       return "<error>You are not authorized to delete this location.</error>";

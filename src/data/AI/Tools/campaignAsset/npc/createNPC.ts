@@ -5,6 +5,7 @@ import {
   createCampaignAsset,
   stringifyCampaignAsset,
 } from "../../../../MongoDB";
+import { MessageFactory } from "../../../messageFactory";
 import type { RequestContext, ToolConfig } from "../../../types";
 
 const createNPCSchema = z.object({
@@ -71,8 +72,11 @@ export async function createNPC(
 ): Promise<string> {
   const input = createNPCSchema.parse(rawInput);
   const context = config.context as RequestContext;
+  const { yieldMessage } = context;
 
   try {
+    yieldMessage(MessageFactory.progress(`Creating NPC "${input.name}"...`));
+
     const asset = await createCampaignAsset({
       campaignId: context.campaignId,
       recordType: RecordType.NPC,
@@ -90,10 +94,15 @@ export async function createNPC(
       },
     });
 
+    yieldMessage(MessageFactory.assetCreated("NPC", asset.id, asset.name));
+
     const assetDetails = await stringifyCampaignAsset(asset);
     return `<success>NPC created successfully!</success><npc id="${asset.id}" name="${asset.name}">${assetDetails}</npc>`;
   } catch (error) {
     console.error("Error in createNPC tool:", error);
+
+    yieldMessage(MessageFactory.error("Failed to create NPC"));
+
     return "<error>Failed to create NPC. Please try again.</error>";
   }
 }

@@ -8,6 +8,7 @@ import type {
 import type { ClientOptions } from "@langchain/openai";
 import { ChatOpenAI } from "@langchain/openai";
 import type { ToolCall as LangChainToolCall } from "langchain";
+import type { GenerateMessagePayload } from "../../generated/graphql";
 
 export enum RouterType {
   None = "none",
@@ -103,6 +104,13 @@ export interface CampaignMetadata {
   ruleset: string;
 }
 
+/**
+ * Function type for yielding progress messages from tools.
+ * Tools can call this to send real-time updates to the UI.
+ * Synchronously enqueues messages to the queue for real-time streaming.
+ */
+export type YieldMessageFunction = (payload: GenerateMessagePayload) => void;
+
 // Request context for passing deterministic values to tools
 export interface RequestContext {
   userId: string; // Database user ID
@@ -111,6 +119,7 @@ export interface RequestContext {
   runId: string; // LangSmith trace ID
   campaignMetadata?: CampaignMetadata; // Optional campaign context for enrichment
   allowEdits?: boolean; // Controls human-in-the-loop for destructive operations (default: true)
+  yieldMessage: YieldMessageFunction; // Optional function for yielding progress messages to the UI
 }
 
 // Generic tool configuration type for tool function signatures

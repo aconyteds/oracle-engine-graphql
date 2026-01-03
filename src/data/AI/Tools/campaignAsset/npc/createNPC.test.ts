@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 import type { CampaignAsset } from "@prisma/client";
 import { RecordType } from "@prisma/client";
+import { RequestContext } from "../../../types";
 
 describe("createNPC", () => {
   // Declare mock variables
@@ -13,6 +14,13 @@ describe("createNPC", () => {
   const defaultUserId = "user-456";
   const defaultThreadId = "thread-789";
   const defaultRunId = "run-abc";
+  let defaultContext: RequestContext = {
+    userId: defaultUserId,
+    campaignId: defaultCampaignId,
+    threadId: defaultThreadId,
+    runId: defaultRunId,
+    yieldMessage: () => {},
+  };
 
   const defaultNPCInput = {
     name: "Elara Moonwhisper",
@@ -99,6 +107,13 @@ describe("createNPC", () => {
     // Configure default behavior
     mockCreateCampaignAsset.mockResolvedValue(defaultCreatedAsset);
     mockStringifyCampaignAsset.mockResolvedValue(defaultStringifiedAsset);
+    defaultContext = {
+      userId: defaultUserId,
+      campaignId: defaultCampaignId,
+      threadId: defaultThreadId,
+      runId: defaultRunId,
+      yieldMessage: () => {},
+    };
   });
 
   afterEach(() => {
@@ -107,12 +122,7 @@ describe("createNPC", () => {
 
   test("Unit -> createNPC creates NPC with all fields", async () => {
     const result = await createNPC(defaultNPCInput, {
-      context: {
-        userId: defaultUserId,
-        campaignId: defaultCampaignId,
-        threadId: defaultThreadId,
-        runId: defaultRunId,
-      },
+      context: defaultContext,
     });
 
     expect(mockCreateCampaignAsset).toHaveBeenCalledWith({
@@ -151,12 +161,7 @@ describe("createNPC", () => {
     };
 
     await createNPC(minimalInput, {
-      context: {
-        userId: defaultUserId,
-        campaignId: defaultCampaignId,
-        threadId: defaultThreadId,
-        runId: defaultRunId,
-      },
+      context: defaultContext,
     });
 
     expect(mockCreateCampaignAsset).toHaveBeenCalledWith({
@@ -186,12 +191,7 @@ describe("createNPC", () => {
 
     try {
       const result = await createNPC(defaultNPCInput, {
-        context: {
-          userId: defaultUserId,
-          campaignId: defaultCampaignId,
-          threadId: defaultThreadId,
-          runId: defaultRunId,
-        },
+        context: defaultContext,
       });
 
       expect(result).toContain("<error>");
@@ -213,12 +213,7 @@ describe("createNPC", () => {
 
     await expect(
       createNPC(invalidInput, {
-        context: {
-          userId: defaultUserId,
-          campaignId: defaultCampaignId,
-          threadId: defaultThreadId,
-          runId: defaultRunId,
-        },
+        context: defaultContext,
       })
     ).rejects.toThrow();
   });
@@ -231,12 +226,7 @@ describe("createNPC", () => {
 
     await expect(
       createNPC(invalidInput, {
-        context: {
-          userId: defaultUserId,
-          campaignId: defaultCampaignId,
-          threadId: defaultThreadId,
-          runId: defaultRunId,
-        },
+        context: defaultContext,
       })
     ).rejects.toThrow();
   });
@@ -249,12 +239,7 @@ describe("createNPC", () => {
 
     await expect(
       createNPC(invalidInput, {
-        context: {
-          userId: defaultUserId,
-          campaignId: defaultCampaignId,
-          threadId: defaultThreadId,
-          runId: defaultRunId,
-        },
+        context: defaultContext,
       })
     ).rejects.toThrow();
   });
@@ -267,12 +252,7 @@ describe("createNPC", () => {
 
     await expect(
       createNPC(invalidInput, {
-        context: {
-          userId: defaultUserId,
-          campaignId: defaultCampaignId,
-          threadId: defaultThreadId,
-          runId: defaultRunId,
-        },
+        context: defaultContext,
       })
     ).rejects.toThrow();
   });
@@ -285,12 +265,7 @@ describe("createNPC", () => {
 
     await expect(
       createNPC(invalidInput, {
-        context: {
-          userId: defaultUserId,
-          campaignId: defaultCampaignId,
-          threadId: defaultThreadId,
-          runId: defaultRunId,
-        },
+        context: defaultContext,
       })
     ).rejects.toThrow();
   });
@@ -302,12 +277,7 @@ describe("createNPC", () => {
     };
 
     const result = await createNPC(validInput, {
-      context: {
-        userId: defaultUserId,
-        campaignId: defaultCampaignId,
-        threadId: defaultThreadId,
-        runId: defaultRunId,
-      },
+      context: defaultContext,
     });
 
     expect(result).toContain("<success>");
@@ -315,12 +285,7 @@ describe("createNPC", () => {
 
   test("Unit -> createNPC returns XML formatted response", async () => {
     const result = await createNPC(defaultNPCInput, {
-      context: {
-        userId: defaultUserId,
-        campaignId: defaultCampaignId,
-        threadId: defaultThreadId,
-        runId: defaultRunId,
-      },
+      context: defaultContext,
     });
 
     expect(result).toMatch(/<success>.*<\/success>/s);
