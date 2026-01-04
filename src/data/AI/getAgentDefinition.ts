@@ -61,7 +61,7 @@ export async function getAgentDefinition(
 
   // Start with agent's own tools, use a Set to avoid duplicates
   const tools = new Set(agent.availableTools ? [...agent.availableTools] : []);
-  // All agents get the yield progress tool becuase they need to report progress to prevent timeouts
+  // All agents get the yield progress tool because they need to report progress to prevent timeouts
   tools.add(yieldProgressTool);
 
   if (agent.routerType === RouterType.Controller) {

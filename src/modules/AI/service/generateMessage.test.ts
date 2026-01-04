@@ -597,7 +597,7 @@ describe("Unit -> generateMessage", () => {
         // Should not yield any results
       }
     }).toThrow(
-      "Message generation timed out due to inactivity from the AI model. No activity detected for 10 seconds."
+      "Message generation timed out due to inactivity from the AI model. The allotted amount of time has passed without receiving a response."
     );
   });
 

@@ -134,20 +134,17 @@ export async function* generateMessage(
     })
     .catch((error) => {
       messageQueue.error();
-      Sentry.captureException(
-        "Uncaught Exception while generating a response with the AI",
-        {
-          extra: {
-            threadId,
-            runId,
-            agentName: currAgent.name,
-            requestContext,
-            messageHistoryLength: messageHistory.length,
-            reminder:
-              "This error occurred during agent message generation streaming. This is likely a problem with the agent's internal processing. Use the runId to find the trace in LangSmith and investigate the chain to identify the root cause.",
-          },
-        }
-      );
+      Sentry.captureException(error, {
+        extra: {
+          threadId,
+          runId,
+          agentName: currAgent.name,
+          requestContext,
+          messageHistoryLength: messageHistory.length,
+          reminder:
+            "This error occurred during agent message generation streaming. This is likely a problem with the agent's internal processing. Use the runId to find the trace in LangSmith and investigate the chain to identify the root cause.",
+        },
+      });
       throw ServerError("Content Creation Failed", error);
     });
 
@@ -158,7 +155,7 @@ export async function* generateMessage(
       const errorReason = messageQueue.getErrorReason();
       if (errorReason === "timeout") {
         throw ServerError(
-          "Message generation timed out due to inactivity from the AI model. No activity detected for 10 seconds."
+          "Message generation timed out due to inactivity from the AI model. The allotted amount of time has passed without receiving a response."
         );
       }
       // For "agent_error", break and let the agentPromise.catch handle it
