@@ -132,3 +132,54 @@ export type ToolConfig =
         toolCall?: LangChainToolCall;
         context?: any;
       });
+
+/**
+ * Content block types from LangChain's message content
+ * These mirror the ContentBlock types from @langchain/core/messages
+ * Used when processing messages from OpenAI's Responses API with reasoning models
+ */
+export interface TextContentBlock {
+  type: "text";
+  text: string;
+  index?: number;
+  [key: string]: unknown; // Allow additional properties for LangChain compatibility
+}
+
+export interface ReasoningContentBlock {
+  type: "reasoning";
+  reasoning: string;
+  index?: number;
+  [key: string]: unknown; // Allow additional properties for LangChain compatibility
+}
+
+export type MessageContentBlock = TextContentBlock | ReasoningContentBlock;
+
+/**
+ * Message content can be either a string or array of content blocks
+ */
+export type MessageContent = string | MessageContentBlock[];
+
+/**
+ * AI Message with content blocks and tool calls
+ * Used for processing stream updates
+ */
+export interface AIMessageWithBlocks {
+  type: string;
+  contentBlocks?: MessageContentBlock[];
+  tool_calls?: ToolCall[];
+}
+
+/**
+ * Stream chunk content structure from LangChain
+ */
+export interface StreamChunkContent {
+  messages?: AIMessageWithBlocks[];
+  structuredResponse?: unknown; // Can be HandoffRoutingResponse or other structured responses
+}
+
+/**
+ * Stream chunk from LangChain agent
+ * Using Record<string, unknown> to accept the complex LangChain chunk structure
+ * which may include additional state management properties
+ */
+export type StreamChunk = Record<string, unknown>;

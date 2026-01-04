@@ -1,14 +1,25 @@
 import { afterAll, beforeEach, describe, expect, mock, test } from "bun:test";
+import type { RequestContext } from "../../types";
 import { routeToAgent } from "./routeToAgent";
 
 describe("routeToAgent", () => {
   const mockConsoleLog = mock();
   const originalConsoleLog = console.log;
+  let mockYieldMessage: ReturnType<typeof mock>;
+
+  const defaultRequestContext: RequestContext = {
+    userId: "user-1",
+    campaignId: "campaign-1",
+    threadId: "thread-1",
+    runId: "run-1",
+    yieldMessage: mock(),
+  };
 
   beforeEach(() => {
     mock.restore();
     console.log = mockConsoleLog;
     mockConsoleLog.mockClear();
+    mockYieldMessage = mock();
   });
 
   afterAll(() => {
@@ -27,7 +38,14 @@ describe("routeToAgent", () => {
       contextFactors: [],
     };
 
-    const result = await routeToAgent.call(input);
+    const config = {
+      context: {
+        ...defaultRequestContext,
+        yieldMessage: mockYieldMessage,
+      },
+    };
+
+    const result = await routeToAgent.invoke(input, config);
     const parsed = JSON.parse(result) as {
       type: string;
       targetAgent: string;
@@ -55,7 +73,14 @@ describe("routeToAgent", () => {
       contextFactors: [],
     };
 
-    const result = await routeToAgent.call(input);
+    const config = {
+      context: {
+        ...defaultRequestContext,
+        yieldMessage: mockYieldMessage,
+      },
+    };
+
+    const result = await routeToAgent.invoke(input, config);
     const parsed = JSON.parse(result) as {
       fallbackAgent: string;
     };
@@ -73,7 +98,14 @@ describe("routeToAgent", () => {
       contextFactors: [],
     };
 
-    const result = await routeToAgent.call(input);
+    const config = {
+      context: {
+        ...defaultRequestContext,
+        yieldMessage: mockYieldMessage,
+      },
+    };
+
+    const result = await routeToAgent.invoke(input, config);
     const parsed = JSON.parse(result) as {
       targetAgent: string;
       confidence: number;
@@ -93,7 +125,14 @@ describe("routeToAgent", () => {
       contextFactors: ["previous_character_discussion", "topic_shift"],
     };
 
-    const result = await routeToAgent.call(input);
+    const config = {
+      context: {
+        ...defaultRequestContext,
+        yieldMessage: mockYieldMessage,
+      },
+    };
+
+    const result = await routeToAgent.invoke(input, config);
     const parsed = JSON.parse(result) as {
       contextFactors: string[];
     };
@@ -114,7 +153,14 @@ describe("routeToAgent", () => {
       contextFactors: [],
     };
 
-    const result = await routeToAgent.call(input);
+    const config = {
+      context: {
+        ...defaultRequestContext,
+        yieldMessage: mockYieldMessage,
+      },
+    };
+
+    const result = await routeToAgent.invoke(input, config);
     const parsed = JSON.parse(result) as {
       fallbackAgent: string;
       contextFactors: string[];

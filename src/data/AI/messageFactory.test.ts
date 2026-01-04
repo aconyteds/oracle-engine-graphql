@@ -149,4 +149,20 @@ describe("MessageFactory", () => {
       content: "❌ Something went wrong",
     });
   });
+
+  test("Unit -> MessageFactory.reasoning creates Reasoning response type", () => {
+    const result = MessageFactory.reasoning("Analyzing user request");
+
+    expect(result.responseType).toBe("Reasoning");
+    expect(result.content).toBe("🧠 Analyzing user request");
+  });
+
+  test("Unit -> MessageFactory.reasoning formats content with emoji prefix", () => {
+    const result = MessageFactory.reasoning("Calling tools: create_npc");
+
+    expect(result).toEqual({
+      responseType: "Reasoning",
+      content: "🧠 Calling tools: create_npc",
+    });
+  });
 });

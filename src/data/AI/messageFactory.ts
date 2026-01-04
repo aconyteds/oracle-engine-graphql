@@ -101,6 +101,13 @@ export class MessageFactory {
     };
   }
 
+  static reasoning(content: string): GenerateMessagePayload {
+    return {
+      responseType: "Reasoning",
+      content: `🧠 ${content}`,
+    };
+  }
+
   // Helper methods
 
   private static friendlyToolName(toolName: string): string {

@@ -9,13 +9,37 @@ import { getAgentByName } from "./agentList";
 import { PrismaCheckpointSaver } from "./Checkpointers";
 import { getAgentDefinition } from "./getAgentDefinition";
 import { MessageFactory } from "./messageFactory";
+import { processStreamUpdate } from "./processStreamUpdate";
 import type { HandoffRoutingResponse } from "./schemas";
 import type {
   AIAgentDefinition,
+  MessageContent,
   RequestContext,
+  TextContentBlock,
   YieldMessageFunction,
 } from "./types";
 import { RouterType } from "./types";
+
+/**
+ * Agent stream chunk content structure from LangChain
+ */
+interface AgentStreamChunkContent {
+  messages: BaseMessage[];
+  structuredResponse?: HandoffRoutingResponse | null;
+}
+
+/**
+ * Agent stream chunk - the structure of each chunk from agent.stream()
+ */
+type AgentStreamChunk = Record<string, AgentStreamChunkContent>;
+
+/**
+ * Agent invocation result structure
+ */
+interface AgentInvocationResult {
+  messages: BaseMessage[];
+  structuredResponse: HandoffRoutingResponse | null;
+}
 
 export type GenerateMessageWithAgentProps = {
   threadId: string;
@@ -23,6 +47,11 @@ export type GenerateMessageWithAgentProps = {
   agent: AIAgentDefinition;
   messageHistory: BaseMessage[];
   requestContext: RequestContext;
+  /**
+   * Workspace entries accumulator - threaded through recursive handoff calls
+   * to maintain complete audit trail across all agents in the conversation
+   */
+  workspaceEntries?: MessageWorkspace[];
   enqueueMessage: (payload: GenerateMessagePayload) => void;
 };
 
@@ -38,11 +67,9 @@ export async function generateMessageWithAgent({
   messageHistory,
   requestContext,
   enqueueMessage,
+  workspaceEntries = [],
 }: GenerateMessageWithAgentProps): Promise<void> {
   const { userId, campaignId } = requestContext;
-
-  // Prepare workspace entries for debugging/auditing
-  const workspaceEntries: MessageWorkspace[] = [];
 
   // Create enqueue function for tools to call
   const yieldMessage: YieldMessageFunction = (payload) => {
@@ -78,14 +105,7 @@ export async function generateMessageWithAgent({
   const debugPayload = MessageFactory.debug(
     `🔧 Agent: ${agent.name} | Tools: ${toolCount} | Sub-agents: ${subAgentCount}`
   );
-  enqueueMessage(debugPayload);
-
-  workspaceEntries.push({
-    messageType: debugPayload.responseType,
-    content: debugPayload.content || "",
-    timestamp: new Date(),
-    elapsedTime: null,
-  });
+  yieldMessage(debugPayload);
 
   try {
     // Composite thread ID for checkpointer: userId:threadId:campaignId
@@ -112,16 +132,47 @@ export async function generateMessageWithAgent({
     }
     // If no checkpoint exists, we pass the full history (messagesToPass = messageHistory)
 
-    // Invoke agent with checkpointer and enriched context
-    const result = await agentInstance.invoke(
+    // Track final state from stream
+    let finalResult: AgentStreamChunk | null = null;
+
+    // Stream agent updates with reasoning
+    for await (const chunk of await agentInstance.stream(
       { messages: messagesToPass },
       {
         configurable: {
           thread_id: compositeThreadId,
         },
         context: enrichedContext,
+        // streamMode: "updates", // Get state updates after each step
       }
-    );
+    )) {
+      // Process updates for reasoning (non-fatal errors just warn)
+      try {
+        // Cast chunk to Record<string, unknown> for processStreamUpdate
+        await processStreamUpdate(
+          chunk as Record<string, unknown>,
+          yieldMessage
+        );
+      } catch (updateError) {
+        console.warn("Problem processing stream update:", updateError);
+        // Continue - don't let one bad update kill the stream
+      }
+
+      // Track latest state (last chunk will have final result)
+      finalResult = chunk as AgentStreamChunk;
+    }
+
+    // Extract final state from last chunk
+    const entries = Object.entries(finalResult || {});
+    const [, lastContent] = entries[0] || [null, {} as AgentStreamChunkContent];
+    const finalMessages = lastContent.messages || [];
+    const structuredResponse = lastContent.structuredResponse || null;
+
+    // Create result object that matches the old invoke() return type
+    const result: AgentInvocationResult = {
+      messages: finalMessages,
+      structuredResponse: structuredResponse,
+    };
 
     // Check if this is a router that made a handoff decision
     // This must happen BEFORE extracting final messages
@@ -131,7 +182,7 @@ export async function generateMessageWithAgent({
       );
       const targetAgentName = extractRoutingDecision(
         result.structuredResponse as HandoffRoutingResponse | null,
-        requestContext
+        enrichedContext
       );
 
       if (targetAgentName) {
@@ -139,14 +190,7 @@ export async function generateMessageWithAgent({
 
         // Router made a handoff decision - invoke target agent
         const routingPayload = MessageFactory.routing(targetAgentName);
-        enqueueMessage(routingPayload);
-
-        workspaceEntries.push({
-          messageType: "routing",
-          content: `Handed off to ${targetAgentName}`,
-          timestamp: new Date(),
-          elapsedTime: null,
-        });
+        yieldMessage(routingPayload);
 
         // Get the target agent
         const targetAgent = getAgentByName(targetAgentName);
@@ -163,6 +207,7 @@ export async function generateMessageWithAgent({
           agent: targetAgent,
           messageHistory: [],
           requestContext: enrichedContext,
+          workspaceEntries,
           enqueueMessage,
         });
         return; // Exit after handoff - don't process router's response
@@ -174,7 +219,7 @@ export async function generateMessageWithAgent({
             reminder:
               "The router indicated a handoff but did not specify a valid target agent. Check Agent sub-agents and configuration to ensure proper setup.",
             agentName: agent.name,
-            context: requestContext,
+            context: enrichedContext,
           },
         }
       );
@@ -182,7 +227,7 @@ export async function generateMessageWithAgent({
 
     // Extract the final assistant message
     const assistantMessages = result.messages.filter(
-      (msg) => msg.type === "ai"
+      (msg: BaseMessage) => msg.type === "ai"
     ) as AIMessage[];
 
     if (assistantMessages.length === 0) {
@@ -191,30 +236,20 @@ export async function generateMessageWithAgent({
 
     // Get the last assistant message
     const finalMessage = assistantMessages[assistantMessages.length - 1];
-    const finalResponse = finalMessage.content as string;
 
-    // Check for tool calls in the message history
-    const toolCallMessages = result.messages.filter(
-      (msg) => msg.type === "ai" && (msg as AIMessage).tool_calls?.length
-    ) as AIMessage[];
+    // Extract text content from message
+    // When using Responses API, content can be an array of ContentBlocks
+    const messageContent = finalMessage.content as MessageContent;
+    let finalResponse: string;
 
-    if (toolCallMessages.length > 0) {
-      // Yield intermediate status about tool usage
-      const toolNames = toolCallMessages
-        .flatMap((msg) => msg.tool_calls?.map((tc) => tc.name) || [])
-        .filter((name): name is string => !!name);
-
-      if (toolNames.length > 0) {
-        const toolUsagePayload = MessageFactory.toolUsage(toolNames);
-        enqueueMessage(toolUsagePayload);
-
-        workspaceEntries.push({
-          messageType: "tool_usage",
-          content: `Tools used: ${toolNames.join(", ")}`,
-          timestamp: new Date(),
-          elapsedTime: null,
-        });
-      }
+    if (Array.isArray(messageContent)) {
+      // Extract text from content blocks
+      finalResponse = messageContent
+        .filter((block): block is TextContentBlock => block.type === "text")
+        .map((block) => block.text)
+        .join("\n");
+    } else {
+      finalResponse = messageContent;
     }
 
     // Save the final message to DB
@@ -235,7 +270,7 @@ export async function generateMessageWithAgent({
         threadId,
         runId,
         agentName: agent.name,
-        requestContext,
+        requestContext: enrichedContext,
         messageHistoryLength: messageHistory.length,
         reminder:
           "This error occurred during agent message generation. This is likely unrelated to handoff, but instead related to the agent's internal processing. Investigate the agent configuration, tools, and invocation parameters to identify the root cause.",
@@ -252,6 +287,7 @@ function extractRoutingDecision(
   structuredResponse: HandoffRoutingResponse | null,
   context: RequestContext
 ): string | null {
+  const { yieldMessage } = context;
   if (!structuredResponse) {
     Sentry.captureMessage("No structured response for routing decision", {
       extra: {
@@ -275,6 +311,7 @@ function extractRoutingDecision(
       `(${structuredResponse.confidence} confidence)`
     );
     console.debug("Reasoning:", structuredResponse.reasoning);
+    yieldMessage(MessageFactory.reasoning(structuredResponse.reasoning));
     console.debug(
       "Intent Keywords:",
       structuredResponse.intentKeywords?.join(", ")
