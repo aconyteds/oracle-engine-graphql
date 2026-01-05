@@ -5,6 +5,7 @@ import {
   createCampaignAsset,
   stringifyCampaignAsset,
 } from "../../../../MongoDB";
+import { MessageFactory } from "../../../messageFactory";
 import type { RequestContext, ToolConfig } from "../../../types";
 
 const createLocationSchema = z.object({
@@ -77,8 +78,13 @@ export async function createLocation(
 ): Promise<string> {
   const input = createLocationSchema.parse(rawInput);
   const context = config.context as RequestContext;
+  const { yieldMessage } = context;
 
   try {
+    yieldMessage(
+      MessageFactory.progress(`Creating location "${input.name}"...`)
+    );
+
     const asset = await createCampaignAsset({
       campaignId: context.campaignId,
       recordType: RecordType.Location,
@@ -97,10 +103,13 @@ export async function createLocation(
       },
     });
 
+    yieldMessage(MessageFactory.assetCreated("Location", asset.id, asset.name));
     const assetDetails = await stringifyCampaignAsset(asset);
     return `<success>Location created successfully!</success><location id="${asset.id}" name="${asset.name}">${assetDetails}</location>`;
   } catch (error) {
     console.error("Error in createLocation tool:", error);
+
+    yieldMessage(MessageFactory.error("Failed to create location"));
     return "<error>Failed to create location. Please try again.</error>";
   }
 }

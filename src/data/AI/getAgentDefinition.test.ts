@@ -10,6 +10,8 @@ describe("getAgentDefinition", () => {
   let mockToolMonitoringMiddleware: ReturnType<typeof mock>;
   let mockToolErrorHandlingMiddleware: ReturnType<typeof mock>;
   let mockEnrichInstructions: ReturnType<typeof mock>;
+  // biome-ignore lint/suspicious/noExplicitAny: Mock tool for testing
+  let mockYieldProgressTool: any;
   let getAgentDefinition: typeof import("./getAgentDefinition").getAgentDefinition;
 
   const defaultRequestContext: RequestContext = {
@@ -73,9 +75,20 @@ describe("getAgentDefinition", () => {
       handoffRoutingResponseSchema: { parse: mock() },
     }));
 
+    // Create mock yieldProgressTool
+    mockYieldProgressTool = {
+      name: "yield_progress",
+      description: "Yield progress updates",
+      call: mock(),
+      invoke: mock(),
+      _call: mock(),
+      schema: {},
+    };
+
     mock.module("./Tools", () => ({
       toolMonitoringMiddleware: mockToolMonitoringMiddleware,
       toolErrorHandlingMiddleware: mockToolErrorHandlingMiddleware,
+      yieldProgressTool: mockYieldProgressTool,
     }));
 
     mock.module("./enrichInstructions", () => ({
@@ -109,7 +122,7 @@ describe("getAgentDefinition", () => {
         name: "test_agent",
         description: "A test agent",
         systemPrompt: "You are a test agent",
-        tools: [mockTool],
+        tools: expect.arrayContaining([mockTool, mockYieldProgressTool]),
       })
     );
     expect(result).toBe(mockAgentInstance);
@@ -167,7 +180,7 @@ describe("getAgentDefinition", () => {
     expect(callArgs.systemPrompt).toBe(enrichedMessage);
   });
 
-  test("Unit -> getAgentDefinition creates agent without tools", async () => {
+  test("Unit -> getAgentDefinition creates agent without tools but includes yieldProgressTool", async () => {
     const agentWithoutTools: AIAgentDefinition = {
       ...defaultAgent,
       availableTools: undefined,
@@ -176,7 +189,8 @@ describe("getAgentDefinition", () => {
     await getAgentDefinition(agentWithoutTools, defaultRequestContext);
 
     const callArgs = mockCreateAgent.mock.calls[0][0];
-    expect(callArgs.tools).toEqual([]);
+    // Should still have yieldProgressTool even without other tools
+    expect(callArgs.tools).toEqual([mockYieldProgressTool]);
   });
 
   test("Unit -> getAgentDefinition handles Handoff router with response format", async () => {
@@ -210,8 +224,8 @@ describe("getAgentDefinition", () => {
     await getAgentDefinition(controllerAgent, defaultRequestContext);
 
     const callArgs = mockCreateAgent.mock.calls[0][0];
-    // Should have original tools plus sub-agent tools
-    expect(callArgs.tools.length).toBeGreaterThan(1);
+    // Should have original tool + yieldProgressTool + sub-agent tool = 3 tools
+    expect(callArgs.tools.length).toBe(3);
   });
 
   test("Unit -> getAgentDefinition throws error when Controller has Handoff sub-agent", async () => {
@@ -257,9 +271,15 @@ describe("getAgentDefinition", () => {
     await getAgentDefinition(controllerAgent, defaultRequestContext);
 
     const callArgs = mockCreateAgent.mock.calls[0][0];
-    expect(callArgs.tools.length).toBe(1);
-    expect(callArgs.tools[0].name).toBe("specialized_agent");
-    expect(callArgs.tools[0].description).toBe("Handles specialized tasks");
+    // Should have yieldProgressTool + sub-agent tool = 2 tools
+    expect(callArgs.tools.length).toBe(2);
+    // Find the specialized_agent tool (not yieldProgressTool)
+    const subAgentTool = callArgs.tools.find(
+      // biome-ignore lint/suspicious/noExplicitAny: Mock tool type
+      (t: any) => t.name === "specialized_agent"
+    );
+    expect(subAgentTool).toBeDefined();
+    expect(subAgentTool.description).toBe("Handles specialized tasks");
   });
 
   test("Unit -> getAgentDefinition uses checkpointer", async () => {
@@ -299,9 +319,15 @@ describe("getAgentDefinition", () => {
     await getAgentDefinition(controllerAgent, defaultRequestContext);
 
     const callArgs = mockCreateAgent.mock.calls[0][0];
-    expect(callArgs.tools.length).toBe(2);
-    expect(callArgs.tools[0].name).toBe("sub_agent_1");
-    expect(callArgs.tools[1].name).toBe("sub_agent_2");
+    // Should have yieldProgressTool + 2 sub-agent tools = 3 tools
+    expect(callArgs.tools.length).toBe(3);
+    const toolNames = callArgs.tools.map(
+      // biome-ignore lint/suspicious/noExplicitAny: Mock tool type
+      (t: any) => t.name
+    );
+    expect(toolNames).toContain("sub_agent_1");
+    expect(toolNames).toContain("sub_agent_2");
+    expect(toolNames).toContain("yield_progress");
   });
 
   test("Unit -> getAgentDefinition handles Controller with both tools and sub-agents", async () => {
@@ -324,8 +350,8 @@ describe("getAgentDefinition", () => {
     await getAgentDefinition(controllerAgent, defaultRequestContext);
 
     const callArgs = mockCreateAgent.mock.calls[0][0];
-    // Should have original tool + sub-agent tool
-    expect(callArgs.tools.length).toBe(2);
+    // Should have original tool + yieldProgressTool + sub-agent tool = 3 tools
+    expect(callArgs.tools.length).toBe(3);
   });
 
   test("Unit -> getAgentDefinition does not set responseFormat for non-Handoff routers", async () => {
@@ -361,9 +387,10 @@ describe("getAgentDefinition", () => {
     await getAgentDefinition(regularAgent, defaultRequestContext);
 
     const callArgs = mockCreateAgent.mock.calls[0][0];
-    // Should only have the original tool, not sub-agent tools
-    expect(callArgs.tools.length).toBe(1);
-    expect(callArgs.tools[0]).toBe(mockTool);
+    // Should have original tool + yieldProgressTool = 2 tools (no sub-agent tools)
+    expect(callArgs.tools.length).toBe(2);
+    expect(callArgs.tools).toContain(mockTool);
+    expect(callArgs.tools).toContain(mockYieldProgressTool);
   });
 
   test("Unit -> getAgentDefinition passes contextSchema to createAgent", async () => {
@@ -446,5 +473,72 @@ describe("getAgentDefinition", () => {
         mockSummarizationMiddleware.mock.calls.length - 1
       ][0];
     expect(callArgs.model.promptCacheKey).toBeUndefined();
+  });
+
+  test("Unit -> getAgentDefinition always includes yieldProgressTool", async () => {
+    const agentWithNoTools: AIAgentDefinition = {
+      ...defaultAgent,
+      availableTools: [],
+    };
+
+    await getAgentDefinition(agentWithNoTools, defaultRequestContext);
+
+    const callArgs = mockCreateAgent.mock.calls[0][0];
+    expect(callArgs.tools).toContain(mockYieldProgressTool);
+  });
+
+  test("Unit -> getAgentDefinition prevents duplicate tools using Set", async () => {
+    // This test verifies that the Set prevents duplicate tools
+    const agentWithDuplicateTools: AIAgentDefinition = {
+      ...defaultAgent,
+      availableTools: [mockTool, mockTool], // Same tool twice
+    };
+
+    await getAgentDefinition(agentWithDuplicateTools, defaultRequestContext);
+
+    const callArgs = mockCreateAgent.mock.calls[0][0];
+    // Should have mockTool once + yieldProgressTool = 2 tools
+    expect(callArgs.tools.length).toBe(2);
+    expect(callArgs.tools).toContain(mockTool);
+    expect(callArgs.tools).toContain(mockYieldProgressTool);
+  });
+
+  test("Unit -> getAgentDefinition includes yieldProgressTool for Handoff routers", async () => {
+    const handoffAgent: AIAgentDefinition = {
+      ...defaultAgent,
+      routerType: RouterType.Handoff,
+      availableTools: [],
+    };
+
+    await getAgentDefinition(handoffAgent, defaultRequestContext);
+
+    const callArgs = mockCreateAgent.mock.calls[0][0];
+    expect(callArgs.tools).toContain(mockYieldProgressTool);
+    expect(callArgs.responseFormat).toBeDefined();
+  });
+
+  test("Unit -> getAgentDefinition includes yieldProgressTool for Controller routers", async () => {
+    const subAgent: AIAgentDefinition = {
+      name: "sub_agent",
+      model: new ChatOpenAI({ modelName: "gpt-4" }),
+      description: "A sub agent",
+      specialization: "sub-tasks",
+      systemMessage: "Sub agent",
+      routerType: RouterType.None,
+    };
+
+    const controllerAgent: AIAgentDefinition = {
+      ...defaultAgent,
+      routerType: RouterType.Controller,
+      availableSubAgents: [subAgent],
+      availableTools: [],
+    };
+
+    await getAgentDefinition(controllerAgent, defaultRequestContext);
+
+    const callArgs = mockCreateAgent.mock.calls[0][0];
+    expect(callArgs.tools).toContain(mockYieldProgressTool);
+    // Should have yieldProgressTool + sub-agent tool
+    expect(callArgs.tools.length).toBe(2);
   });
 });

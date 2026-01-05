@@ -5,6 +5,7 @@ import {
   createCampaignAsset,
   stringifyCampaignAsset,
 } from "../../../../MongoDB";
+import { MessageFactory } from "../../../messageFactory";
 import type { RequestContext, ToolConfig } from "../../../types";
 
 const createPlotSchema = z.object({
@@ -59,8 +60,11 @@ export async function createPlot(
 ): Promise<string> {
   const input = createPlotSchema.parse(rawInput);
   const context = config.context as RequestContext;
+  const { yieldMessage } = context;
 
   try {
+    yieldMessage(MessageFactory.progress(`Creating plot "${input.name}"...`));
+
     const asset = await createCampaignAsset({
       campaignId: context.campaignId,
       recordType: RecordType.Plot,
@@ -76,10 +80,15 @@ export async function createPlot(
       },
     });
 
+    yieldMessage(MessageFactory.assetCreated("Plot", asset.id, asset.name));
+
     const assetDetails = await stringifyCampaignAsset(asset);
     return `<success>Plot created successfully!</success><plot id="${asset.id}" name="${asset.name}">${assetDetails}</plot>`;
   } catch (error) {
     console.error("Error in createPlot tool:", error);
+
+    yieldMessage(MessageFactory.error("Failed to create plot"));
+
     return "<error>Failed to create plot. Please try again.</error>";
   }
 }

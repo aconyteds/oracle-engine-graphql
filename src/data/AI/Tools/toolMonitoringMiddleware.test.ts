@@ -5,6 +5,10 @@ describe("toolMonitoringMiddleware", () => {
     count: ReturnType<typeof mock>;
   };
   let mockSentryCaptureException: ReturnType<typeof mock>;
+  let mockMessageFactory: {
+    toolUsage: ReturnType<typeof mock>;
+  };
+  let mockYieldMessage: ReturnType<typeof mock>;
   let toolMonitoringMiddleware: typeof import("./toolMonitoringMiddleware").toolMonitoringMiddleware;
   // biome-ignore lint/suspicious/noExplicitAny: Mock function types for testing
   let wrapToolCallFn: (request: any, handler: any) => any;
@@ -15,16 +19,22 @@ describe("toolMonitoringMiddleware", () => {
     args: { expression: "2+2" },
   };
 
-  const defaultRequest = {
-    toolCall: defaultToolCall,
+  const defaultYieldPayload = {
+    responseType: "Intermediate",
+    content: "🛠️ Calculator",
+  };
+
+  let defaultRequest: {
+    toolCall: typeof defaultToolCall;
     runtime: {
       context: {
-        userId: "user-1",
-        campaignId: "campaign-1",
-        threadId: "thread-1",
-        runId: "run-1",
-      },
-    },
+        userId: string;
+        campaignId: string;
+        threadId: string;
+        runId: string;
+        yieldMessage: ReturnType<typeof mock>;
+      };
+    };
   };
 
   beforeEach(async () => {
@@ -35,6 +45,12 @@ describe("toolMonitoringMiddleware", () => {
       count: mockCountFn,
     };
     mockSentryCaptureException = mock();
+    mockYieldMessage = mock();
+
+    const mockToolUsage = mock();
+    mockMessageFactory = {
+      toolUsage: mockToolUsage,
+    };
 
     // Mock createMiddleware to capture the config
     const mockCreateMiddleware = mock((config) => {
@@ -54,8 +70,29 @@ describe("toolMonitoringMiddleware", () => {
       captureException: mockSentryCaptureException,
     }));
 
+    mock.module("../messageFactory", () => ({
+      MessageFactory: mockMessageFactory,
+    }));
+
     const module = await import("./toolMonitoringMiddleware");
     toolMonitoringMiddleware = module.toolMonitoringMiddleware;
+
+    // Configure default mock behavior
+    mockMessageFactory.toolUsage.mockReturnValue(defaultYieldPayload);
+
+    // Recreate defaultRequest with fresh mockYieldMessage
+    defaultRequest = {
+      toolCall: defaultToolCall,
+      runtime: {
+        context: {
+          userId: "user-1",
+          campaignId: "campaign-1",
+          threadId: "thread-1",
+          runId: "run-1",
+          yieldMessage: mockYieldMessage,
+        },
+      },
+    };
   });
 
   afterEach(() => {
@@ -168,7 +205,11 @@ describe("toolMonitoringMiddleware", () => {
     };
 
     const mockHandler = mock((_req) => "tool result");
-    wrapToolCallFn(requestWithPrimitiveContext, mockHandler);
+
+    // Should throw because string-context?.yieldMessage tries to call undefined as function
+    expect(() =>
+      wrapToolCallFn(requestWithPrimitiveContext, mockHandler)
+    ).toThrow();
 
     expect(mockSentryMetrics.count).toHaveBeenCalledWith("tool_invocation", 1, {
       attributes: {
@@ -270,6 +311,7 @@ describe("toolMonitoringMiddleware", () => {
         context: {
           userId: "user-1",
           campaignId: "campaign-1",
+          yieldMessage: mockYieldMessage,
           // Missing threadId and runId
         },
       },
@@ -284,5 +326,29 @@ describe("toolMonitoringMiddleware", () => {
         tool_name: "calculator",
       },
     });
+  });
+
+  test("Unit -> toolMonitoringMiddleware calls yieldMessage with tool usage when available", () => {
+    const mockHandler = mock((_req) => "tool result");
+    wrapToolCallFn(defaultRequest, mockHandler);
+
+    expect(mockMessageFactory.toolUsage).toHaveBeenCalledWith(["calculator"]);
+    expect(mockYieldMessage).toHaveBeenCalledWith(defaultYieldPayload);
+  });
+
+  test("Unit -> toolMonitoringMiddleware handles missing yieldMessage gracefully", () => {
+    const requestWithoutYield = {
+      toolCall: defaultToolCall,
+      runtime: {
+        context: null,
+      },
+    };
+
+    const mockHandler = mock((_req) => "tool result");
+    const result = wrapToolCallFn(requestWithoutYield, mockHandler);
+
+    expect(result).toBe("tool result");
+    expect(mockHandler).toHaveBeenCalledWith(requestWithoutYield);
+    // Should not throw, just skip yielding
   });
 });

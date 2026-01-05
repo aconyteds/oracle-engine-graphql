@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 import type { CampaignAsset } from "@prisma/client";
 import { PlotStatus, RecordType, Urgency } from "@prisma/client";
+import { RequestContext } from "../../../types";
 
 describe("createPlot", () => {
   let mockCreateCampaignAsset: ReturnType<typeof mock>;
@@ -11,6 +12,13 @@ describe("createPlot", () => {
   const defaultUserId = "user-456";
   const defaultThreadId = "thread-789";
   const defaultRunId = "run-abc";
+  let defaultContext: RequestContext = {
+    userId: defaultUserId,
+    campaignId: defaultCampaignId,
+    threadId: defaultThreadId,
+    runId: defaultRunId,
+    yieldMessage: () => {},
+  };
 
   const defaultPlotInput = {
     name: "The Missing Merchant Prince",
@@ -79,6 +87,13 @@ describe("createPlot", () => {
 
     mockCreateCampaignAsset.mockResolvedValue(defaultCreatedAsset);
     mockStringifyCampaignAsset.mockResolvedValue(defaultStringifiedAsset);
+    defaultContext = {
+      userId: defaultUserId,
+      campaignId: defaultCampaignId,
+      threadId: defaultThreadId,
+      runId: defaultRunId,
+      yieldMessage: () => {},
+    };
   });
 
   afterEach(() => {
@@ -87,12 +102,7 @@ describe("createPlot", () => {
 
   test("Unit -> createPlot creates plot with all fields", async () => {
     const result = await createPlot(defaultPlotInput, {
-      context: {
-        userId: defaultUserId,
-        campaignId: defaultCampaignId,
-        threadId: defaultThreadId,
-        runId: defaultRunId,
-      },
+      context: defaultContext,
     });
 
     expect(mockCreateCampaignAsset).toHaveBeenCalledWith({
@@ -125,12 +135,7 @@ describe("createPlot", () => {
     };
 
     await createPlot(minimalInput, {
-      context: {
-        userId: defaultUserId,
-        campaignId: defaultCampaignId,
-        threadId: defaultThreadId,
-        runId: defaultRunId,
-      },
+      context: defaultContext,
     });
 
     expect(mockCreateCampaignAsset).toHaveBeenCalledWith({
@@ -157,12 +162,7 @@ describe("createPlot", () => {
 
     await expect(
       createPlot(invalidInput, {
-        context: {
-          userId: defaultUserId,
-          campaignId: defaultCampaignId,
-          threadId: defaultThreadId,
-          runId: defaultRunId,
-        },
+        context: defaultContext,
       })
     ).rejects.toThrow();
   });
@@ -177,12 +177,7 @@ describe("createPlot", () => {
 
     try {
       const result = await createPlot(defaultPlotInput, {
-        context: {
-          userId: defaultUserId,
-          campaignId: defaultCampaignId,
-          threadId: defaultThreadId,
-          runId: defaultRunId,
-        },
+        context: defaultContext,
       });
 
       expect(result).toContain("<error>");

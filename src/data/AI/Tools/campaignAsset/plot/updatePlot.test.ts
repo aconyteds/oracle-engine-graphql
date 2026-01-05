@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 import type { CampaignAsset } from "@prisma/client";
 import { PlotStatus, RecordType, Urgency } from "@prisma/client";
+import { RequestContext } from "../../../types";
 
 describe("updatePlot", () => {
   let mockVerifyCampaignAssetOwnership: ReturnType<typeof mock>;
@@ -11,7 +12,16 @@ describe("updatePlot", () => {
 
   const defaultCampaignId = "campaign-123";
   const defaultUserId = "user-456";
+  const defaultThreadId = "thread-789";
+  const defaultRunId = "run-abc";
   const defaultPlotId = "plot-001";
+  let defaultContext: RequestContext = {
+    userId: defaultUserId,
+    campaignId: defaultCampaignId,
+    threadId: defaultThreadId,
+    runId: defaultRunId,
+    yieldMessage: () => {},
+  };
 
   const defaultExistingAsset: CampaignAsset = {
     id: defaultPlotId,
@@ -80,6 +90,13 @@ describe("updatePlot", () => {
     mockGetCampaignAssetById.mockResolvedValue(defaultExistingAsset);
     mockUpdateCampaignAsset.mockResolvedValue(defaultExistingAsset);
     mockStringifyCampaignAsset.mockResolvedValue("Updated plot details");
+    defaultContext = {
+      userId: defaultUserId,
+      campaignId: defaultCampaignId,
+      threadId: defaultThreadId,
+      runId: defaultRunId,
+      yieldMessage: () => {},
+    };
   });
 
   afterEach(() => {
@@ -96,12 +113,7 @@ describe("updatePlot", () => {
         },
       },
       {
-        context: {
-          userId: defaultUserId,
-          campaignId: defaultCampaignId,
-          threadId: "thread-123",
-          runId: "run-abc",
-        },
+        context: defaultContext,
       }
     );
 
@@ -124,12 +136,7 @@ describe("updatePlot", () => {
     const result = await updatePlot(
       { plotId: "non-existent", name: "Test" },
       {
-        context: {
-          userId: defaultUserId,
-          campaignId: defaultCampaignId,
-          threadId: "thread-123",
-          runId: "run-abc",
-        },
+        context: defaultContext,
       }
     );
 
@@ -151,10 +158,8 @@ describe("updatePlot", () => {
         { plotId: defaultPlotId, name: "Test" },
         {
           context: {
+            ...defaultContext,
             userId: "wrong-user",
-            campaignId: defaultCampaignId,
-            threadId: "thread-123",
-            runId: "run-abc",
           },
         }
       );

@@ -200,7 +200,7 @@ export const analyzeConversationContext = tool(
     return JSON.stringify(analysis, null, 2);
   },
   {
-    name: "analyzeConversationContext",
+    name: "analyze_conversation_context",
     description:
       "Analyze recent conversation history for context clues that influence routing decisions based on available sub-agents",
     schema: AnalyzeConversationContextSchema,

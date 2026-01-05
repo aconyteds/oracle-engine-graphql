@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 import type { CampaignAsset } from "@prisma/client";
 import { RecordType } from "@prisma/client";
+import { RequestContext } from "../../../types";
 
 describe("updateLocation", () => {
   // Declare mock variables
@@ -16,6 +17,13 @@ describe("updateLocation", () => {
   const defaultThreadId = "thread-789";
   const defaultRunId = "run-abc";
   const defaultLocationId = "asset-location-1";
+  let defaultContext: RequestContext = {
+    userId: defaultUserId,
+    campaignId: defaultCampaignId,
+    threadId: defaultThreadId,
+    runId: defaultRunId,
+    yieldMessage: () => {},
+  };
 
   const defaultExistingAsset: CampaignAsset = {
     id: defaultLocationId,
@@ -106,6 +114,13 @@ describe("updateLocation", () => {
     mockGetCampaignAssetById.mockResolvedValue(defaultExistingAsset);
     mockUpdateCampaignAsset.mockResolvedValue(defaultUpdatedAsset);
     mockStringifyCampaignAsset.mockResolvedValue(defaultStringifiedAsset);
+    defaultContext = {
+      userId: defaultUserId,
+      campaignId: defaultCampaignId,
+      threadId: defaultThreadId,
+      runId: defaultRunId,
+      yieldMessage: () => {},
+    };
   });
 
   afterEach(() => {
@@ -122,12 +137,7 @@ describe("updateLocation", () => {
         },
       },
       {
-        context: {
-          userId: defaultUserId,
-          campaignId: defaultCampaignId,
-          threadId: defaultThreadId,
-          runId: defaultRunId,
-        },
+        context: defaultContext,
       }
     );
 
@@ -165,12 +175,7 @@ describe("updateLocation", () => {
         gmSummary: "A newly renovated tavern",
       },
       {
-        context: {
-          userId: defaultUserId,
-          campaignId: defaultCampaignId,
-          threadId: defaultThreadId,
-          runId: defaultRunId,
-        },
+        context: defaultContext,
       }
     );
 
@@ -195,12 +200,7 @@ describe("updateLocation", () => {
         name: "New Name",
       },
       {
-        context: {
-          userId: defaultUserId,
-          campaignId: defaultCampaignId,
-          threadId: defaultThreadId,
-          runId: defaultRunId,
-        },
+        context: defaultContext,
       }
     );
 
@@ -225,10 +225,8 @@ describe("updateLocation", () => {
         },
         {
           context: {
+            ...defaultContext,
             userId: "unauthorized-user",
-            campaignId: defaultCampaignId,
-            threadId: defaultThreadId,
-            runId: defaultRunId,
           },
         }
       );
@@ -258,12 +256,7 @@ describe("updateLocation", () => {
           name: "New Name",
         },
         {
-          context: {
-            userId: defaultUserId,
-            campaignId: defaultCampaignId,
-            threadId: defaultThreadId,
-            runId: defaultRunId,
-          },
+          context: defaultContext,
         }
       );
 
@@ -289,12 +282,7 @@ describe("updateLocation", () => {
           name: "New Name",
         },
         {
-          context: {
-            userId: defaultUserId,
-            campaignId: defaultCampaignId,
-            threadId: defaultThreadId,
-            runId: defaultRunId,
-          },
+          context: defaultContext,
         }
       );
 
@@ -316,12 +304,7 @@ describe("updateLocation", () => {
         name: "New Name",
       },
       {
-        context: {
-          userId: defaultUserId,
-          campaignId: defaultCampaignId,
-          threadId: defaultThreadId,
-          runId: defaultRunId,
-        },
+        context: defaultContext,
       }
     );
 

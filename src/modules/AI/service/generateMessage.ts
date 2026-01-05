@@ -1,12 +1,15 @@
+import * as Sentry from "@sentry/bun";
 import { randomUUID } from "crypto";
 import { AIMessage, BaseMessage, HumanMessage } from "langchain";
 import { generateMessageWithAgent } from "../../../data/AI";
 import { defaultRouter } from "../../../data/AI/Agents";
+import { MessageQueue } from "../../../data/AI/MessageQueue";
 import type { CampaignMetadata, RequestContext } from "../../../data/AI/types";
 import { DBClient } from "../../../data/MongoDB";
 import type { GenerateMessagePayload } from "../../../generated/graphql";
 import {
   NotFoundError,
+  ServerError,
   UnauthorizedAccessError,
 } from "../../../graphql/errors";
 import { getCampaign } from "../../Campaign/service/getCampaign";
@@ -95,6 +98,14 @@ export async function* generateMessage(
 
   const runId = randomUUID().toString(); // Unique ID for this workflow run
 
+  // Create message queue for real-time streaming
+  const messageQueue = new MessageQueue();
+
+  // Enqueue function to pass down to agent and tools
+  const enqueueMessage = (payload: GenerateMessagePayload) => {
+    messageQueue.enqueue(payload);
+  };
+
   // Create request context with deterministic values
   const requestContext: RequestContext = {
     userId,
@@ -103,14 +114,60 @@ export async function* generateMessage(
     runId,
     campaignMetadata,
     allowEdits: true, // Default to allowing edits, can be made configurable later
+    // Yield message is required, but we will overwrite it. This is just to satisfy the type.
+    yieldMessage: (payload: GenerateMessagePayload) => {
+      console.debug("Notify User:", JSON.stringify(payload));
+    },
   };
 
-  // All agents now use the unified generation pattern
-  yield* generateMessageWithAgent({
+  // Start agent execution in background
+  const agentPromise = generateMessageWithAgent({
     threadId,
     runId,
     agent: currAgent,
     messageHistory,
     requestContext,
-  });
+    enqueueMessage,
+  })
+    .then(() => {
+      messageQueue.complete();
+    })
+    .catch((error) => {
+      messageQueue.error();
+      Sentry.captureException(error, {
+        extra: {
+          threadId,
+          runId,
+          agentName: currAgent.name,
+          requestContext,
+          messageHistoryLength: messageHistory.length,
+          reminder:
+            "This error occurred during agent message generation streaming. This is likely a problem with the agent's internal processing. Use the runId to find the trace in LangSmith and investigate the chain to identify the root cause.",
+        },
+      });
+      throw ServerError("Content Creation Failed", error);
+    });
+
+  // Consume queue and yield messages in real-time
+  while (!messageQueue.isDone()) {
+    // Check for errors before dequeuing
+    if (messageQueue.hasErrorOccurred()) {
+      const errorReason = messageQueue.getErrorReason();
+      if (errorReason === "timeout") {
+        throw ServerError(
+          "Message generation timed out due to inactivity from the AI model. The allotted amount of time has passed without receiving a response."
+        );
+      }
+      // For "agent_error", break and let the agentPromise.catch handle it
+      break;
+    }
+
+    const message = await messageQueue.dequeue();
+    if (message) {
+      yield message;
+    }
+  }
+
+  // Wait for agent to finish
+  await agentPromise;
 }

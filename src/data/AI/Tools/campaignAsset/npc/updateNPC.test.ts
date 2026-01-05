@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 import type { CampaignAsset } from "@prisma/client";
 import { RecordType } from "@prisma/client";
+import { RequestContext } from "../../../types";
 
 describe("updateNPC", () => {
   // Declare mock variables
@@ -15,6 +16,13 @@ describe("updateNPC", () => {
   const defaultUserId = "user-456";
   const defaultThreadId = "thread-789";
   const defaultRunId = "run-abc";
+  let defaultContext: RequestContext = {
+    userId: defaultUserId,
+    campaignId: defaultCampaignId,
+    threadId: defaultThreadId,
+    runId: defaultRunId,
+    yieldMessage: () => {},
+  };
   const defaultNPCId = "npc-001";
 
   const defaultExistingAsset: CampaignAsset = {
@@ -99,6 +107,13 @@ describe("updateNPC", () => {
     mockGetCampaignAssetById.mockResolvedValue(defaultExistingAsset);
     mockUpdateCampaignAsset.mockResolvedValue(defaultUpdatedAsset);
     mockStringifyCampaignAsset.mockResolvedValue(defaultStringifiedAsset);
+    defaultContext = {
+      userId: defaultUserId,
+      campaignId: defaultCampaignId,
+      threadId: defaultThreadId,
+      runId: defaultRunId,
+      yieldMessage: () => {},
+    };
   });
 
   afterEach(() => {
@@ -113,12 +128,7 @@ describe("updateNPC", () => {
     };
 
     const result = await updateNPC(updateInput, {
-      context: {
-        userId: defaultUserId,
-        campaignId: defaultCampaignId,
-        threadId: defaultThreadId,
-        runId: defaultRunId,
-      },
+      context: defaultContext,
     });
 
     expect(mockVerifyCampaignAssetOwnership).toHaveBeenCalledWith(
@@ -153,12 +163,7 @@ describe("updateNPC", () => {
     };
 
     await updateNPC(updateInput, {
-      context: {
-        userId: defaultUserId,
-        campaignId: defaultCampaignId,
-        threadId: defaultThreadId,
-        runId: defaultRunId,
-      },
+      context: defaultContext,
     });
 
     expect(mockUpdateCampaignAsset).toHaveBeenCalledWith({
@@ -179,12 +184,7 @@ describe("updateNPC", () => {
     const result = await updateNPC(
       { npcId: "non-existent-id", gmSummary: "Test" },
       {
-        context: {
-          userId: defaultUserId,
-          campaignId: defaultCampaignId,
-          threadId: defaultThreadId,
-          runId: defaultRunId,
-        },
+        context: defaultContext,
       }
     );
 
@@ -205,10 +205,8 @@ describe("updateNPC", () => {
         { npcId: defaultNPCId, gmSummary: "Test" },
         {
           context: {
+            ...defaultContext,
             userId: "wrong-user",
-            campaignId: defaultCampaignId,
-            threadId: defaultThreadId,
-            runId: defaultRunId,
           },
         }
       );
@@ -233,12 +231,7 @@ describe("updateNPC", () => {
       const result = await updateNPC(
         { npcId: defaultNPCId, gmSummary: "Test" },
         {
-          context: {
-            userId: defaultUserId,
-            campaignId: defaultCampaignId,
-            threadId: defaultThreadId,
-            runId: defaultRunId,
-          },
+          context: defaultContext,
         }
       );
 
@@ -262,12 +255,7 @@ describe("updateNPC", () => {
       const result = await updateNPC(
         { npcId: defaultNPCId, gmSummary: "Test" },
         {
-          context: {
-            userId: defaultUserId,
-            campaignId: defaultCampaignId,
-            threadId: defaultThreadId,
-            runId: defaultRunId,
-          },
+          context: defaultContext,
         }
       );
 
@@ -286,12 +274,7 @@ describe("updateNPC", () => {
     const result = await updateNPC(
       { npcId: defaultNPCId, gmSummary: "Updated gmSummary" },
       {
-        context: {
-          userId: defaultUserId,
-          campaignId: defaultCampaignId,
-          threadId: defaultThreadId,
-          runId: defaultRunId,
-        },
+        context: defaultContext,
       }
     );
 

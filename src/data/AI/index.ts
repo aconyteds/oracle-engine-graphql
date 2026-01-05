@@ -7,6 +7,8 @@ export * from "./DefaultModels";
 export * from "./enrichInstructions";
 export * from "./generateMessageWithAgent";
 export * from "./getAgentDefinition";
+export * from "./messageFactory";
+export * from "./processStreamUpdate";
 export * from "./schemas";
 export { RouterType } from "./types";
 

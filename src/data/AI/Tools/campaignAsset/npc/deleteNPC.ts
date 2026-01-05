@@ -6,6 +6,7 @@ import {
   getCampaignAssetById,
   verifyCampaignAssetOwnership,
 } from "../../../../MongoDB";
+import { MessageFactory } from "../../../messageFactory";
 import type { RequestContext, ToolConfig } from "../../../types";
 
 const deleteNPCSchema = z.object({
@@ -24,6 +25,7 @@ export async function deleteNPC(
 ): Promise<string> {
   const input = deleteNPCSchema.parse(rawInput);
   const context = config.context as RequestContext;
+  const { yieldMessage } = context;
 
   try {
     await verifyCampaignAssetOwnership(input.npcId, context.userId);
@@ -37,17 +39,25 @@ export async function deleteNPC(
       return `<error>NPC with ID "${input.npcId}" not found or is not an NPC.</error>`;
     }
 
+    yieldMessage(
+      MessageFactory.progress(`Deleting NPC "${existingAsset.name}"...`)
+    );
+
     // HITL middleware will intercept if allowEdits: false
     const result = await deleteCampaignAsset({
       assetId: input.npcId,
     });
 
     if (result.success) {
+      yieldMessage(MessageFactory.assetDeleted("NPC", existingAsset.name));
+
       return `<success>NPC "${existingAsset.name}" (ID: ${input.npcId}) permanently deleted.</success>`;
     }
     return "<error>Failed to delete NPC.</error>";
   } catch (error) {
     console.error("Error in deleteNPC tool:", error);
+
+    yieldMessage(MessageFactory.error("Failed to delete NPC"));
 
     if (error instanceof Error && error.message.includes("not authorized")) {
       return "<error>You are not authorized to delete this NPC.</error>";

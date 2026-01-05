@@ -8,6 +8,7 @@ import type {
 import type { ClientOptions } from "@langchain/openai";
 import { ChatOpenAI } from "@langchain/openai";
 import type { ToolCall as LangChainToolCall } from "langchain";
+import type { GenerateMessagePayload } from "../../generated/graphql";
 
 export enum RouterType {
   None = "none",
@@ -103,6 +104,13 @@ export interface CampaignMetadata {
   ruleset: string;
 }
 
+/**
+ * Function type for yielding progress messages from tools.
+ * Tools can call this to send real-time updates to the UI.
+ * Synchronously enqueues messages to the queue for real-time streaming.
+ */
+export type YieldMessageFunction = (payload: GenerateMessagePayload) => void;
+
 // Request context for passing deterministic values to tools
 export interface RequestContext {
   userId: string; // Database user ID
@@ -111,6 +119,7 @@ export interface RequestContext {
   runId: string; // LangSmith trace ID
   campaignMetadata?: CampaignMetadata; // Optional campaign context for enrichment
   allowEdits?: boolean; // Controls human-in-the-loop for destructive operations (default: true)
+  yieldMessage: YieldMessageFunction; // Optional function for yielding progress messages to the UI
 }
 
 // Generic tool configuration type for tool function signatures
@@ -123,3 +132,54 @@ export type ToolConfig =
         toolCall?: LangChainToolCall;
         context?: any;
       });
+
+/**
+ * Content block types from LangChain's message content
+ * These mirror the ContentBlock types from @langchain/core/messages
+ * Used when processing messages from OpenAI's Responses API with reasoning models
+ */
+export interface TextContentBlock {
+  type: "text";
+  text: string;
+  index?: number;
+  [key: string]: unknown; // Allow additional properties for LangChain compatibility
+}
+
+export interface ReasoningContentBlock {
+  type: "reasoning";
+  reasoning: string;
+  index?: number;
+  [key: string]: unknown; // Allow additional properties for LangChain compatibility
+}
+
+export type MessageContentBlock = TextContentBlock | ReasoningContentBlock;
+
+/**
+ * Message content can be either a string or array of content blocks
+ */
+export type MessageContent = string | MessageContentBlock[];
+
+/**
+ * AI Message with content blocks and tool calls
+ * Used for processing stream updates
+ */
+export interface AIMessageWithBlocks {
+  type: string;
+  contentBlocks?: MessageContentBlock[];
+  tool_calls?: ToolCall[];
+}
+
+/**
+ * Stream chunk content structure from LangChain
+ */
+export interface StreamChunkContent {
+  messages?: AIMessageWithBlocks[];
+  structuredResponse?: unknown; // Can be HandoffRoutingResponse or other structured responses
+}
+
+/**
+ * Stream chunk from LangChain agent
+ * Using Record<string, unknown> to accept the complex LangChain chunk structure
+ * which may include additional state management properties
+ */
+export type StreamChunk = Record<string, unknown>;

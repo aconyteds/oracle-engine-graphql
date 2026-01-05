@@ -19,6 +19,16 @@ describe("Unit -> generateMessage", () => {
   let mockGenerateMessageWithAgent: ReturnType<typeof mock>;
   let mockRandomUUID: ReturnType<typeof mock>;
   let mockGetCampaign: ReturnType<typeof mock>;
+  let mockMessageQueue: {
+    enqueue: ReturnType<typeof mock>;
+    dequeue: ReturnType<typeof mock>;
+    complete: ReturnType<typeof mock>;
+    error: ReturnType<typeof mock>;
+    isDone: ReturnType<typeof mock>;
+    hasErrorOccurred: ReturnType<typeof mock>;
+    getErrorReason: ReturnType<typeof mock>;
+  };
+  let MockMessageQueueClass: ReturnType<typeof mock>;
   let generateMessage: (
     input: GenerateMessageProps
   ) => AsyncGenerator<GenerateMessagePayload>;
@@ -72,13 +82,6 @@ describe("Unit -> generateMessage", () => {
     routingMetadata: null,
   };
 
-  const defaultWorkflowResults = [
-    {
-      responseType: "Final" as const,
-      content: "Generated response",
-    },
-  ];
-
   beforeEach(async () => {
     // Restore all mocks first
     mock.restore();
@@ -93,6 +96,20 @@ describe("Unit -> generateMessage", () => {
     mockGenerateMessageWithAgent = mock();
     mockRandomUUID = mock();
     mockGetCampaign = mock();
+
+    // Create MessageQueue mock instance
+    mockMessageQueue = {
+      enqueue: mock(),
+      dequeue: mock(),
+      complete: mock(),
+      error: mock(),
+      isDone: mock(),
+      hasErrorOccurred: mock(),
+      getErrorReason: mock(),
+    };
+
+    // Create MessageQueue class mock
+    MockMessageQueueClass = mock(() => mockMessageQueue);
 
     // Mock modules
     const prismaTypes = await import("@prisma/client");
@@ -111,6 +128,11 @@ describe("Unit -> generateMessage", () => {
       defaultRouter: defaultRouter,
     }));
 
+    // Mock MessageQueue
+    void mock.module("../../../data/AI/MessageQueue", () => ({
+      MessageQueue: MockMessageQueueClass,
+    }));
+
     void mock.module("crypto", () => ({
       randomUUID: mockRandomUUID,
     }));
@@ -126,15 +148,29 @@ describe("Unit -> generateMessage", () => {
     // Set up default mock behavior
     mockFindFirst.mockResolvedValue(defaultThread);
     mockGetCampaign.mockResolvedValue(defaultCampaign);
+    mockRandomUUID.mockReturnValue("test-run-id");
 
-    mockGenerateMessageWithAgent.mockImplementation(async function* () {
-      for (const result of defaultWorkflowResults) {
-        await Promise.resolve();
-        yield result;
+    // Default MessageQueue behavior - simulate one message then done
+    let isDoneState = false;
+    let dequeueCount = 0;
+
+    mockMessageQueue.isDone.mockImplementation(() => isDoneState);
+    mockMessageQueue.hasErrorOccurred.mockReturnValue(false);
+    mockMessageQueue.dequeue.mockImplementation(async () => {
+      dequeueCount++;
+      if (dequeueCount === 1) {
+        return {
+          responseType: "Final" as const,
+          content: "Generated response",
+        };
       }
+      // After returning null, mark as done
+      isDoneState = true;
+      return null;
     });
 
-    mockRandomUUID.mockReturnValue("test-run-id");
+    // Default agent behavior - completes successfully
+    mockGenerateMessageWithAgent.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -205,8 +241,12 @@ describe("Unit -> generateMessage", () => {
           ruleset: "D&D 5e",
         },
         allowEdits: true,
+        yieldMessage: expect.any(Function),
       },
+      enqueueMessage: expect.any(Function),
     });
+
+    expect(mockMessageQueue.complete).toHaveBeenCalled();
   });
 
   test("Unit -> generateMessage generates unique runId for each call", async () => {
@@ -216,11 +256,17 @@ describe("Unit -> generateMessage", () => {
 
     // First call
     const generator1 = generateMessage(defaultInput);
-    await generator1.next();
+    const results1: GenerateMessagePayload[] = [];
+    for await (const result of generator1) {
+      results1.push(result);
+    }
 
     // Second call
     const generator2 = generateMessage(defaultInput);
-    await generator2.next();
+    const results2: GenerateMessagePayload[] = [];
+    for await (const result of generator2) {
+      results2.push(result);
+    }
 
     expect(mockGenerateMessageWithAgent).toHaveBeenNthCalledWith(
       1,
@@ -276,7 +322,9 @@ describe("Unit -> generateMessage", () => {
           ruleset: "D&D 5e",
         },
         allowEdits: true,
+        yieldMessage: expect.any(Function),
       },
+      enqueueMessage: expect.any(Function),
     });
   });
 
@@ -314,7 +362,9 @@ describe("Unit -> generateMessage", () => {
           ruleset: "D&D 5e",
         },
         allowEdits: true,
+        yieldMessage: expect.any(Function),
       },
+      enqueueMessage: expect.any(Function),
     });
   });
 
@@ -364,7 +414,9 @@ describe("Unit -> generateMessage", () => {
           ruleset: "D&D 5e",
         },
         allowEdits: true,
+        yieldMessage: expect.any(Function),
       },
+      enqueueMessage: expect.any(Function),
     });
   });
 
@@ -419,8 +471,8 @@ describe("Unit -> generateMessage", () => {
     expect(generator.next()).rejects.toThrow("Campaign not found");
   });
 
-  test("Unit -> generateMessage streams all payloads from generateMessageWithAgent", async () => {
-    const multipleWorkflowResults = [
+  test("Unit -> generateMessage streams all payloads from MessageQueue", async () => {
+    const multipleMessages = [
       {
         responseType: "Intermediate" as const,
         content: "Thinking...",
@@ -435,12 +487,21 @@ describe("Unit -> generateMessage", () => {
       },
     ];
 
-    mockGenerateMessageWithAgent.mockImplementation(async function* () {
-      for (const result of multipleWorkflowResults) {
-        await Promise.resolve();
-        yield result;
+    // Mock agent behavior
+    mockGenerateMessageWithAgent.mockResolvedValue(undefined);
+
+    // Mock dequeue to return messages in sequence
+    let dequeueCallCount = 0;
+    let isDoneState = false;
+    mockMessageQueue.dequeue.mockImplementation(async () => {
+      if (dequeueCallCount < multipleMessages.length) {
+        return multipleMessages[dequeueCallCount++];
       }
+      isDoneState = true;
+      return null;
     });
+
+    mockMessageQueue.isDone.mockImplementation(() => isDoneState);
 
     const generator = generateMessage(defaultInput);
     const results: GenerateMessagePayload[] = [];
@@ -522,5 +583,83 @@ describe("Unit -> generateMessage", () => {
 
     expect(mockGetCampaign).toHaveBeenCalledWith("campaign-id");
     expect(results).toHaveLength(1);
+  });
+
+  test("Unit -> generateMessage handles timeout error from MessageQueue", async () => {
+    mockMessageQueue.hasErrorOccurred.mockReturnValue(true);
+    mockMessageQueue.getErrorReason.mockReturnValue("timeout");
+    mockMessageQueue.isDone.mockReturnValue(false);
+
+    const generator = generateMessage(defaultInput);
+
+    expect(async () => {
+      for await (const _ of generator) {
+        // Should not yield any results
+      }
+    }).toThrow(
+      "Message generation timed out due to inactivity from the AI model. The allotted amount of time has passed without receiving a response."
+    );
+  });
+
+  test("Unit -> generateMessage handles agent error from MessageQueue", async () => {
+    mockMessageQueue.hasErrorOccurred.mockReturnValue(true);
+    mockMessageQueue.getErrorReason.mockReturnValue("agent_error");
+    mockMessageQueue.isDone.mockReturnValue(false);
+
+    // Mock agent to reject
+    const testError = new Error("Agent failed");
+    mockGenerateMessageWithAgent.mockRejectedValue(testError);
+
+    const generator = generateMessage(defaultInput);
+
+    expect(async () => {
+      for await (const _ of generator) {
+        // Should not yield any results
+      }
+    }).toThrow();
+  });
+
+  test("Unit -> generateMessage calls MessageQueue.complete when agent succeeds", async () => {
+    const generator = generateMessage(defaultInput);
+    const results: GenerateMessagePayload[] = [];
+
+    for await (const result of generator) {
+      results.push(result);
+    }
+
+    expect(mockMessageQueue.complete).toHaveBeenCalled();
+  });
+
+  test("Unit -> generateMessage calls MessageQueue.error when agent fails", async () => {
+    const testError = new Error("Agent execution failed");
+    mockGenerateMessageWithAgent.mockRejectedValue(testError);
+
+    // Mock queue to indicate error state
+    mockMessageQueue.hasErrorOccurred.mockReturnValue(true);
+    mockMessageQueue.getErrorReason.mockReturnValue("agent_error");
+    mockMessageQueue.isDone.mockReturnValue(true);
+    mockMessageQueue.dequeue.mockResolvedValue(null);
+
+    const generator = generateMessage(defaultInput);
+
+    expect(async () => {
+      for await (const _ of generator) {
+        // Should not yield any results
+      }
+    }).toThrow();
+
+    expect(mockMessageQueue.error).toHaveBeenCalled();
+  });
+
+  test("Unit -> generateMessage passes enqueueMessage function to agent", async () => {
+    const generator = generateMessage(defaultInput);
+    const results: GenerateMessagePayload[] = [];
+
+    for await (const result of generator) {
+      results.push(result);
+    }
+
+    const callArgs = mockGenerateMessageWithAgent.mock.calls[0][0];
+    expect(callArgs.enqueueMessage).toBeInstanceOf(Function);
   });
 });

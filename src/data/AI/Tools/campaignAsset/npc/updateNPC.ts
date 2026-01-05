@@ -8,6 +8,7 @@ import {
   verifyCampaignAssetOwnership,
 } from "../../../../MongoDB";
 import { npcDataSchema } from "../../../../MongoDB/campaignAsset/models";
+import { MessageFactory } from "../../../messageFactory";
 import type { RequestContext, ToolConfig } from "../../../types";
 
 const updateNPCSchema = z.object({
@@ -50,6 +51,7 @@ export async function updateNPC(
 ): Promise<string> {
   const input = updateNPCSchema.parse(rawInput);
   const context = config.context as RequestContext;
+  const { yieldMessage } = context;
 
   try {
     await verifyCampaignAssetOwnership(input.npcId, context.userId);
@@ -63,6 +65,10 @@ export async function updateNPC(
       return `<error>NPC with ID "${input.npcId}" not found or is not an NPC.</error>`;
     }
 
+    yieldMessage(
+      MessageFactory.progress(`Updating NPC "${existingAsset.name}"...`)
+    );
+
     const asset = await updateCampaignAsset({
       assetId: input.npcId,
       recordType: RecordType.NPC,
@@ -73,11 +79,14 @@ export async function updateNPC(
       playerNotes: input.playerNotes,
       npcData: input.npcData,
     });
+    yieldMessage(MessageFactory.assetUpdated("NPC", asset.id, asset.name));
 
     const assetDetails = await stringifyCampaignAsset(asset);
     return `<success>NPC updated successfully!</success><npc id="${asset.id}" name="${asset.name}">${assetDetails}</npc>`;
   } catch (error) {
     console.error("Error in updateNPC tool:", error);
+
+    yieldMessage(MessageFactory.error("Failed to update NPC"));
 
     if (error instanceof Error && error.message.includes("not authorized")) {
       return "<error>You are not authorized to update this NPC.</error>";

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 import type { CampaignAsset } from "@prisma/client";
 import { RecordType } from "@prisma/client";
+import { RequestContext } from "../../../types";
 
 describe("deleteLocation", () => {
   // Declare mock variables
@@ -15,6 +16,13 @@ describe("deleteLocation", () => {
   const defaultThreadId = "thread-789";
   const defaultRunId = "run-abc";
   const defaultLocationId = "asset-location-1";
+  let defaultContext: RequestContext = {
+    userId: defaultUserId,
+    campaignId: defaultCampaignId,
+    threadId: defaultThreadId,
+    runId: defaultRunId,
+    yieldMessage: () => {},
+  };
 
   const defaultExistingAsset: CampaignAsset = {
     id: defaultLocationId,
@@ -90,6 +98,13 @@ describe("deleteLocation", () => {
     mockVerifyCampaignAssetOwnership.mockResolvedValue(undefined);
     mockGetCampaignAssetById.mockResolvedValue(defaultExistingAsset);
     mockDeleteCampaignAsset.mockResolvedValue(defaultDeleteResult);
+    defaultContext = {
+      userId: defaultUserId,
+      campaignId: defaultCampaignId,
+      threadId: defaultThreadId,
+      runId: defaultRunId,
+      yieldMessage: () => {},
+    };
   });
 
   afterEach(() => {
@@ -102,12 +117,7 @@ describe("deleteLocation", () => {
         locationId: defaultLocationId,
       },
       {
-        context: {
-          userId: defaultUserId,
-          campaignId: defaultCampaignId,
-          threadId: defaultThreadId,
-          runId: defaultRunId,
-        },
+        context: defaultContext,
       }
     );
 
@@ -137,12 +147,7 @@ describe("deleteLocation", () => {
         locationId: "nonexistent-id",
       },
       {
-        context: {
-          userId: defaultUserId,
-          campaignId: defaultCampaignId,
-          threadId: defaultThreadId,
-          runId: defaultRunId,
-        },
+        context: defaultContext,
       }
     );
 
@@ -166,10 +171,8 @@ describe("deleteLocation", () => {
         },
         {
           context: {
+            ...defaultContext,
             userId: "unauthorized-user",
-            campaignId: defaultCampaignId,
-            threadId: defaultThreadId,
-            runId: defaultRunId,
           },
         }
       );
@@ -190,12 +193,7 @@ describe("deleteLocation", () => {
         locationId: defaultLocationId,
       },
       {
-        context: {
-          userId: defaultUserId,
-          campaignId: defaultCampaignId,
-          threadId: defaultThreadId,
-          runId: defaultRunId,
-        },
+        context: defaultContext,
       }
     );
 
@@ -217,12 +215,7 @@ describe("deleteLocation", () => {
           locationId: defaultLocationId,
         },
         {
-          context: {
-            userId: defaultUserId,
-            campaignId: defaultCampaignId,
-            threadId: defaultThreadId,
-            runId: defaultRunId,
-          },
+          context: defaultContext,
         }
       );
 
@@ -240,12 +233,7 @@ describe("deleteLocation", () => {
   test("Unit -> deleteLocation validates input schema", async () => {
     await expect(
       deleteLocation({ locationId: 123 } as any, {
-        context: {
-          userId: defaultUserId,
-          campaignId: defaultCampaignId,
-          threadId: defaultThreadId,
-          runId: defaultRunId,
-        },
+        context: defaultContext,
       })
     ).rejects.toThrow();
   });
@@ -256,12 +244,7 @@ describe("deleteLocation", () => {
         locationId: defaultLocationId,
       },
       {
-        context: {
-          userId: defaultUserId,
-          campaignId: defaultCampaignId,
-          threadId: defaultThreadId,
-          runId: defaultRunId,
-        },
+        context: defaultContext,
       }
     );
 

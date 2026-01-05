@@ -6,6 +6,7 @@ import {
   getCampaignAssetById,
   verifyCampaignAssetOwnership,
 } from "../../../../MongoDB";
+import { MessageFactory } from "../../../messageFactory";
 import type { RequestContext, ToolConfig } from "../../../types";
 
 const deletePlotSchema = z.object({
@@ -24,6 +25,7 @@ export async function deletePlot(
 ): Promise<string> {
   const input = deletePlotSchema.parse(rawInput);
   const context = config.context as RequestContext;
+  const { yieldMessage } = context;
 
   try {
     await verifyCampaignAssetOwnership(input.plotId, context.userId);
@@ -37,17 +39,25 @@ export async function deletePlot(
       return `<error>Plot with ID "${input.plotId}" not found or is not a Plot.</error>`;
     }
 
+    yieldMessage(
+      MessageFactory.progress(`Deleting plot "${existingAsset.name}"...`)
+    );
+
     // HITL middleware will intercept if allowEdits: false
     const result = await deleteCampaignAsset({
       assetId: input.plotId,
     });
 
     if (result.success) {
+      yieldMessage(MessageFactory.assetDeleted("Plot", existingAsset.name));
+
       return `<success>Plot "${existingAsset.name}" (ID: ${input.plotId}) permanently deleted.</success>`;
     }
     return "<error>Failed to delete plot.</error>";
   } catch (error) {
     console.error("Error in deletePlot tool:", error);
+
+    yieldMessage(MessageFactory.error("Failed to delete plot"));
 
     if (error instanceof Error && error.message.includes("not authorized")) {
       return "<error>You are not authorized to delete this plot.</error>";

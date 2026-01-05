@@ -4,7 +4,11 @@ import { z } from "zod";
 import { PrismaCheckpointSaver } from "./Checkpointers";
 import { enrichInstructions } from "./enrichInstructions";
 import { agentContextSchema, handoffRoutingResponseSchema } from "./schemas";
-import { toolErrorHandlingMiddleware, toolMonitoringMiddleware } from "./Tools";
+import {
+  toolErrorHandlingMiddleware,
+  toolMonitoringMiddleware,
+  yieldProgressTool,
+} from "./Tools";
 import { type AIAgentDefinition, RequestContext, RouterType } from "./types";
 
 // Create singleton checkpointer instance
@@ -55,8 +59,10 @@ export async function getAgentDefinition(
     compositeThreadId = `${userId}:${threadId}:${campaignId}:${agent.name}`;
   }
 
-  // Start with agent's own tools
-  const tools = agent.availableTools ? [...agent.availableTools] : [];
+  // Start with agent's own tools, use a Set to avoid duplicates
+  const tools = new Set(agent.availableTools ? [...agent.availableTools] : []);
+  // All agents get the yield progress tool because they need to report progress to prevent timeouts
+  tools.add(yieldProgressTool);
 
   if (agent.routerType === RouterType.Controller) {
     // Supervisor pattern: Convert sub-agents to tools
@@ -68,7 +74,7 @@ export async function getAgentDefinition(
           );
         }
         const subAgentTool = createSubAgentTool(subAgent);
-        tools.push(subAgentTool);
+        tools.add(subAgentTool);
       }
     }
   }
@@ -132,7 +138,7 @@ export async function getAgentDefinition(
 
   const agentInstance = createAgent({
     model,
-    tools,
+    tools: Array.from(tools),
     contextSchema: agentContextSchema,
     description: agent.description,
     name: agent.name,

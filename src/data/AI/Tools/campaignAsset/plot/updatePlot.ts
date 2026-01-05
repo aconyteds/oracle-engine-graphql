@@ -8,6 +8,7 @@ import {
   verifyCampaignAssetOwnership,
 } from "../../../../MongoDB";
 import { plotDataSchema } from "../../../../MongoDB/campaignAsset/models";
+import { MessageFactory } from "../../../messageFactory";
 import type { RequestContext, ToolConfig } from "../../../types";
 
 const updatePlotSchema = z.object({
@@ -50,6 +51,7 @@ export async function updatePlot(
 ): Promise<string> {
   const input = updatePlotSchema.parse(rawInput);
   const context = config.context as RequestContext;
+  const { yieldMessage } = context;
 
   try {
     await verifyCampaignAssetOwnership(input.plotId, context.userId);
@@ -63,6 +65,10 @@ export async function updatePlot(
       return `<error>Plot with ID "${input.plotId}" not found or is not a Plot.</error>`;
     }
 
+    yieldMessage(
+      MessageFactory.progress(`Updating plot "${existingAsset.name}"...`)
+    );
+
     const asset = await updateCampaignAsset({
       assetId: input.plotId,
       recordType: RecordType.Plot,
@@ -74,10 +80,14 @@ export async function updatePlot(
       plotData: input.plotData,
     });
 
+    yieldMessage(MessageFactory.assetUpdated("Plot", asset.id, asset.name));
+
     const assetDetails = await stringifyCampaignAsset(asset);
     return `<success>Plot updated successfully!</success><plot id="${asset.id}" name="${asset.name}">${assetDetails}</plot>`;
   } catch (error) {
     console.error("Error in updatePlot tool:", error);
+
+    yieldMessage(MessageFactory.error("Failed to update plot"));
 
     if (error instanceof Error && error.message.includes("not authorized")) {
       return "<error>You are not authorized to update this plot.</error>";

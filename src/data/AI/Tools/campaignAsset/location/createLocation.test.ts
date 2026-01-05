@@ -1,18 +1,27 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 import type { CampaignAsset } from "@prisma/client";
 import { RecordType } from "@prisma/client";
+import { RequestContext } from "../../../types";
 
 describe("createLocation", () => {
   // Declare mock variables
   let mockCreateCampaignAsset: ReturnType<typeof mock>;
   let mockStringifyCampaignAsset: ReturnType<typeof mock>;
   let createLocation: typeof import("./createLocation").createLocation;
+  let mockYieldMessage: ReturnType<typeof mock>;
 
   // Default test data
   const defaultCampaignId = "campaign-123";
   const defaultUserId = "user-456";
   const defaultThreadId = "thread-789";
   const defaultRunId = "run-abc";
+  let defaultContext: RequestContext = {
+    userId: defaultUserId,
+    campaignId: defaultCampaignId,
+    threadId: defaultThreadId,
+    runId: defaultRunId,
+    yieldMessage: () => {},
+  };
 
   const defaultLocationInput = {
     name: "The Rusty Dragon Inn",
@@ -60,6 +69,7 @@ describe("createLocation", () => {
     // Create fresh mocks
     mockCreateCampaignAsset = mock();
     mockStringifyCampaignAsset = mock();
+    mockYieldMessage = mock();
 
     mock.module("../../../../MongoDB/campaignAsset/embedCampaignAsset", () => ({
       embedCampaignAsset: mock(), // Export all from the module even if unused
@@ -91,6 +101,13 @@ describe("createLocation", () => {
     // Configure default behavior
     mockCreateCampaignAsset.mockResolvedValue(defaultCreatedAsset);
     mockStringifyCampaignAsset.mockResolvedValue(defaultStringifiedAsset);
+    defaultContext = {
+      userId: defaultUserId,
+      campaignId: defaultCampaignId,
+      threadId: defaultThreadId,
+      runId: defaultRunId,
+      yieldMessage: mockYieldMessage,
+    };
   });
 
   afterEach(() => {
@@ -99,12 +116,7 @@ describe("createLocation", () => {
 
   test("Unit -> createLocation creates location with all fields", async () => {
     const result = await createLocation(defaultLocationInput, {
-      context: {
-        userId: defaultUserId,
-        campaignId: defaultCampaignId,
-        threadId: defaultThreadId,
-        runId: defaultRunId,
-      },
+      context: defaultContext,
     });
 
     expect(mockCreateCampaignAsset).toHaveBeenCalledWith({
@@ -145,12 +157,7 @@ describe("createLocation", () => {
     };
 
     await createLocation(minimalInput, {
-      context: {
-        userId: defaultUserId,
-        campaignId: defaultCampaignId,
-        threadId: defaultThreadId,
-        runId: defaultRunId,
-      },
+      context: defaultContext,
     });
 
     expect(mockCreateCampaignAsset).toHaveBeenCalledWith({
@@ -181,12 +188,7 @@ describe("createLocation", () => {
 
     try {
       const result = await createLocation(defaultLocationInput, {
-        context: {
-          userId: defaultUserId,
-          campaignId: defaultCampaignId,
-          threadId: defaultThreadId,
-          runId: defaultRunId,
-        },
+        context: defaultContext,
       });
 
       expect(result).toContain("<error>");
@@ -208,12 +210,7 @@ describe("createLocation", () => {
 
     await expect(
       createLocation(invalidInput, {
-        context: {
-          userId: defaultUserId,
-          campaignId: defaultCampaignId,
-          threadId: defaultThreadId,
-          runId: defaultRunId,
-        },
+        context: defaultContext,
       })
     ).rejects.toThrow();
   });
@@ -226,12 +223,7 @@ describe("createLocation", () => {
 
     await expect(
       createLocation(invalidInput, {
-        context: {
-          userId: defaultUserId,
-          campaignId: defaultCampaignId,
-          threadId: defaultThreadId,
-          runId: defaultRunId,
-        },
+        context: defaultContext,
       })
     ).rejects.toThrow();
   });
@@ -244,12 +236,7 @@ describe("createLocation", () => {
 
     await expect(
       createLocation(invalidInput, {
-        context: {
-          userId: defaultUserId,
-          campaignId: defaultCampaignId,
-          threadId: defaultThreadId,
-          runId: defaultRunId,
-        },
+        context: defaultContext,
       })
     ).rejects.toThrow();
   });
@@ -262,12 +249,7 @@ describe("createLocation", () => {
 
     await expect(
       createLocation(invalidInput, {
-        context: {
-          userId: defaultUserId,
-          campaignId: defaultCampaignId,
-          threadId: defaultThreadId,
-          runId: defaultRunId,
-        },
+        context: defaultContext,
       })
     ).rejects.toThrow();
   });
@@ -280,12 +262,7 @@ describe("createLocation", () => {
 
     await expect(
       createLocation(invalidInput, {
-        context: {
-          userId: defaultUserId,
-          campaignId: defaultCampaignId,
-          threadId: defaultThreadId,
-          runId: defaultRunId,
-        },
+        context: defaultContext,
       })
     ).rejects.toThrow();
   });
@@ -297,12 +274,7 @@ describe("createLocation", () => {
     };
 
     const result = await createLocation(validInput, {
-      context: {
-        userId: defaultUserId,
-        campaignId: defaultCampaignId,
-        threadId: defaultThreadId,
-        runId: defaultRunId,
-      },
+      context: defaultContext,
     });
 
     expect(result).toContain("<success>");
@@ -310,12 +282,7 @@ describe("createLocation", () => {
 
   test("Unit -> createLocation returns XML formatted response", async () => {
     const result = await createLocation(defaultLocationInput, {
-      context: {
-        userId: defaultUserId,
-        campaignId: defaultCampaignId,
-        threadId: defaultThreadId,
-        runId: defaultRunId,
-      },
+      context: defaultContext,
     });
 
     expect(result).toMatch(/<success>.*<\/success>/s);

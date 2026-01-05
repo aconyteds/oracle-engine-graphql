@@ -15,6 +15,7 @@ export const plotAgent: AIAgentDefinition = {
   model: new ChatOpenAI({
     model: "gpt-5-nano",
     maxRetries: 2,
+    useResponsesApi: true,
     reasoning: {
       effort: "minimal",
     },
