@@ -8,6 +8,8 @@ import { buildHybridSearchPipeline } from "./buildHybridSearchPipeline";
 import { buildTextSearchPipeline } from "./buildTextSearchPipeline";
 import { buildVectorSearchPipeline } from "./buildVectorSearchPipeline";
 import { captureSearchMetrics } from "./captureSearchMetrics";
+import { convertRawAssetToSearchResult } from "./convertRawAssetToSearchResult";
+import { executeManualHybridSearchWithPayload } from "./executeManualHybridSearch";
 
 const assetSearchSchema = z
   .object({
@@ -39,7 +41,11 @@ const assetSearchSchema = z
 
 export type AssetSearchInput = z.input<typeof assetSearchSchema>;
 
-export type SearchMode = "vector_only" | "text_only" | "hybrid";
+export type SearchMode =
+  | "vector_only"
+  | "text_only"
+  | "manual_hybrid"
+  | "hybrid";
 
 // Omit Embeddings from search results since we don't project it (large array)
 export interface AssetSearchResult
@@ -60,9 +66,10 @@ function determineSearchMode(
   hasQuery: boolean,
   hasKeywords: boolean
 ): SearchMode {
-  if (hasQuery && hasKeywords) return "hybrid";
-  if (hasKeywords) return "text_only";
-  return "vector_only";
+  if (!hasQuery) return "text_only";
+  if (!hasKeywords) return "vector_only";
+  if (Bun.env.HYBRID_SEARCH_METHOD === "manual") return "manual_hybrid";
+  return "hybrid";
 }
 
 /**
@@ -129,13 +136,46 @@ export async function searchCampaignAssets(
         });
         break;
 
-      case "hybrid":
+      case "manual_hybrid": {
+        // Use client-side RRF (works on M0 tier)
+        const hybridPayload = await executeManualHybridSearchWithPayload(
+          {
+            ...pipelineParams,
+            queryVector: queryEmbedding,
+            keywords: params.keywords!,
+          },
+          embeddingDuration,
+          startTime
+        );
+
+        // Capture metrics for manual hybrid search
+        if (storeMetrics) {
+          void (async () => {
+            try {
+              await captureSearchMetrics({
+                searchInput: params,
+                results: hybridPayload.assets,
+                timings: hybridPayload.timings,
+                searchMode: "manual_hybrid",
+              });
+            } catch (error) {
+              console.error("Search metrics capture failed:", error);
+            }
+          })();
+        }
+
+        return hybridPayload;
+      }
+
+      case "hybrid": {
+        // Use MongoDB's native $rankFusion (requires M10+ tier)
         pipeline = buildHybridSearchPipeline({
           ...pipelineParams,
           queryVector: queryEmbedding,
           keywords: params.keywords!,
         });
         break;
+      }
     }
 
     // 3. Execute Pipeline (Shared)
@@ -193,107 +233,20 @@ export async function searchCampaignAssets(
     }
     return searchPayload;
   } catch (error) {
-    console.error("Search failed:", {
+    // Log detailed error information server-side for debugging
+    console.error("Campaign asset search failed:", {
       campaignId: params.campaignId,
       searchMode,
       query: params.query,
       keywords: params.keywords,
+      recordType: params.recordType,
       error,
     });
+
+    // Throw a generic error to avoid exposing MongoDB/infrastructure details
+    // The actual error details are logged above for server-side debugging
     throw new Error(
-      `Search failed: ${error instanceof Error ? error.message : String(error)}`
+      "Failed to search campaign assets. Please try again or contact support if the issue persists."
     );
   }
-}
-
-/**
- * Type definition for raw MongoDB BSON document returned from aggregateRaw.
- * MongoDB returns ObjectIds as { $oid: string } and Dates as { $date: string }.
- * This interface matches the exact structure from the Prisma schema.
- */
-interface RawBSONAssetDocument {
-  _id: { $oid: string };
-  campaignId: { $oid: string };
-  name: string;
-  recordType: RecordType;
-  gmSummary: string | null;
-  gmNotes: string | null;
-  playerSummary: string | null;
-  playerNotes: string | null;
-  createdAt: { $date: string };
-  updatedAt: { $date: string };
-  locationData: CampaignAsset["locationData"] | null;
-  plotData: CampaignAsset["plotData"] | null;
-  npcData: CampaignAsset["npcData"] | null;
-  sessionEventLink: Array<{ $oid: string }>;
-  score?: number;
-}
-
-/**
- * Converts a BSON ObjectId structure to a string.
- * @param oid - BSON ObjectId in format { $oid: "string" }
- * @returns The ObjectId as a string
- */
-function convertObjectId(oid: { $oid: string }): string {
-  return oid.$oid;
-}
-
-/**
- * Converts a BSON Date structure to a JavaScript Date.
- * @param date - BSON Date in format { $date: "ISO string" }
- * @returns JavaScript Date object
- */
-function convertDate(date: { $date: string }): Date {
-  return new Date(date.$date);
-}
-
-/**
- * Converts raw MongoDB BSON document from aggregateRaw to AssetSearchResult.
- * Explicitly handles known BSON types based on the Prisma schema definition.
- *
- * This function is intentionally NOT recursive - it only converts the specific
- * fields we know contain BSON types (ObjectIds and Dates). All other fields
- * are passed through unchanged.
- *
- * Fields requiring conversion:
- * - id, campaignId: ObjectId -> string
- * - createdAt, updatedAt: BSON Date -> JavaScript Date
- * - sessionEventLink: Array<ObjectId> -> string[]
- * - score: vectorScore/textScore/hybridScore -> unified score field
- *
- * Fields NOT requiring conversion (already correct types):
- * - name, recordType, gmSummary, gmNotes, playerSummary, playerNotes
- * - locationData (all string fields)
- * - npcData (all string fields)
- *
- * @param rawDoc - Raw MongoDB document with BSON types matching RawBSONAssetDocument
- * @returns AssetSearchResult with proper JavaScript types
- */
-function convertRawAssetToSearchResult(rawDoc: Document): AssetSearchResult {
-  const doc = rawDoc as unknown as RawBSONAssetDocument;
-
-  return {
-    // Convert ObjectIds to strings
-    id: convertObjectId(doc._id),
-    campaignId: convertObjectId(doc.campaignId),
-
-    // Convert BSON Dates to JavaScript Dates
-    createdAt: convertDate(doc.createdAt),
-    updatedAt: convertDate(doc.updatedAt),
-
-    // Convert ObjectId array to string array
-    sessionEventLink: doc.sessionEventLink.map(convertObjectId),
-
-    // Pass through primitive fields (no conversion needed)
-    name: doc.name,
-    recordType: doc.recordType,
-    gmSummary: doc.gmSummary,
-    gmNotes: doc.gmNotes,
-    playerSummary: doc.playerSummary,
-    playerNotes: doc.playerNotes,
-    score: doc.score ?? 0,
-    locationData: doc.locationData,
-    npcData: doc.npcData,
-    plotData: doc.plotData,
-  };
 }

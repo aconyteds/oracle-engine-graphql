@@ -346,7 +346,7 @@ describe("searchCampaignAssets", () => {
     expect(result.assets).toHaveLength(0);
   });
 
-  test("Unit -> searchCampaignAssets throws error when embedding generation fails", async () => {
+  test("Unit -> searchCampaignAssets throws generic error when embedding generation fails", async () => {
     const originalConsoleError = console.error;
     const mockConsoleError = mock();
     console.error = mockConsoleError;
@@ -362,7 +362,9 @@ describe("searchCampaignAssets", () => {
           },
           false
         )
-      ).rejects.toThrow("Failed to generate query embedding");
+      ).rejects.toThrow(
+        "Failed to search campaign assets. Please try again or contact support if the issue persists."
+      );
 
       expect(mockConsoleError).toHaveBeenCalled();
     } finally {
@@ -387,7 +389,9 @@ describe("searchCampaignAssets", () => {
           },
           false
         )
-      ).rejects.toThrow("Search failed: OpenAI API error");
+      ).rejects.toThrow(
+        "Failed to search campaign assets. Please try again or contact support if the issue persists."
+      );
 
       expect(mockConsoleError).toHaveBeenCalled();
     } finally {
@@ -412,15 +416,20 @@ describe("searchCampaignAssets", () => {
           },
           false
         )
-      ).rejects.toThrow("Search failed: Database connection failed");
+      ).rejects.toThrow(
+        "Failed to search campaign assets. Please try again or contact support if the issue persists."
+      );
 
-      expect(mockConsoleError).toHaveBeenCalledWith("Search failed:", {
-        campaignId: defaultCampaignId,
-        searchMode: "vector_only",
-        query: defaultQuery,
-        keywords: undefined,
-        error: dbError,
-      });
+      // Verify detailed error was logged server-side
+      expect(mockConsoleError).toHaveBeenCalledWith(
+        "Campaign asset search failed:",
+        expect.objectContaining({
+          campaignId: defaultCampaignId,
+          searchMode: "vector_only",
+          query: defaultQuery,
+          error: dbError,
+        })
+      );
     } finally {
       console.error = originalConsoleError;
     }
@@ -560,6 +569,9 @@ describe("searchCampaignAssets", () => {
   });
 
   test("Unit -> searchCampaignAssets does not call metrics on error", async () => {
+    const originalConsoleError = console.error;
+    console.error = mock();
+
     const mockCaptureSearchMetrics = mock();
     mock.module("./captureSearchMetrics", () => ({
       captureSearchMetrics: mockCaptureSearchMetrics,
@@ -568,15 +580,21 @@ describe("searchCampaignAssets", () => {
     const testError = new Error("Embedding failed");
     mockCreateEmbeddings.mockRejectedValue(testError);
 
-    await expect(
-      searchCampaignAssets(
-        {
-          query: defaultQuery,
-          campaignId: defaultCampaignId,
-        },
-        false
-      )
-    ).rejects.toThrow("Search failed: Embedding failed");
+    try {
+      await expect(
+        searchCampaignAssets(
+          {
+            query: defaultQuery,
+            campaignId: defaultCampaignId,
+          },
+          false
+        )
+      ).rejects.toThrow(
+        "Failed to search campaign assets. Please try again or contact support if the issue persists."
+      );
+    } finally {
+      console.error = originalConsoleError;
+    }
   });
 
   test("Unit -> searchCampaignAssets continues even if metrics capture fails", async () => {
@@ -651,7 +669,8 @@ describe("searchCampaignAssets", () => {
     expect(matchStage).toBeDefined();
   });
 
-  test("Unit -> searchCampaignAssets uses hybrid search when both query and keywords provided", async () => {
+  test("Unit -> searchCampaignAssets uses MongoDB $rankFusion when both query and keywords provided (default)", async () => {
+    // Default (when HYBRID_SEARCH_METHOD is not set) is MongoDB's native $rankFusion
     await searchCampaignAssets(
       {
         query: defaultQuery,
@@ -662,6 +681,9 @@ describe("searchCampaignAssets", () => {
     );
 
     expect(mockCreateEmbeddings).toHaveBeenCalledWith(defaultQuery);
+
+    // Should make single call with $rankFusion pipeline
+    expect(mockDBClient.campaignAsset.aggregateRaw).toHaveBeenCalledTimes(1);
 
     const callArgs = mockDBClient.campaignAsset.aggregateRaw.mock.calls[0][0];
     const pipeline = callArgs.pipeline;
@@ -676,5 +698,80 @@ describe("searchCampaignAssets", () => {
     expect(
       rankFusionStage?.$rankFusion?.input?.pipelines?.textSearch
     ).toBeDefined();
+  });
+
+  test("Unit -> searchCampaignAssets uses manual hybrid search when HYBRID_SEARCH_METHOD is manual", async () => {
+    // Set environment variable to use manual RRF
+    const originalEnv = Bun.env.HYBRID_SEARCH_METHOD;
+    Bun.env.HYBRID_SEARCH_METHOD = "manual";
+
+    try {
+      // Re-import to pick up new env value
+      mock.restore();
+
+      const mockAggregateRaw = mock();
+      mockDBClient = {
+        campaignAsset: {
+          aggregateRaw: mockAggregateRaw,
+        },
+      };
+      mockCreateEmbeddings = mock();
+
+      mock.module("../client", () => ({
+        DBClient: mockDBClient,
+        RecordType: RecordType,
+      }));
+
+      mock.module("../../AI/createEmbeddings", () => ({
+        createEmbeddings: mockCreateEmbeddings,
+      }));
+
+      const module = await import("./assetSearch");
+      const searchFn = module.searchCampaignAssets;
+
+      mockDBClient.campaignAsset.aggregateRaw.mockResolvedValue(
+        defaultRawResults
+      );
+      mockCreateEmbeddings.mockResolvedValue(defaultQueryEmbedding);
+
+      await searchFn(
+        {
+          query: defaultQuery,
+          keywords: "test keywords",
+          campaignId: defaultCampaignId,
+        },
+        false
+      );
+
+      expect(mockCreateEmbeddings).toHaveBeenCalledWith(defaultQuery);
+
+      // Manual RRF makes two separate calls: one for vector search, one for text search
+      expect(mockDBClient.campaignAsset.aggregateRaw).toHaveBeenCalledTimes(2);
+
+      // First call should be vector search pipeline
+      const vectorCallArgs =
+        mockDBClient.campaignAsset.aggregateRaw.mock.calls[0][0];
+      const vectorPipeline = vectorCallArgs.pipeline;
+      const vectorSearchStage = vectorPipeline.find(
+        (stage: Document) => stage.$vectorSearch
+      );
+      expect(vectorSearchStage).toBeDefined();
+
+      // Second call should be text search pipeline
+      const textCallArgs =
+        mockDBClient.campaignAsset.aggregateRaw.mock.calls[1][0];
+      const textPipeline = textCallArgs.pipeline;
+      const textSearchStage = textPipeline.find(
+        (stage: Document) => stage.$search
+      );
+      expect(textSearchStage).toBeDefined();
+    } finally {
+      // Restore original env
+      if (originalEnv === undefined) {
+        delete Bun.env.HYBRID_SEARCH_METHOD;
+      } else {
+        Bun.env.HYBRID_SEARCH_METHOD = originalEnv;
+      }
+    }
   });
 });
