@@ -9,6 +9,7 @@ import { buildTextSearchPipeline } from "./buildTextSearchPipeline";
 import { buildVectorSearchPipeline } from "./buildVectorSearchPipeline";
 import { captureSearchMetrics } from "./captureSearchMetrics";
 import { convertRawAssetToSearchResult } from "./convertRawAssetToSearchResult";
+import { embeddingCache } from "./embeddingCache";
 import { executeManualHybridSearchWithPayload } from "./executeManualHybridSearch";
 
 const assetSearchSchema = z
@@ -105,7 +106,13 @@ export async function searchCampaignAssets(
     // 1. Generate Embeddings (Shared for vector_only and hybrid)
     if (searchMode !== "text_only") {
       const embeddingStart = performance.now();
-      queryEmbedding = await createEmbeddings(params.query!);
+      queryEmbedding = embeddingCache.get(params.query!) || [];
+      if (!queryEmbedding.length) {
+        queryEmbedding = await createEmbeddings(params.query!);
+        if (queryEmbedding.length > 0) {
+          embeddingCache.set(params.query!, queryEmbedding);
+        }
+      }
       embeddingDuration = performance.now() - embeddingStart;
 
       if (queryEmbedding.length === 0) {

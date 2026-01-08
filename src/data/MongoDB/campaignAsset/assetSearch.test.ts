@@ -11,6 +11,10 @@ describe("searchCampaignAssets", () => {
     };
   };
   let mockCreateEmbeddings: ReturnType<typeof mock>;
+  let mockEmbeddingCache: {
+    get: ReturnType<typeof mock>;
+    set: ReturnType<typeof mock>;
+  };
   let searchCampaignAssets: typeof import("./assetSearch").searchCampaignAssets;
 
   // Default mock data - reusable across tests
@@ -136,6 +140,10 @@ describe("searchCampaignAssets", () => {
     };
 
     mockCreateEmbeddings = mock();
+    mockEmbeddingCache = {
+      get: mock(),
+      set: mock(),
+    };
 
     // Set up module mocks INSIDE beforeEach
     mock.module("../client", () => ({
@@ -147,8 +155,13 @@ describe("searchCampaignAssets", () => {
       createEmbeddings: mockCreateEmbeddings,
     }));
 
+    mock.module("./embeddingCache", () => ({
+      embeddingCache: mockEmbeddingCache,
+    }));
+
     // Dynamically import the module under test
     const module = await import("./assetSearch");
+    mockEmbeddingCache.get.mockReturnValue(undefined); // Default to cache miss
     searchCampaignAssets = module.searchCampaignAssets;
 
     // Configure default mock behavior AFTER import
@@ -173,7 +186,12 @@ describe("searchCampaignAssets", () => {
       false
     );
 
+    expect(mockEmbeddingCache.get).toHaveBeenCalledWith(defaultQuery);
     expect(mockCreateEmbeddings).toHaveBeenCalledWith(defaultQuery);
+    expect(mockEmbeddingCache.set).toHaveBeenCalledWith(
+      defaultQuery,
+      defaultQueryEmbedding
+    );
     expect(mockDBClient.campaignAsset.aggregateRaw).toHaveBeenCalled();
 
     expect(result.assets).toEqual(defaultResults);
@@ -181,6 +199,43 @@ describe("searchCampaignAssets", () => {
     expect(result.assets[0].score).toBe(0.95);
     expect(result.assets[1].score).toBe(0.82);
     expect(result.timings).toBeDefined();
+  });
+
+  test("Unit -> searchCampaignAssets uses cached embedding when available", async () => {
+    mockEmbeddingCache.get.mockReturnValue(defaultQueryEmbedding);
+
+    await searchCampaignAssets(
+      {
+        query: defaultQuery,
+        campaignId: defaultCampaignId,
+      },
+      false
+    );
+
+    expect(mockEmbeddingCache.get).toHaveBeenCalledWith(defaultQuery);
+    expect(mockCreateEmbeddings).not.toHaveBeenCalled();
+    expect(mockEmbeddingCache.set).not.toHaveBeenCalled();
+    expect(mockDBClient.campaignAsset.aggregateRaw).toHaveBeenCalled();
+  });
+
+  test("Unit -> searchCampaignAssets generates and caches embedding on cache miss", async () => {
+    mockEmbeddingCache.get.mockReturnValue(undefined);
+
+    await searchCampaignAssets(
+      {
+        query: defaultQuery,
+        campaignId: defaultCampaignId,
+      },
+      false
+    );
+
+    expect(mockEmbeddingCache.get).toHaveBeenCalledWith(defaultQuery);
+    expect(mockCreateEmbeddings).toHaveBeenCalledWith(defaultQuery);
+    expect(mockEmbeddingCache.set).toHaveBeenCalledWith(
+      defaultQuery,
+      defaultQueryEmbedding
+    );
+    expect(mockDBClient.campaignAsset.aggregateRaw).toHaveBeenCalled();
   });
 
   test("Unit -> searchCampaignAssets filters by campaignId in pipeline", async () => {
@@ -726,6 +781,14 @@ describe("searchCampaignAssets", () => {
         createEmbeddings: mockCreateEmbeddings,
       }));
 
+      const mockEmbeddingCache = {
+        get: mock(),
+        set: mock(),
+      };
+      mock.module("./embeddingCache", () => ({
+        embeddingCache: mockEmbeddingCache,
+      }));
+
       const module = await import("./assetSearch");
       const searchFn = module.searchCampaignAssets;
 
@@ -733,6 +796,7 @@ describe("searchCampaignAssets", () => {
         defaultRawResults
       );
       mockCreateEmbeddings.mockResolvedValue(defaultQueryEmbedding);
+      mockEmbeddingCache.get.mockReturnValue(undefined);
 
       await searchFn(
         {
