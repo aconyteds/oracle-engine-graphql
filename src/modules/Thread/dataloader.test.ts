@@ -20,6 +20,8 @@ describe("createThreadsByCampaignIdLoader", () => {
       userId: "user-1",
       createdAt: new Date("2025-01-01"),
       updatedAt: new Date("2025-01-03"),
+      userTitleOverride: null,
+      pinned: false,
     },
     {
       id: "thread-2",
@@ -28,6 +30,8 @@ describe("createThreadsByCampaignIdLoader", () => {
       userId: "user-1",
       createdAt: new Date("2025-01-02"),
       updatedAt: new Date("2025-01-02"),
+      userTitleOverride: null,
+      pinned: false,
     },
     {
       id: "thread-3",
@@ -36,6 +40,8 @@ describe("createThreadsByCampaignIdLoader", () => {
       userId: "user-1",
       createdAt: new Date("2025-01-01"),
       updatedAt: new Date("2025-01-01"),
+      userTitleOverride: null,
+      pinned: false,
     },
   ];
 

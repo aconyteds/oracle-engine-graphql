@@ -19,7 +19,8 @@ export const updateThread = async ({
 
   // Only include fields that are being updated
   if (userTitleOverride !== undefined) {
-    updateData.userTitleOverride = userTitleOverride || null;
+    updateData.userTitleOverride =
+      userTitleOverride === "" ? null : userTitleOverride;
   }
 
   if (pinned !== undefined) {

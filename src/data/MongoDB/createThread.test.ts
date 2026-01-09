@@ -20,6 +20,8 @@ describe("createThread", () => {
     userId: "owner-1",
     createdAt: new Date(),
     updatedAt: new Date(),
+    userTitleOverride: null,
+    pinned: false,
   };
 
   const defaultInput = {
