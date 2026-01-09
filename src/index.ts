@@ -17,6 +17,9 @@ declare module "bun" {
     // Hybrid search method: 'manual' (client-side RRF) or 'mongo' ($rankFusion)
     // Default: 'manual' (works on M0 tier)
     HYBRID_SEARCH_METHOD?: string;
+    // Maximum number of entries to keep in the in-memory embedding cache
+    // Optional; when unset, the default cache size configured in embeddingCache is used
+    EMBEDDING_CACHE_MAX_SIZE?: string;
   }
 }
 

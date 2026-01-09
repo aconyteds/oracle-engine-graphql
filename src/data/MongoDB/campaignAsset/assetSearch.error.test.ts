@@ -4,6 +4,10 @@ import type { AssetSearchInput } from "./assetSearch";
 describe("searchCampaignAssets error handling", () => {
   let mockAggregateRaw: ReturnType<typeof mock>;
   let mockCreateEmbeddings: ReturnType<typeof mock>;
+  let mockEmbeddingCache: {
+    get: ReturnType<typeof mock>;
+    set: ReturnType<typeof mock>;
+  };
   let searchCampaignAssets: typeof import("./assetSearch").searchCampaignAssets;
 
   beforeEach(async () => {
@@ -11,6 +15,10 @@ describe("searchCampaignAssets error handling", () => {
 
     mockAggregateRaw = mock();
     mockCreateEmbeddings = mock();
+    mockEmbeddingCache = {
+      get: mock(),
+      set: mock(),
+    };
 
     mock.module("../client", () => ({
       DBClient: {
@@ -24,8 +32,15 @@ describe("searchCampaignAssets error handling", () => {
       createEmbeddings: mockCreateEmbeddings,
     }));
 
+    mock.module("./embeddingCache", () => ({
+      embeddingCache: mockEmbeddingCache,
+    }));
+
     const module = await import("./assetSearch");
     searchCampaignAssets = module.searchCampaignAssets;
+
+    // Default to cache miss
+    mockEmbeddingCache.get.mockReturnValue(undefined);
   });
 
   afterEach(() => {
@@ -62,7 +77,7 @@ describe("searchCampaignAssets error handling", () => {
         "Campaign asset search failed:",
         expect.objectContaining({
           campaignId: "campaign-123",
-          searchMode: "hybrid",
+          searchMode: "manual_hybrid",
           query: "test query",
           keywords: "test",
         })

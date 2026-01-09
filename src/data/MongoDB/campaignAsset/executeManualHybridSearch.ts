@@ -75,16 +75,14 @@ export async function executeManualHybridSearch(
   });
 
   // Execute both searches in parallel
-  const vectorStart = performance.now();
-  const textStart = performance.now();
+  const searchStart = performance.now();
 
   const [vectorRawResults, textRawResults] = await Promise.all([
     DBClient.campaignAsset.aggregateRaw({ pipeline: vectorPipeline }),
     DBClient.campaignAsset.aggregateRaw({ pipeline: textPipeline }),
   ]);
 
-  const vectorDuration = performance.now() - vectorStart;
-  const textDuration = performance.now() - textStart;
+  const searchDuration = performance.now() - searchStart;
 
   // Convert raw BSON results to typed results
   const conversionStart = performance.now();
@@ -118,8 +116,8 @@ export async function executeManualHybridSearch(
   return {
     assets: limitedResults,
     timings: {
-      vectorSearch: vectorDuration,
-      textSearch: textDuration,
+      vectorSearch: searchDuration,
+      textSearch: searchDuration,
       fusion: fusionDuration,
       conversion: conversionDuration,
     },

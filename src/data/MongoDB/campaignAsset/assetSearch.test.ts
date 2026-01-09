@@ -724,8 +724,8 @@ describe("searchCampaignAssets", () => {
     expect(matchStage).toBeDefined();
   });
 
-  test("Unit -> searchCampaignAssets uses MongoDB $rankFusion when both query and keywords provided (default)", async () => {
-    // Default (when HYBRID_SEARCH_METHOD is not set) is MongoDB's native $rankFusion
+  test("Unit -> searchCampaignAssets uses manual hybrid search when both query and keywords provided (default)", async () => {
+    // Default (when HYBRID_SEARCH_METHOD is not set) is manual RRF
     await searchCampaignAssets(
       {
         query: defaultQuery,
@@ -737,28 +737,32 @@ describe("searchCampaignAssets", () => {
 
     expect(mockCreateEmbeddings).toHaveBeenCalledWith(defaultQuery);
 
-    // Should make single call with $rankFusion pipeline
-    expect(mockDBClient.campaignAsset.aggregateRaw).toHaveBeenCalledTimes(1);
+    // Manual RRF makes two separate calls: one for vector search, one for text search
+    expect(mockDBClient.campaignAsset.aggregateRaw).toHaveBeenCalledTimes(2);
 
-    const callArgs = mockDBClient.campaignAsset.aggregateRaw.mock.calls[0][0];
-    const pipeline = callArgs.pipeline;
-
-    const rankFusionStage = pipeline.find(
-      (stage: Document) => stage.$rankFusion
+    // First call should be vector search pipeline
+    const vectorCallArgs =
+      mockDBClient.campaignAsset.aggregateRaw.mock.calls[0][0];
+    const vectorPipeline = vectorCallArgs.pipeline;
+    const vectorSearchStage = vectorPipeline.find(
+      (stage: Document) => stage.$vectorSearch
     );
-    expect(rankFusionStage).toBeDefined();
-    expect(
-      rankFusionStage?.$rankFusion?.input?.pipelines?.vectorSearch
-    ).toBeDefined();
-    expect(
-      rankFusionStage?.$rankFusion?.input?.pipelines?.textSearch
-    ).toBeDefined();
+    expect(vectorSearchStage).toBeDefined();
+
+    // Second call should be text search pipeline
+    const textCallArgs =
+      mockDBClient.campaignAsset.aggregateRaw.mock.calls[1][0];
+    const textPipeline = textCallArgs.pipeline;
+    const textSearchStage = textPipeline.find(
+      (stage: Document) => stage.$search
+    );
+    expect(textSearchStage).toBeDefined();
   });
 
-  test("Unit -> searchCampaignAssets uses manual hybrid search when HYBRID_SEARCH_METHOD is manual", async () => {
-    // Set environment variable to use manual RRF
+  test("Unit -> searchCampaignAssets uses MongoDB $rankFusion when HYBRID_SEARCH_METHOD is mongo", async () => {
+    // Set environment variable to use MongoDB's native $rankFusion
     const originalEnv = Bun.env.HYBRID_SEARCH_METHOD;
-    Bun.env.HYBRID_SEARCH_METHOD = "manual";
+    Bun.env.HYBRID_SEARCH_METHOD = "mongo";
 
     try {
       // Re-import to pick up new env value
@@ -809,26 +813,23 @@ describe("searchCampaignAssets", () => {
 
       expect(mockCreateEmbeddings).toHaveBeenCalledWith(defaultQuery);
 
-      // Manual RRF makes two separate calls: one for vector search, one for text search
-      expect(mockDBClient.campaignAsset.aggregateRaw).toHaveBeenCalledTimes(2);
+      // MongoDB native $rankFusion makes a single call with $rankFusion pipeline
+      expect(mockDBClient.campaignAsset.aggregateRaw).toHaveBeenCalledTimes(1);
 
-      // First call should be vector search pipeline
-      const vectorCallArgs =
-        mockDBClient.campaignAsset.aggregateRaw.mock.calls[0][0];
-      const vectorPipeline = vectorCallArgs.pipeline;
-      const vectorSearchStage = vectorPipeline.find(
-        (stage: Document) => stage.$vectorSearch
-      );
-      expect(vectorSearchStage).toBeDefined();
+      const callArgs = mockDBClient.campaignAsset.aggregateRaw.mock.calls[0][0];
+      const pipeline = callArgs.pipeline;
 
-      // Second call should be text search pipeline
-      const textCallArgs =
-        mockDBClient.campaignAsset.aggregateRaw.mock.calls[1][0];
-      const textPipeline = textCallArgs.pipeline;
-      const textSearchStage = textPipeline.find(
-        (stage: Document) => stage.$search
+      // Should have $rankFusion stage with both vector and text search pipelines
+      const rankFusionStage = pipeline.find(
+        (stage: Document) => stage.$rankFusion
       );
-      expect(textSearchStage).toBeDefined();
+      expect(rankFusionStage).toBeDefined();
+      expect(
+        rankFusionStage?.$rankFusion?.input?.pipelines?.vectorSearch
+      ).toBeDefined();
+      expect(
+        rankFusionStage?.$rankFusion?.input?.pipelines?.textSearch
+      ).toBeDefined();
     } finally {
       // Restore original env
       if (originalEnv === undefined) {

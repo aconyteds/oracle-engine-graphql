@@ -1,4 +1,5 @@
 import type { CampaignAsset, RecordType } from "@prisma/client";
+import * as Sentry from "@sentry/bun";
 import type { Document } from "mongodb";
 import { z } from "zod";
 import { createEmbeddings } from "../../AI";
@@ -69,8 +70,9 @@ function determineSearchMode(
 ): SearchMode {
   if (!hasQuery) return "text_only";
   if (!hasKeywords) return "vector_only";
-  if (Bun.env.HYBRID_SEARCH_METHOD === "manual") return "manual_hybrid";
-  return "hybrid";
+  // Must opt in to use MongoDB's native hybrid search (not supported on M0 tier)
+  if (Bun.env.HYBRID_SEARCH_METHOD === "mongo") return "hybrid";
+  return "manual_hybrid";
 }
 
 /**
@@ -116,6 +118,15 @@ export async function searchCampaignAssets(
       embeddingDuration = performance.now() - embeddingStart;
 
       if (queryEmbedding.length === 0) {
+        Sentry.captureMessage("Embedding generation returned empty array", {
+          level: "error",
+          extra: {
+            reminder:
+              "Check that the connection to the AI service is working, and that there is sufficient budget and available rate limits.",
+            campaignId: params.campaignId,
+            query: params.query,
+          },
+        });
         throw new Error("Failed to generate query embedding");
       }
     }
