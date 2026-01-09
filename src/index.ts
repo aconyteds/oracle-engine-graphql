@@ -14,6 +14,12 @@ declare module "bun" {
     NODE_ENV?: string; // 'development' | 'production' | 'test'
     // Search metrics sampling rate (0.0 to 1.0)
     SEARCH_METRICS_SAMPLE_RATE?: string;
+    // Hybrid search method: 'manual' (client-side RRF) or 'mongo' ($rankFusion)
+    // Default: 'manual' (works on M0 tier)
+    HYBRID_SEARCH_METHOD?: string;
+    // Maximum number of entries to keep in the in-memory embedding cache
+    // Optional; when unset, the default cache size configured in embeddingCache is used
+    EMBEDDING_CACHE_MAX_SIZE?: string;
   }
 }
 
