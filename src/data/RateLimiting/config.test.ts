@@ -29,7 +29,7 @@ describe("config", () => {
 
     test("Unit -> getTierLimits returns correct limits for Tier3", () => {
       const limits = getTierLimits("Tier3");
-      expect(limits.maxLLMCallsPerDay).toBe(1500);
+      expect(limits.maxLLMCallsPerDay).toBe(1000);
       expect(limits.maxCampaigns).toBe(-1); // Unlimited
       expect(limits.warningThreshold).toBe(0.8);
       expect(limits.displayName).toBe("Professional");
