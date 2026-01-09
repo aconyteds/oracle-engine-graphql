@@ -97,10 +97,10 @@ export async function* generateMessage(
 
   // If at limit, yield rate limit exceeded message and return early
   if (usageStatus.isAtLimit) {
-    const rateLimitMesage = MessageFactory.rateLimitExceeded(
+    const rateLimitMessage = MessageFactory.rateLimitExceeded(
       usageStatus.maxCount
     );
-    yield rateLimitMesage;
+    yield rateLimitMessage;
     return;
   }
 
