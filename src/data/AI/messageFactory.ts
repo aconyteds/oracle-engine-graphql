@@ -108,6 +108,24 @@ export class MessageFactory {
     };
   }
 
+  static rateLimitWarning(
+    usedCount: number,
+    maxCount: number
+  ): GenerateMessagePayload {
+    const remaining = maxCount - usedCount;
+    return {
+      responseType: "Intermediate",
+      content: `You have ${remaining} AI message${remaining === 1 ? "" : "s"} remaining today (${usedCount}/${maxCount} used)`,
+    };
+  }
+
+  static rateLimitExceeded(maxCount: number): GenerateMessagePayload {
+    return {
+      responseType: "Intermediate",
+      content: `Daily limit reached (${maxCount} messages). Your limit resets at midnight UTC. Consider upgrading your subscription for more messages.`,
+    };
+  }
+
   // Helper methods
 
   private static friendlyToolName(toolName: string): string {

@@ -165,4 +165,47 @@ describe("MessageFactory", () => {
       content: "🧠 Calling tools: create_npc",
     });
   });
+
+  test("Unit -> MessageFactory.rateLimitWarning returns correct payload", () => {
+    const result = MessageFactory.rateLimitWarning(20, 25);
+
+    expect(result).toEqual({
+      responseType: "Intermediate",
+      content: "You have 5 AI messages remaining today (20/25 used)",
+    });
+  });
+
+  test("Unit -> MessageFactory.rateLimitWarning handles singular message", () => {
+    const result = MessageFactory.rateLimitWarning(24, 25);
+
+    expect(result).toEqual({
+      responseType: "Intermediate",
+      content: "You have 1 AI message remaining today (24/25 used)",
+    });
+  });
+
+  test("Unit -> MessageFactory.rateLimitWarning handles zero remaining", () => {
+    const result = MessageFactory.rateLimitWarning(25, 25);
+
+    expect(result).toEqual({
+      responseType: "Intermediate",
+      content: "You have 0 AI messages remaining today (25/25 used)",
+    });
+  });
+
+  test("Unit -> MessageFactory.rateLimitExceeded returns correct payload", () => {
+    const result = MessageFactory.rateLimitExceeded(25);
+
+    expect(result).toEqual({
+      responseType: "Intermediate",
+      content:
+        "Daily limit reached (25 messages). Your limit resets at midnight UTC. Consider upgrading your subscription for more messages.",
+    });
+  });
+
+  test("Unit -> MessageFactory.rateLimitExceeded handles different limits", () => {
+    const result = MessageFactory.rateLimitExceeded(150);
+
+    expect(result.content).toContain("150 messages");
+  });
 });

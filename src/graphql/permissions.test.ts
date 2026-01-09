@@ -16,6 +16,7 @@ describe("permissions", () => {
     updatedAt: new Date(),
     active: true,
     lastCampaignId: null,
+    subscriptionTier: "Free" as const,
   };
 
   const defaultContext: ServerContext = {

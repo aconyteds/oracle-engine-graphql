@@ -4,8 +4,10 @@ import { AIMessage, BaseMessage, HumanMessage } from "langchain";
 import { generateMessageWithAgent } from "../../../data/AI";
 import { defaultRouter } from "../../../data/AI/Agents";
 import { MessageQueue } from "../../../data/AI/MessageQueue";
+import { MessageFactory } from "../../../data/AI/messageFactory";
 import type { CampaignMetadata, RequestContext } from "../../../data/AI/types";
 import { DBClient } from "../../../data/MongoDB";
+import { checkRateLimit, incrementLLMUsage } from "../../../data/RateLimiting";
 import type { GenerateMessagePayload } from "../../../generated/graphql";
 import {
   NotFoundError,
@@ -80,6 +82,34 @@ export async function* generateMessage(
       throw error;
     }
     // For other errors, continue without metadata rather than failing the request
+  }
+
+  // Check rate limit before processing
+  let usageStatus;
+  try {
+    usageStatus = await checkRateLimit(userId);
+  } catch (error) {
+    if (error instanceof Error && error.message === "User not found") {
+      throw new NotFoundError("User not found");
+    }
+    throw error;
+  }
+
+  // If at limit, yield rate limit exceeded message and return early
+  if (usageStatus.isAtLimit) {
+    const rateLimitMesage = MessageFactory.rateLimitExceeded(
+      usageStatus.maxCount
+    );
+    yield rateLimitMesage;
+    return;
+  }
+
+  // Show warning if near limit (80%+ used)
+  if (usageStatus.isNearLimit) {
+    yield MessageFactory.rateLimitWarning(
+      usageStatus.currentCount,
+      usageStatus.maxCount
+    );
   }
 
   const currAgent = defaultRouter;
@@ -170,4 +200,7 @@ export async function* generateMessage(
 
   // Wait for agent to finish
   await agentPromise;
+
+  // Increment usage after successful generation
+  await incrementLLMUsage(userId);
 }

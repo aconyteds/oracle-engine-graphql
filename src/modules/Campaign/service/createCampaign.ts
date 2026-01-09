@@ -1,5 +1,6 @@
 import type { Campaign } from "../../../data/MongoDB";
 import { DBClient } from "../../../data/MongoDB";
+import { checkCampaignLimit } from "../../../data/RateLimiting";
 import { InvalidInput } from "../../../graphql/errors";
 import { checkCampaignNameExists } from "./checkCampaignNameExists";
 
@@ -24,6 +25,22 @@ export const createCampaign = async (
     throw InvalidInput(
       `A campaign with the name "${params.name}" already exists`
     );
+  }
+
+  // Check campaign limit
+  try {
+    const campaignLimitStatus = await checkCampaignLimit(params.ownerId);
+
+    if (!campaignLimitStatus.canCreate) {
+      throw InvalidInput(
+        `Campaign limit reached (${campaignLimitStatus.max}). Upgrade your subscription to create more campaigns.`
+      );
+    }
+  } catch (error) {
+    if (error instanceof Error && error.message === "User not found") {
+      throw InvalidInput("User not found");
+    }
+    throw error;
   }
 
   // Use a transaction to create campaign and update user's lastCampaignId atomically
