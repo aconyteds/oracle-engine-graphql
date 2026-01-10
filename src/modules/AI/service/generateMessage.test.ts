@@ -53,6 +53,8 @@ describe("Unit -> generateMessage", () => {
     messages: [],
     createdAt: new Date(),
     updatedAt: new Date(),
+    userTitleOverride: null,
+    pinned: false,
   };
 
   const defaultCampaign = {

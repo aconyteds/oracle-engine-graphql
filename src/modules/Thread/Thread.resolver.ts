@@ -2,7 +2,12 @@ import { verifyThreadOwnership } from "../../data/MongoDB";
 import { InvalidInput, InvalidUserCredentials } from "../../graphql/errors";
 import { TranslateMessage, TranslateThread } from "../utils";
 import type { ThreadModule } from "./generated";
-import { getCampaignThreads, getThread, getThreadMessages } from "./service";
+import {
+  getCampaignThreads,
+  getThread,
+  getThreadMessages,
+  updateThread,
+} from "./service";
 
 const ThreadResolvers: ThreadModule.Resolvers = {
   Query: {
@@ -42,6 +47,31 @@ const ThreadResolvers: ThreadModule.Resolvers = {
       };
     },
   },
+  Mutation: {
+    updateThread: async (
+      _,
+      { input: { threadId, title, isPinned } },
+      { user, selectedCampaignId }
+    ): Promise<ThreadModule.UpdateThreadPayload> => {
+      if (!user) {
+        throw InvalidUserCredentials();
+      }
+      if (!selectedCampaignId) {
+        throw InvalidInput(
+          "Campaign selection required. Please provide x-selected-campaign-id header."
+        );
+      }
+      await verifyThreadOwnership(threadId, user.id, selectedCampaignId);
+      const thread = await updateThread({
+        threadId,
+        title: title ?? undefined,
+        isPinned: isPinned ?? undefined,
+      });
+      return {
+        thread: TranslateThread(thread),
+      };
+    },
+  },
   Thread: {
     messages: async (
       parent,
@@ -72,13 +102,7 @@ const ThreadResolvers: ThreadModule.Resolvers = {
         );
       }
       const threads = await getCampaignThreads(selectedCampaignId);
-      return threads.map((thread) => ({
-        id: thread.id,
-        title: thread.title,
-        campaignId: thread.campaignId,
-        createdAt: thread.createdAt.toISOString(),
-        lastUsed: thread.updatedAt.toISOString(),
-      }));
+      return threads.map(TranslateThread);
     },
   },
   Campaign: {

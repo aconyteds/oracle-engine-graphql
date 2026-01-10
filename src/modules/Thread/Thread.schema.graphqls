@@ -12,11 +12,29 @@ extend type Query {
   getThread(input: GetThreadInput!): GetThreadPayload
 }
 
+extend type Mutation {
+  """
+  Updates a thread's title and/or pinned status.
+  Requires x-selected-campaign-id header.
+  """
+  updateThread(input: UpdateThreadInput!): UpdateThreadPayload
+}
+
 input GetThreadInput {
   threadId: ID!
 }
 
 type GetThreadPayload {
+  thread: Thread
+}
+
+input UpdateThreadInput {
+  threadId: ID!
+  title: String
+  isPinned: Boolean
+}
+
+type UpdateThreadPayload {
   thread: Thread
 }
 
@@ -29,6 +47,10 @@ type Thread {
   The ID of the campaign this thread belongs to
   """
   campaignId: ID!
+  """
+  Whether or not the user has pinned this thread, marking it as a favorite
+  """
+  isPinned: Boolean!
 }
 
 extend type User {
