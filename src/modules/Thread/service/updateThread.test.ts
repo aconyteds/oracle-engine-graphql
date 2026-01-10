@@ -99,12 +99,25 @@ describe("updateThread service", () => {
     expect(result).toEqual(defaultThread);
   });
 
-  test("Unit -> updateThread propagates errors from database layer", async () => {
+  test("Unit -> updateThread converts database errors to Internal Server Error and logs", async () => {
+    const originalConsoleError = console.error;
+    const mockConsoleError = mock();
+    console.error = mockConsoleError;
+
     const testError = new Error("Database error");
     mockUpdateThreadInDB.mockRejectedValue(testError);
 
-    await expect(
-      updateThread({ threadId: "thread-1", title: "Test" })
-    ).rejects.toThrow("Database error");
+    try {
+      await expect(
+        updateThread({ threadId: "thread-1", title: "Test" })
+      ).rejects.toThrow("Failed to update thread");
+
+      expect(mockConsoleError).toHaveBeenCalledWith(
+        "Error updating thread:",
+        testError
+      );
+    } finally {
+      console.error = originalConsoleError;
+    }
   });
 });
