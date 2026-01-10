@@ -28,6 +28,7 @@ export const login = async (
         email: userCredential.email,
         name: userCredential.name,
         isActive: userCredential.active,
+        subscriptionTier: userCredential.subscriptionTier,
       },
     };
   } catch (error) {

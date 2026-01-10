@@ -21,4 +21,12 @@ type User {
   email: String
   name: String
   isActive: Boolean!
+  subscriptionTier: String!
+  dailyUsage: UserDailyUsage
+}
+
+type UserDailyUsage {
+  current: Int!
+  limit: Int
+  percentUsed: Float!
 }

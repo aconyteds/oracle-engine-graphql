@@ -1,6 +1,7 @@
 import { ApolloServerErrorCode } from "@apollo/server/errors";
 import { GraphQLError } from "graphql";
 
+import { checkRateLimit } from "../../data/RateLimiting/usageTracking";
 import type { UserModule } from "./generated";
 import { getCurrentUser, login } from "./service";
 
@@ -37,6 +38,16 @@ const UserResolvers: UserModule.Resolvers = {
         };
       }
       return login(input);
+    },
+  },
+  User: {
+    dailyUsage: async (parent): Promise<UserModule.UserDailyUsage | null> => {
+      const rateLimitCheck = await checkRateLimit(parent.id);
+      return {
+        current: rateLimitCheck.currentCount,
+        limit: rateLimitCheck.maxCount === -1 ? null : rateLimitCheck.maxCount,
+        percentUsed: rateLimitCheck.percentUsed,
+      };
     },
   },
 };
