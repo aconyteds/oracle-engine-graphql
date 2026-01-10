@@ -43,9 +43,10 @@ export const TranslateMessage = (message: Message): GraphQLMessage => {
 export const TranslateThread = (thread: Thread): GraphQLThread => {
   return {
     id: thread.id,
-    title: thread.title,
+    title: thread.userTitleOverride || thread.title,
     lastUsed: thread.updatedAt.toISOString(),
     campaignId: thread.campaignId,
+    isPinned: thread.pinned,
     messages: [],
   };
 };

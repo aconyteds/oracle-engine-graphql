@@ -7,5 +7,6 @@ export * from "./lookupUser";
 export * from "./saveMessage";
 export * from "./saveRoutingMetrics";
 export * from "./saveSearchMetrics";
+export * from "./updateThread";
 export * from "./verifyCampaignOwnership";
 export * from "./verifyThreadOwnership";
