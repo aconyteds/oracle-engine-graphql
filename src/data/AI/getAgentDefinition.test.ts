@@ -19,6 +19,7 @@ describe("getAgentDefinition", () => {
     campaignId: "campaign-1",
     threadId: "thread-1",
     runId: "run-1",
+    yieldMessage: () => {},
   };
 
   // biome-ignore lint/suspicious/noExplicitAny: Mock tool for testing

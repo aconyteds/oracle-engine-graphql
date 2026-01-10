@@ -1,5 +1,6 @@
 import type { Campaign } from "../../../data/MongoDB";
 import { DBClient } from "../../../data/MongoDB";
+import { checkCampaignLimit } from "../../../data/RateLimiting";
 import { InvalidInput } from "../../../graphql/errors";
 import { checkCampaignNameExists } from "./checkCampaignNameExists";
 
@@ -23,6 +24,15 @@ export const createCampaign = async (
   if (nameExists) {
     throw InvalidInput(
       `A campaign with the name "${params.name}" already exists`
+    );
+  }
+
+  // Check campaign limit
+  const campaignLimitStatus = await checkCampaignLimit(params.ownerId);
+
+  if (!campaignLimitStatus.canCreate) {
+    throw InvalidInput(
+      `Campaign limit reached (${campaignLimitStatus.max}). Upgrade your subscription to create more campaigns.`
     );
   }
 

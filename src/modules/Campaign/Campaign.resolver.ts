@@ -111,6 +111,7 @@ const CampaignResolvers: CampaignModule.Resolvers = {
           email: updatedUser.email,
           name: updatedUser.name,
           isActive: updatedUser.active,
+          subscriptionTier: updatedUser.subscriptionTier,
         },
       };
     },

@@ -15,14 +15,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Testing:**
 
-- `bun test` - Run unit tests (test-name-pattern: Unit)
-- `bun run test:isolated` - Run unit tests in isolation (one file at a time) - RECOMMENDED for CI
+- `bun test <filename>` - Run a specific test file (e.g., `bun test User.resolver.test.ts`)
+- `bun run test:isolated` - Run ALL unit tests in isolation (one file at a time) - REQUIRED for full test suite
 - `bun test:e2e` - Run end-to-end tests (test-name-pattern: E2E)
 - `bun run test:e2e:isolated` - Run E2E tests in isolation - RECOMMENDED for CI
 - `bun run lint` - MUST be run after creating/modifying tests to fix lint errors
 - `bun run lint:fix` - Auto-fix lint issues in test files
 
-**Important:** Due to a bug in Bun's `mock.module()` (see [#7823](https://github.com/oven-sh/bun/issues/7823), [#6040](https://github.com/oven-sh/bun/issues/6040)), module mocks leak between test files. The `test:isolated` scripts run each test file individually to ensure proper isolation. Use these in CI and when debugging test failures.
+**Important:**
+- When testing individual files during development, use `bun test <filename>`
+- When running the full test suite (e.g., before committing), ALWAYS use `bun run test:isolated`
+- Due to a bug in Bun's `mock.module()` (see [#7823](https://github.com/oven-sh/bun/issues/7823), [#6040](https://github.com/oven-sh/bun/issues/6040)), module mocks leak between test files when running `bun test` without a specific file. The `test:isolated` scripts run each test file individually to ensure proper isolation.
 
 **Database:**
 

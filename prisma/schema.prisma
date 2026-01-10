@@ -14,21 +14,49 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Subscription and Rate Limiting
+
+enum SubscriptionTier {
+  Free
+  Tier1
+  Tier2
+  Tier3
+  Admin
+}
+
 // System data
 
 model User {
-  id              String     @id @default(auto()) @map("_id") @db.ObjectId
-  googleAccountId String     @unique
-  email           String?    @unique
-  name            String?
-  threads         Thread[]
-  createdAt       DateTime   @default(now())
-  updatedAt       DateTime   @updatedAt
+  id               String           @id @default(auto()) @map("_id") @db.ObjectId
+  googleAccountId  String           @unique
+  email            String?          @unique
+  name             String?
+  threads          Thread[]
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
   // This indicates that the user is authorized to use the tool
-  active          Boolean    @default(false)
+  active           Boolean          @default(false)
   // The last campaign the user loaded
-  lastCampaignId  String?    @db.ObjectId // Stores the last loaded campaign
-  Campaign        Campaign[] // One-to-many relationship with Campaign
+  lastCampaignId   String?          @db.ObjectId // Stores the last loaded campaign
+  Campaign         Campaign[] // One-to-many relationship with Campaign
+  // Rate limiting
+  subscriptionTier SubscriptionTier @default(Free)
+  DailyUsage       DailyUsage[]
+}
+
+model DailyUsage {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId       String   @db.ObjectId
+  user         User     @relation(fields: [userId], references: [id])
+  date         String // Format: "YYYY-MM-DD" in UTC
+  llmCallCount Int      @default(0)
+  tokenCount   Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([userId, date])
+  @@index([userId])
+  @@index([date])
 }
 
 model Thread {

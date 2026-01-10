@@ -21,6 +21,7 @@ describe("selectCampaign", () => {
     updatedAt: new Date("2025-01-02"),
     active: true,
     lastCampaignId: "campaign-1",
+    subscriptionTier: "Free",
   };
 
   beforeEach(async () => {

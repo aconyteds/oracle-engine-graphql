@@ -6,14 +6,17 @@ describe("createCampaign", () => {
   // Declare mock variables
   let mockCampaignCreate: ReturnType<typeof mock>;
   let mockUserUpdate: ReturnType<typeof mock>;
+  let mockUserFindUnique: ReturnType<typeof mock>;
   let mockTransaction: ReturnType<typeof mock>;
   let mockCheckCampaignNameExists: ReturnType<typeof mock>;
+  let mockCheckCampaignLimit: ReturnType<typeof mock>;
   let mockDBClient: {
     campaign: {
       create: ReturnType<typeof mock>;
     };
     user: {
       update: ReturnType<typeof mock>;
+      findUnique: ReturnType<typeof mock>;
     };
     $transaction: ReturnType<typeof mock>;
   };
@@ -35,6 +38,13 @@ describe("createCampaign", () => {
     updatedAt: new Date("2025-01-01"),
   };
 
+  // Default campaign limit status
+  const defaultCampaignLimitStatus = {
+    canCreate: true,
+    current: 0,
+    max: 1,
+  };
+
   beforeEach(async () => {
     // CRITICAL: Restore all mocks first
     mock.restore();
@@ -42,14 +52,17 @@ describe("createCampaign", () => {
     // Create fresh mock instances
     mockCampaignCreate = mock();
     mockUserUpdate = mock();
+    mockUserFindUnique = mock();
     mockTransaction = mock();
     mockCheckCampaignNameExists = mock();
+    mockCheckCampaignLimit = mock();
     mockDBClient = {
       campaign: {
         create: mockCampaignCreate,
       },
       user: {
         update: mockUserUpdate,
+        findUnique: mockUserFindUnique,
       },
       $transaction: mockTransaction,
     };
@@ -63,12 +76,18 @@ describe("createCampaign", () => {
       checkCampaignNameExists: mockCheckCampaignNameExists,
     }));
 
+    mock.module("../../../data/RateLimiting", () => ({
+      checkCampaignLimit: mockCheckCampaignLimit,
+    }));
+
     // Dynamically import the module under test
     const module = await import("./createCampaign");
     createCampaign = module.createCampaign;
 
     // Configure default mock behavior AFTER import
     mockCheckCampaignNameExists.mockResolvedValue(false);
+    mockUserFindUnique.mockResolvedValue({ subscriptionTier: "Free" });
+    mockCheckCampaignLimit.mockResolvedValue(defaultCampaignLimitStatus);
     mockCampaignCreate.mockResolvedValue(defaultCampaign);
     mockUserUpdate.mockResolvedValue({
       id: "user-1",
@@ -209,5 +228,78 @@ describe("createCampaign", () => {
 
     expect(createCallOrder).toBeGreaterThan(0);
     expect(updateCallOrder).toBeGreaterThan(0);
+  });
+
+  // Campaign Limit Tests
+  test("Unit -> createCampaign checks campaign limit before creating", async () => {
+    await createCampaign(defaultCampaignParams);
+
+    expect(mockCheckCampaignLimit).toHaveBeenCalledWith("user-1");
+  });
+
+  test("Unit -> createCampaign throws error when campaign limit reached", async () => {
+    mockCheckCampaignLimit.mockResolvedValue({
+      canCreate: false,
+      current: 1,
+      max: 1,
+    });
+
+    await expect(createCampaign(defaultCampaignParams)).rejects.toThrow(
+      "Campaign limit reached (1)"
+    );
+
+    expect(mockTransaction).not.toHaveBeenCalled();
+    expect(mockCampaignCreate).not.toHaveBeenCalled();
+  });
+
+  test("Unit -> createCampaign allows creation when under campaign limit", async () => {
+    mockCheckCampaignLimit.mockResolvedValue({
+      canCreate: true,
+      current: 0,
+      max: 1,
+    });
+
+    const result = await createCampaign(defaultCampaignParams);
+
+    expect(result).toEqual(defaultCampaign);
+    expect(mockTransaction).toHaveBeenCalled();
+  });
+
+  test("Unit -> createCampaign handles Tier1 with higher campaign limit", async () => {
+    mockCheckCampaignLimit.mockResolvedValue({
+      canCreate: true,
+      current: 4,
+      max: 5,
+    });
+
+    const result = await createCampaign(defaultCampaignParams);
+
+    expect(mockCheckCampaignLimit).toHaveBeenCalledWith("user-1");
+    expect(result).toEqual(defaultCampaign);
+  });
+
+  test("Unit -> createCampaign blocks Tier1 at campaign limit", async () => {
+    mockCheckCampaignLimit.mockResolvedValue({
+      canCreate: false,
+      current: 5,
+      max: 5,
+    });
+
+    await expect(createCampaign(defaultCampaignParams)).rejects.toThrow(
+      "Campaign limit reached (5)"
+    );
+  });
+
+  test("Unit -> createCampaign allows Admin unlimited campaigns", async () => {
+    mockCheckCampaignLimit.mockResolvedValue({
+      canCreate: true,
+      current: 100,
+      max: -1,
+    });
+
+    const result = await createCampaign(defaultCampaignParams);
+
+    expect(mockCheckCampaignLimit).toHaveBeenCalledWith("user-1");
+    expect(result).toEqual(defaultCampaign);
   });
 });

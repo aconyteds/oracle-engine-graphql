@@ -11,9 +11,13 @@ type MockThread = Thread & {
 describe("Unit -> generateMessage", () => {
   // Mock variables
   let mockFindFirst: ReturnType<typeof mock>;
+  let mockFindUnique: ReturnType<typeof mock>;
   let mockDBClient: {
     thread: {
       findFirst: ReturnType<typeof mock>;
+    };
+    user: {
+      findUnique: ReturnType<typeof mock>;
     };
   };
   let mockGenerateMessageWithAgent: ReturnType<typeof mock>;
@@ -29,6 +33,8 @@ describe("Unit -> generateMessage", () => {
     getErrorReason: ReturnType<typeof mock>;
   };
   let MockMessageQueueClass: ReturnType<typeof mock>;
+  let mockCheckRateLimit: ReturnType<typeof mock>;
+  let mockIncrementLLMUsage: ReturnType<typeof mock>;
   let generateMessage: (
     input: GenerateMessageProps
   ) => AsyncGenerator<GenerateMessagePayload>;
@@ -82,15 +88,41 @@ describe("Unit -> generateMessage", () => {
     routingMetadata: null,
   };
 
+  // Default rate limit status
+  const defaultUsageStatus = {
+    currentCount: 5,
+    maxCount: 25,
+    remaining: 20,
+    isAtLimit: false,
+    isNearLimit: false,
+    percentUsed: 0.2,
+  };
+
+  const defaultDailyUsage = {
+    id: "usage-1",
+    userId: "user-id",
+    date: "2025-01-08",
+    llmCallCount: 6,
+    tokenCount: 0,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
   beforeEach(async () => {
     // Restore all mocks first
     mock.restore();
 
     // Create mock functions
     mockFindFirst = mock();
+    mockFindUnique = mock();
+    mockCheckRateLimit = mock();
+    mockIncrementLLMUsage = mock();
     mockDBClient = {
       thread: {
         findFirst: mockFindFirst,
+      },
+      user: {
+        findUnique: mockFindUnique,
       },
     };
     mockGenerateMessageWithAgent = mock();
@@ -141,14 +173,23 @@ describe("Unit -> generateMessage", () => {
       getCampaign: mockGetCampaign,
     }));
 
+    // Mock rate limiting module
+    void mock.module("../../../data/RateLimiting", () => ({
+      checkRateLimit: mockCheckRateLimit,
+      incrementLLMUsage: mockIncrementLLMUsage,
+    }));
+
     // Dynamic import
     const module = await import("./generateMessage");
     generateMessage = module.generateMessage;
 
     // Set up default mock behavior
     mockFindFirst.mockResolvedValue(defaultThread);
+    mockFindUnique.mockResolvedValue({ subscriptionTier: "Free" });
     mockGetCampaign.mockResolvedValue(defaultCampaign);
     mockRandomUUID.mockReturnValue("test-run-id");
+    mockCheckRateLimit.mockResolvedValue(defaultUsageStatus);
+    mockIncrementLLMUsage.mockResolvedValue(defaultDailyUsage);
 
     // Default MessageQueue behavior - simulate one message then done
     let isDoneState = false;
@@ -661,5 +702,142 @@ describe("Unit -> generateMessage", () => {
 
     const callArgs = mockGenerateMessageWithAgent.mock.calls[0][0];
     expect(callArgs.enqueueMessage).toBeInstanceOf(Function);
+  });
+
+  // Rate Limiting Tests
+  test("Unit -> generateMessage checks rate limit before processing", async () => {
+    const generator = generateMessage(defaultInput);
+    const results: GenerateMessagePayload[] = [];
+
+    for await (const result of generator) {
+      results.push(result);
+    }
+
+    expect(mockCheckRateLimit).toHaveBeenCalledWith("user-id");
+  });
+
+  test("Unit -> generateMessage returns early when rate limit exceeded", async () => {
+    mockCheckRateLimit.mockResolvedValue({
+      currentCount: 25,
+      maxCount: 25,
+      remaining: 0,
+      isAtLimit: true,
+      isNearLimit: false,
+      percentUsed: 1.0,
+    });
+
+    // Override mock to track enqueued messages and return them
+    const enqueuedMessages: GenerateMessagePayload[] = [];
+    let dequeueIndex = 0;
+    let isDone = false;
+
+    mockMessageQueue.enqueue.mockImplementation(
+      (msg: GenerateMessagePayload) => {
+        enqueuedMessages.push(msg);
+      }
+    );
+    mockMessageQueue.complete.mockImplementation(() => {
+      isDone = true;
+    });
+    mockMessageQueue.isDone.mockImplementation(() => {
+      return dequeueIndex >= enqueuedMessages.length && isDone;
+    });
+    mockMessageQueue.dequeue.mockImplementation(async () => {
+      if (dequeueIndex < enqueuedMessages.length) {
+        return enqueuedMessages[dequeueIndex++];
+      }
+      return null;
+    });
+
+    const generator = generateMessage(defaultInput);
+    const results: GenerateMessagePayload[] = [];
+
+    for await (const result of generator) {
+      results.push(result);
+    }
+
+    expect(results).toHaveLength(1);
+    expect(results[0].responseType).toBe("Intermediate");
+    expect(results[0].content).toContain("Daily limit reached");
+    expect(results[0].content).toContain("25 messages");
+    // Agent should not be called when rate limited
+    expect(mockGenerateMessageWithAgent).not.toHaveBeenCalled();
+  });
+
+  test("Unit -> generateMessage shows warning when near rate limit", async () => {
+    mockCheckRateLimit.mockResolvedValue({
+      currentCount: 20,
+      maxCount: 25,
+      remaining: 5,
+      isAtLimit: false,
+      isNearLimit: true,
+      percentUsed: 0.8,
+    });
+
+    const generator = generateMessage(defaultInput);
+    const results: GenerateMessagePayload[] = [];
+
+    for await (const result of generator) {
+      results.push(result);
+    }
+
+    // Should have warning message plus the normal response
+    expect(results.length).toBeGreaterThanOrEqual(2);
+    expect(results[0].responseType).toBe("Intermediate");
+    expect(results[0].content).toContain("5 AI messages remaining");
+    expect(results[0].content).toContain("20/25 used");
+  });
+
+  test("Unit -> generateMessage increments usage after successful generation", async () => {
+    const generator = generateMessage(defaultInput);
+    const results: GenerateMessagePayload[] = [];
+
+    for await (const result of generator) {
+      results.push(result);
+    }
+
+    expect(mockIncrementLLMUsage).toHaveBeenCalledWith("user-id");
+  });
+
+  test("Unit -> generateMessage does not increment usage when rate limited", async () => {
+    mockCheckRateLimit.mockResolvedValue({
+      currentCount: 25,
+      maxCount: 25,
+      remaining: 0,
+      isAtLimit: true,
+      isNearLimit: false,
+      percentUsed: 1.0,
+    });
+
+    const generator = generateMessage(defaultInput);
+    const results: GenerateMessagePayload[] = [];
+
+    for await (const result of generator) {
+      results.push(result);
+    }
+
+    expect(mockIncrementLLMUsage).not.toHaveBeenCalled();
+  });
+
+  test("Unit -> generateMessage handles Admin tier with unlimited usage", async () => {
+    mockCheckRateLimit.mockResolvedValue({
+      currentCount: 0,
+      maxCount: -1,
+      remaining: -1,
+      isAtLimit: false,
+      isNearLimit: false,
+      percentUsed: 0,
+    });
+
+    const generator = generateMessage(defaultInput);
+    const results: GenerateMessagePayload[] = [];
+
+    for await (const result of generator) {
+      results.push(result);
+    }
+
+    // Should proceed without rate limit warning
+    expect(mockGenerateMessageWithAgent).toHaveBeenCalled();
+    expect(mockIncrementLLMUsage).toHaveBeenCalled();
   });
 });
