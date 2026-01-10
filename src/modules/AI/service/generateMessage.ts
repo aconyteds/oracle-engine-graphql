@@ -85,15 +85,7 @@ export async function* generateMessage(
   }
 
   // Check rate limit before processing
-  let usageStatus;
-  try {
-    usageStatus = await checkRateLimit(userId);
-  } catch (error) {
-    if (error instanceof Error && error.message === "User not found") {
-      throw new NotFoundError("User not found");
-    }
-    throw error;
-  }
+  const usageStatus = await checkRateLimit(userId);
 
   // If at limit, yield rate limit exceeded message and return early
   if (usageStatus.isAtLimit) {

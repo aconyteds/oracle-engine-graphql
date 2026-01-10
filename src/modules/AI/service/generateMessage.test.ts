@@ -819,14 +819,6 @@ describe("Unit -> generateMessage", () => {
     expect(mockIncrementLLMUsage).not.toHaveBeenCalled();
   });
 
-  test("Unit -> generateMessage throws error when user not found for rate limiting", async () => {
-    mockCheckRateLimit.mockRejectedValue(new Error("User not found"));
-
-    const generator = generateMessage(defaultInput);
-
-    expect(generator.next()).rejects.toThrow("User not found");
-  });
-
   test("Unit -> generateMessage handles Admin tier with unlimited usage", async () => {
     mockCheckRateLimit.mockResolvedValue({
       currentCount: 0,

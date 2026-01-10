@@ -28,19 +28,12 @@ export const createCampaign = async (
   }
 
   // Check campaign limit
-  try {
-    const campaignLimitStatus = await checkCampaignLimit(params.ownerId);
+  const campaignLimitStatus = await checkCampaignLimit(params.ownerId);
 
-    if (!campaignLimitStatus.canCreate) {
-      throw InvalidInput(
-        `Campaign limit reached (${campaignLimitStatus.max}). Upgrade your subscription to create more campaigns.`
-      );
-    }
-  } catch (error) {
-    if (error instanceof Error && error.message === "User not found") {
-      throw InvalidInput("User not found");
-    }
-    throw error;
+  if (!campaignLimitStatus.canCreate) {
+    throw InvalidInput(
+      `Campaign limit reached (${campaignLimitStatus.max}). Upgrade your subscription to create more campaigns.`
+    );
   }
 
   // Use a transaction to create campaign and update user's lastCampaignId atomically

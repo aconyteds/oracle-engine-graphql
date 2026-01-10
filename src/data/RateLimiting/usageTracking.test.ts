@@ -1,11 +1,12 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
-import type { DailyUsage } from "@prisma/client";
+import type { DailyUsage, User } from "@prisma/client";
 
 describe("usageTracking", () => {
   // Mock variables
   let mockUpsert: ReturnType<typeof mock>;
   let mockCount: ReturnType<typeof mock>;
   let mockUserFindUnique: ReturnType<typeof mock>;
+  let mockSentryCapture: ReturnType<typeof mock>;
   let mockDBClient: {
     dailyUsage: {
       upsert: ReturnType<typeof mock>;
@@ -20,6 +21,7 @@ describe("usageTracking", () => {
   let getCurrentDateString: typeof import("./usageTracking").getCurrentDateString;
   let getOrCreateDailyUsage: typeof import("./usageTracking").getOrCreateDailyUsage;
   let incrementLLMUsage: typeof import("./usageTracking").incrementLLMUsage;
+  let getTierLimits: typeof import("./usageTracking").getTierLimits;
   let checkRateLimit: typeof import("./usageTracking").checkRateLimit;
   let checkCampaignLimit: typeof import("./usageTracking").checkCampaignLimit;
 
@@ -43,6 +45,7 @@ describe("usageTracking", () => {
     mockUpsert = mock();
     mockCount = mock();
     mockUserFindUnique = mock();
+    mockSentryCapture = mock();
     mockDBClient = {
       dailyUsage: {
         upsert: mockUpsert,
@@ -60,18 +63,23 @@ describe("usageTracking", () => {
       DBClient: mockDBClient,
     }));
 
+    mock.module("@sentry/bun", () => ({
+      captureException: mockSentryCapture,
+    }));
+
     // Dynamically import the module under test
     const module = await import("./usageTracking");
     getCurrentDateString = module.getCurrentDateString;
     getOrCreateDailyUsage = module.getOrCreateDailyUsage;
     incrementLLMUsage = module.incrementLLMUsage;
+    getTierLimits = module.getTierLimits;
     checkRateLimit = module.checkRateLimit;
     checkCampaignLimit = module.checkCampaignLimit;
 
     // Configure default mock behavior
     mockUpsert.mockResolvedValue(defaultDailyUsage);
     mockCount.mockResolvedValue(0);
-    mockUserFindUnique.mockResolvedValue({ subscriptionTier: "Free" });
+    mockUserFindUnique.mockResolvedValue({ subscriptionTier: "Free" } as User);
   });
 
   afterEach(() => {
@@ -173,9 +181,102 @@ describe("usageTracking", () => {
     });
   });
 
+  describe("getTierLimits", () => {
+    test.each([
+      {
+        tier: "Free",
+        expected: {
+          maxLLMCallsPerDay: 25,
+          maxCampaigns: 1,
+          warningThreshold: 0.8,
+          displayName: "Free",
+        },
+      },
+      {
+        tier: "Tier1",
+        expected: {
+          maxLLMCallsPerDay: 100,
+          maxCampaigns: 5,
+          warningThreshold: 0.8,
+          displayName: "Hobbyist",
+        },
+      },
+      {
+        tier: "Tier2",
+        expected: {
+          maxLLMCallsPerDay: 500,
+          maxCampaigns: 20,
+          warningThreshold: 0.8,
+          displayName: "Game Master",
+        },
+      },
+      {
+        tier: "Tier3",
+        expected: {
+          maxLLMCallsPerDay: 1000,
+          maxCampaigns: -1,
+          warningThreshold: 0.8,
+          displayName: "Professional",
+        },
+      },
+      {
+        tier: "Admin",
+        expected: {
+          maxLLMCallsPerDay: -1,
+          maxCampaigns: -1,
+          warningThreshold: 1.0,
+          displayName: "Admin",
+        },
+      },
+    ])(
+      "Unit -> getTierLimits returns correct limits for $tier user",
+      async ({ tier, expected }) => {
+        mockUserFindUnique.mockResolvedValue({
+          subscriptionTier: tier,
+        } as User);
+
+        const limits = await getTierLimits("user-1");
+
+        expect(limits.maxLLMCallsPerDay).toBe(expected.maxLLMCallsPerDay);
+        expect(limits.maxCampaigns).toBe(expected.maxCampaigns);
+        expect(limits.warningThreshold).toBe(expected.warningThreshold);
+        expect(limits.displayName).toBe(expected.displayName);
+      }
+    );
+
+    test("Unit -> getTierLimits returns safe default for non-existent user", async () => {
+      mockUserFindUnique.mockResolvedValue(null);
+
+      const limits = await getTierLimits("invalid-user");
+
+      expect(mockSentryCapture).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: "User not found when checking rate limits",
+        }),
+        {
+          extra: {
+            userId: "invalid-user",
+            reminder:
+              "This error likely means that an invalid UserId was passed to this method, indicating an incorrect implementation where userId doesn't exist. Double check the call chain to ensure the userId has been verified.",
+          },
+        }
+      );
+
+      expect(limits).toEqual({
+        maxLLMCallsPerDay: 0,
+        maxCampaigns: 0,
+        warningThreshold: 0.8,
+        displayName: "Unknown",
+      });
+    });
+  });
+
   describe("checkRateLimit", () => {
     test("Unit -> checkRateLimit returns unlimited status for Admin tier", async () => {
-      mockUserFindUnique.mockResolvedValue({ subscriptionTier: "Admin" });
+      mockUserFindUnique.mockResolvedValue({
+        subscriptionTier: "Admin",
+      } as User);
+
       const result = await checkRateLimit(defaultUserId);
 
       expect(result).toEqual({
@@ -191,7 +292,6 @@ describe("usageTracking", () => {
     });
 
     test("Unit -> checkRateLimit returns correct status when under limit", async () => {
-      mockUserFindUnique.mockResolvedValue({ subscriptionTier: "Free" });
       mockUpsert.mockResolvedValue({ ...defaultDailyUsage, llmCallCount: 10 });
 
       const result = await checkRateLimit(defaultUserId);
@@ -207,7 +307,6 @@ describe("usageTracking", () => {
     });
 
     test("Unit -> checkRateLimit returns isNearLimit when at 80% or more", async () => {
-      mockUserFindUnique.mockResolvedValue({ subscriptionTier: "Free" });
       mockUpsert.mockResolvedValue({ ...defaultDailyUsage, llmCallCount: 20 });
 
       const result = await checkRateLimit(defaultUserId);
@@ -218,7 +317,6 @@ describe("usageTracking", () => {
     });
 
     test("Unit -> checkRateLimit returns isAtLimit when at limit", async () => {
-      mockUserFindUnique.mockResolvedValue({ subscriptionTier: "Free" });
       mockUpsert.mockResolvedValue({ ...defaultDailyUsage, llmCallCount: 25 });
 
       const result = await checkRateLimit(defaultUserId);
@@ -229,7 +327,6 @@ describe("usageTracking", () => {
     });
 
     test("Unit -> checkRateLimit returns isAtLimit when over limit", async () => {
-      mockUserFindUnique.mockResolvedValue({ subscriptionTier: "Free" });
       mockUpsert.mockResolvedValue({ ...defaultDailyUsage, llmCallCount: 30 });
 
       const result = await checkRateLimit(defaultUserId);
@@ -238,16 +335,28 @@ describe("usageTracking", () => {
       expect(result.remaining).toBe(0);
     });
 
-    test("Unit -> checkRateLimit throws error if user not found", async () => {
+    test("Unit -> checkRateLimit returns limit exceeded for non-existent user", async () => {
       mockUserFindUnique.mockResolvedValue(null);
 
-      expect(checkRateLimit(defaultUserId)).rejects.toThrow("User not found");
+      const result = await checkRateLimit(defaultUserId);
+
+      expect(result).toEqual({
+        currentCount: 0,
+        maxCount: 0,
+        remaining: 0,
+        isAtLimit: true,
+        isNearLimit: false,
+        percentUsed: 1,
+      });
     });
   });
 
   describe("checkCampaignLimit", () => {
     test("Unit -> checkCampaignLimit returns unlimited for Admin tier", async () => {
-      mockUserFindUnique.mockResolvedValue({ subscriptionTier: "Admin" });
+      mockUserFindUnique.mockResolvedValue({
+        subscriptionTier: "Admin",
+      } as User);
+
       const result = await checkCampaignLimit(defaultUserId);
 
       expect(result).toEqual({
@@ -259,7 +368,10 @@ describe("usageTracking", () => {
     });
 
     test("Unit -> checkCampaignLimit returns unlimited for Tier3", async () => {
-      mockUserFindUnique.mockResolvedValue({ subscriptionTier: "Tier3" });
+      mockUserFindUnique.mockResolvedValue({
+        subscriptionTier: "Tier3",
+      } as User);
+
       const result = await checkCampaignLimit(defaultUserId);
 
       expect(result).toEqual({
@@ -271,7 +383,6 @@ describe("usageTracking", () => {
     });
 
     test("Unit -> checkCampaignLimit returns canCreate true when under limit", async () => {
-      mockUserFindUnique.mockResolvedValue({ subscriptionTier: "Free" });
       mockCount.mockResolvedValue(0);
 
       const result = await checkCampaignLimit(defaultUserId);
@@ -284,7 +395,6 @@ describe("usageTracking", () => {
     });
 
     test("Unit -> checkCampaignLimit returns canCreate false when at limit", async () => {
-      mockUserFindUnique.mockResolvedValue({ subscriptionTier: "Free" });
       mockCount.mockResolvedValue(1);
 
       const result = await checkCampaignLimit(defaultUserId);
@@ -297,7 +407,9 @@ describe("usageTracking", () => {
     });
 
     test("Unit -> checkCampaignLimit handles Tier1 with 5 campaigns", async () => {
-      mockUserFindUnique.mockResolvedValue({ subscriptionTier: "Tier1" });
+      mockUserFindUnique.mockResolvedValue({
+        subscriptionTier: "Tier1",
+      } as User);
       mockCount.mockResolvedValue(4);
 
       const result = await checkCampaignLimit(defaultUserId);
@@ -310,7 +422,9 @@ describe("usageTracking", () => {
     });
 
     test("Unit -> checkCampaignLimit blocks when Tier1 has 5 campaigns", async () => {
-      mockUserFindUnique.mockResolvedValue({ subscriptionTier: "Tier1" });
+      mockUserFindUnique.mockResolvedValue({
+        subscriptionTier: "Tier1",
+      } as User);
       mockCount.mockResolvedValue(5);
 
       const result = await checkCampaignLimit(defaultUserId);
@@ -322,12 +436,16 @@ describe("usageTracking", () => {
       });
     });
 
-    test("Unit -> checkCampaignLimit throws error if user not found", async () => {
+    test("Unit -> checkCampaignLimit returns cannot create for non-existent user", async () => {
       mockUserFindUnique.mockResolvedValue(null);
 
-      expect(checkCampaignLimit(defaultUserId)).rejects.toThrow(
-        "User not found"
-      );
+      const result = await checkCampaignLimit(defaultUserId);
+
+      expect(result).toEqual({
+        canCreate: false,
+        current: 0,
+        max: 0,
+      });
     });
   });
 });

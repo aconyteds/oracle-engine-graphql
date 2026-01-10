@@ -252,17 +252,6 @@ describe("createCampaign", () => {
     expect(mockCampaignCreate).not.toHaveBeenCalled();
   });
 
-  test("Unit -> createCampaign throws error when user not found", async () => {
-    mockCheckCampaignLimit.mockRejectedValue(new Error("User not found"));
-
-    await expect(createCampaign(defaultCampaignParams)).rejects.toThrow(
-      "User not found"
-    );
-
-    expect(mockCheckCampaignLimit).toHaveBeenCalledWith("user-1");
-    expect(mockTransaction).not.toHaveBeenCalled();
-  });
-
   test("Unit -> createCampaign allows creation when under campaign limit", async () => {
     mockCheckCampaignLimit.mockResolvedValue({
       canCreate: true,

@@ -50,13 +50,6 @@ export const TIER_LIMITS: Record<SubscriptionTier, TierLimits> = {
 };
 
 /**
- * Get the rate limits for a subscription tier.
- */
-export const getTierLimits = (tier: SubscriptionTier): TierLimits => {
-  return TIER_LIMITS[tier];
-};
-
-/**
  * Check if a limit value represents unlimited (-1).
  */
 export const isUnlimited = (limit: number): boolean => {

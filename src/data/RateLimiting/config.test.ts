@@ -1,49 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import { getTierLimits, isUnlimited, TIER_LIMITS } from "./config";
+import { isUnlimited, TIER_LIMITS } from "./config";
 
 describe("config", () => {
-  describe("getTierLimits", () => {
-    test("Unit -> getTierLimits returns correct limits for Free tier", () => {
-      const limits = getTierLimits("Free");
-      expect(limits.maxLLMCallsPerDay).toBe(25);
-      expect(limits.maxCampaigns).toBe(1);
-      expect(limits.warningThreshold).toBe(0.8);
-      expect(limits.displayName).toBe("Free");
-    });
-
-    test("Unit -> getTierLimits returns correct limits for Tier1", () => {
-      const limits = getTierLimits("Tier1");
-      expect(limits.maxLLMCallsPerDay).toBe(100);
-      expect(limits.maxCampaigns).toBe(5);
-      expect(limits.warningThreshold).toBe(0.8);
-      expect(limits.displayName).toBe("Hobbyist");
-    });
-
-    test("Unit -> getTierLimits returns correct limits for Tier2", () => {
-      const limits = getTierLimits("Tier2");
-      expect(limits.maxLLMCallsPerDay).toBe(500);
-      expect(limits.maxCampaigns).toBe(20);
-      expect(limits.warningThreshold).toBe(0.8);
-      expect(limits.displayName).toBe("Game Master");
-    });
-
-    test("Unit -> getTierLimits returns correct limits for Tier3", () => {
-      const limits = getTierLimits("Tier3");
-      expect(limits.maxLLMCallsPerDay).toBe(1000);
-      expect(limits.maxCampaigns).toBe(-1); // Unlimited
-      expect(limits.warningThreshold).toBe(0.8);
-      expect(limits.displayName).toBe("Professional");
-    });
-
-    test("Unit -> getTierLimits returns correct limits for Admin tier", () => {
-      const limits = getTierLimits("Admin");
-      expect(limits.maxLLMCallsPerDay).toBe(-1); // Unlimited
-      expect(limits.maxCampaigns).toBe(-1); // Unlimited
-      expect(limits.warningThreshold).toBe(1.0); // No warning
-      expect(limits.displayName).toBe("Admin");
-    });
-  });
-
   describe("isUnlimited", () => {
     test("Unit -> isUnlimited returns true for -1", () => {
       expect(isUnlimited(-1)).toBe(true);
