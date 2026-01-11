@@ -29,7 +29,10 @@ export const captureHumanFeedback = async ({
     await verifyThreadOwnership(message.threadId, userId, campaignId);
 
     // Check if feedback has already been provided
-    if (message.humanSentiment != null) {
+    if (
+      message.humanSentiment !== null &&
+      message.humanSentiment !== undefined
+    ) {
       throw InvalidInput(
         "You have already submitted feedback for this message."
       );
