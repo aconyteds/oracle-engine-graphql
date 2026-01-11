@@ -24,6 +24,7 @@ describe("updateMessageFeedback", () => {
     runId: "run-1",
     routingMetadata: null,
     humanSentiment: true,
+    feedbackComments: null,
   };
 
   beforeEach(async () => {
@@ -115,5 +116,90 @@ describe("updateMessageFeedback", () => {
 
     expect(result.id).toBe("message-1");
     expect(result.humanSentiment).toBe(true);
+  });
+
+  test("Unit -> updateMessageFeedback updates message with comments", async () => {
+    const messageWithComments = {
+      ...defaultMessage,
+      feedbackComments: "Great response!",
+    };
+    mockUpdate.mockResolvedValue(messageWithComments);
+
+    const result = await updateMessageFeedback({
+      messageId: "message-1",
+      humanSentiment: true,
+      comments: "Great response!",
+    });
+
+    expect(mockUpdate).toHaveBeenCalledWith({
+      where: {
+        id: "message-1",
+      },
+      data: {
+        humanSentiment: true,
+        feedbackComments: "Great response!",
+      },
+    });
+    expect(result.feedbackComments).toBe("Great response!");
+  });
+
+  test("Unit -> updateMessageFeedback does not include feedbackComments when comments is undefined", async () => {
+    await updateMessageFeedback({
+      messageId: "message-1",
+      humanSentiment: true,
+    });
+
+    expect(mockUpdate).toHaveBeenCalledWith({
+      where: {
+        id: "message-1",
+      },
+      data: {
+        humanSentiment: true,
+      },
+    });
+  });
+
+  test("Unit -> updateMessageFeedback does not include feedbackComments when comments is empty string", async () => {
+    await updateMessageFeedback({
+      messageId: "message-1",
+      humanSentiment: false,
+      comments: "",
+    });
+
+    expect(mockUpdate).toHaveBeenCalledWith({
+      where: {
+        id: "message-1",
+      },
+      data: {
+        humanSentiment: false,
+      },
+    });
+  });
+
+  test("Unit -> updateMessageFeedback handles negative sentiment with comments", async () => {
+    const messageWithNegativeAndComments = {
+      ...defaultMessage,
+      humanSentiment: false,
+      feedbackComments: "Incorrect information",
+    };
+    mockUpdate.mockResolvedValue(messageWithNegativeAndComments);
+
+    const result = await updateMessageFeedback({
+      messageId: "message-1",
+      humanSentiment: false,
+      comments: "Incorrect information",
+    });
+
+    expect(mockUpdate).toHaveBeenCalledWith({
+      where: {
+        id: "message-1",
+      },
+      data: {
+        humanSentiment: false,
+        feedbackComments: "Incorrect information",
+      },
+    });
+    expect(result.humanSentiment).toBe(false);
+    expect(result.feedbackComments).toBe("Incorrect information");
   });
 });

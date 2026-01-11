@@ -9,6 +9,7 @@ describe("captureHumanFeedback", () => {
   let mockVerifyThreadOwnership: ReturnType<typeof mock>;
   let mockInvalidInput: ReturnType<typeof mock>;
   let mockServerError: ReturnType<typeof mock>;
+  let mockSendLangSmithFeedback: ReturnType<typeof mock>;
   let captureHumanFeedback: typeof import("./captureHumanFeedback").captureHumanFeedback;
 
   // Default mock data
@@ -24,6 +25,7 @@ describe("captureHumanFeedback", () => {
     runId: "run-1",
     routingMetadata: null,
     humanSentiment: null,
+    feedbackComments: null,
   };
 
   const defaultInput = {
@@ -43,6 +45,7 @@ describe("captureHumanFeedback", () => {
     mockVerifyThreadOwnership = mock();
     mockInvalidInput = mock();
     mockServerError = mock();
+    mockSendLangSmithFeedback = mock();
 
     // Set up module mocks INSIDE beforeEach
     mock.module("../../../data/MongoDB", () => ({
@@ -54,6 +57,10 @@ describe("captureHumanFeedback", () => {
     mock.module("../../../graphql/errors", () => ({
       InvalidInput: mockInvalidInput,
       ServerError: mockServerError,
+    }));
+
+    mock.module("../../../data/LangSmith", () => ({
+      sendLangSmithFeedback: mockSendLangSmithFeedback,
     }));
 
     // Dynamically import the module under test
@@ -228,5 +235,116 @@ describe("captureHumanFeedback", () => {
 
     expect(mockUpdateMessageFeedback).toHaveBeenCalled();
     expect(result).toBe("Thank you for providing feedback!");
+  });
+
+  test("Unit -> captureHumanFeedback sends feedback to LangSmith when runId exists", async () => {
+    const messageWithRunId = { ...defaultMessage, runId: "run-123" };
+    mockGetMessageById.mockResolvedValue(messageWithRunId);
+
+    await captureHumanFeedback(defaultInput);
+
+    expect(mockSendLangSmithFeedback).toHaveBeenCalledWith({
+      runId: "run-123",
+      humanSentiment: true,
+      comments: undefined,
+    });
+  });
+
+  test("Unit -> captureHumanFeedback does not send feedback to LangSmith when runId is null", async () => {
+    const messageWithoutRunId = { ...defaultMessage, runId: null };
+    mockGetMessageById.mockResolvedValue(messageWithoutRunId);
+
+    await captureHumanFeedback(defaultInput);
+
+    expect(mockSendLangSmithFeedback).not.toHaveBeenCalled();
+  });
+
+  test("Unit -> captureHumanFeedback passes comments to LangSmith feedback", async () => {
+    const messageWithRunId = { ...defaultMessage, runId: "run-123" };
+    mockGetMessageById.mockResolvedValue(messageWithRunId);
+    const inputWithComments = { ...defaultInput, comments: "Very helpful!" };
+
+    await captureHumanFeedback(inputWithComments);
+
+    expect(mockSendLangSmithFeedback).toHaveBeenCalledWith({
+      runId: "run-123",
+      humanSentiment: true,
+      comments: "Very helpful!",
+    });
+  });
+
+  test("Unit -> captureHumanFeedback sends negative sentiment to LangSmith", async () => {
+    const messageWithRunId = { ...defaultMessage, runId: "run-123" };
+    mockGetMessageById.mockResolvedValue(messageWithRunId);
+    const inputWithNegative = { ...defaultInput, humanSentiment: false };
+
+    await captureHumanFeedback(inputWithNegative);
+
+    expect(mockSendLangSmithFeedback).toHaveBeenCalledWith({
+      runId: "run-123",
+      humanSentiment: false,
+      comments: undefined,
+    });
+  });
+
+  test("Unit -> captureHumanFeedback sends LangSmith feedback after MongoDB update", async () => {
+    const messageWithRunId = { ...defaultMessage, runId: "run-123" };
+    mockGetMessageById.mockResolvedValue(messageWithRunId);
+
+    await captureHumanFeedback(defaultInput);
+
+    // Verify order: MongoDB update called before LangSmith
+    expect(mockUpdateMessageFeedback).toHaveBeenCalled();
+    expect(mockSendLangSmithFeedback).toHaveBeenCalled();
+  });
+
+  test("Unit -> captureHumanFeedback does not send LangSmith feedback when feedback already exists", async () => {
+    const messageWithFeedback = {
+      ...defaultMessage,
+      runId: "run-123",
+      humanSentiment: true,
+    };
+    mockGetMessageById.mockResolvedValue(messageWithFeedback);
+
+    await expect(captureHumanFeedback(defaultInput)).rejects.toThrow();
+
+    expect(mockSendLangSmithFeedback).not.toHaveBeenCalled();
+  });
+
+  test("Unit -> captureHumanFeedback passes comments to updateMessageFeedback", async () => {
+    const inputWithComments = { ...defaultInput, comments: "Very helpful!" };
+
+    await captureHumanFeedback(inputWithComments);
+
+    expect(mockUpdateMessageFeedback).toHaveBeenCalledWith({
+      messageId: "message-1",
+      humanSentiment: true,
+      comments: "Very helpful!",
+    });
+  });
+
+  test("Unit -> captureHumanFeedback calls updateMessageFeedback without comments when undefined", async () => {
+    await captureHumanFeedback(defaultInput);
+
+    expect(mockUpdateMessageFeedback).toHaveBeenCalledWith({
+      messageId: "message-1",
+      humanSentiment: true,
+    });
+  });
+
+  test("Unit -> captureHumanFeedback passes both negative sentiment and comments to MongoDB", async () => {
+    const inputWithNegativeAndComments = {
+      ...defaultInput,
+      humanSentiment: false,
+      comments: "Incorrect information provided",
+    };
+
+    await captureHumanFeedback(inputWithNegativeAndComments);
+
+    expect(mockUpdateMessageFeedback).toHaveBeenCalledWith({
+      messageId: "message-1",
+      humanSentiment: false,
+      comments: "Incorrect information provided",
+    });
   });
 });

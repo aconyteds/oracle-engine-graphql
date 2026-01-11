@@ -4,11 +4,13 @@ import { DBClient } from "./client";
 type UpdateMessageFeedbackInput = {
   messageId: string;
   humanSentiment: boolean;
+  comments?: string;
 };
 
 export const updateMessageFeedback = async ({
   messageId,
   humanSentiment,
+  comments,
 }: UpdateMessageFeedbackInput): Promise<Message> => {
   return await DBClient.message.update({
     where: {
@@ -16,6 +18,7 @@ export const updateMessageFeedback = async ({
     },
     data: {
       humanSentiment,
+      ...(comments && { feedbackComments: comments }),
     },
   });
 };

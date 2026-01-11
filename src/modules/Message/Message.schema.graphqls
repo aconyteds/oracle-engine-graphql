@@ -1,7 +1,9 @@
 extend type Mutation {
   createMessage(input: CreateMessageInput!): CreateMessagePayload
   # Mutation that allows a user to provide feedback about the response the AI took to resolve their question
-  captureHumanFeedback(input: CaptureHumanFeedbackInput!): CaptureHumanFeedbackPayload
+  captureHumanFeedback(
+    input: CaptureHumanFeedbackInput!
+  ): CaptureHumanFeedbackPayload
 }
 
 enum Role {
@@ -29,6 +31,8 @@ input CaptureHumanFeedbackInput {
   messageId: ID!
   # The Sentiment of the user
   humanSentiment: Boolean!
+  # Additional comments from the user about the AI response
+  comments: String
 }
 
 type CaptureHumanFeedbackPayload {
