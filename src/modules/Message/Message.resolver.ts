@@ -1,4 +1,4 @@
-import { UnauthorizedError } from "../../graphql/errors";
+import { InvalidInput, UnauthorizedError } from "../../graphql/errors";
 import { TranslateMessage } from "../utils";
 import type { MessageModule } from "./generated";
 import { captureHumanFeedback, createMessage } from "./service";
@@ -46,7 +46,7 @@ const MessageResolvers: MessageModule.Resolvers = {
         throw UnauthorizedError();
       }
       if (!selectedCampaignId) {
-        throw new Error(
+        throw InvalidInput(
           "Campaign selection required. Please provide x-selected-campaign-id header."
         );
       }
