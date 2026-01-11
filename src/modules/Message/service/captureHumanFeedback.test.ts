@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
+import { GraphQLError } from "graphql";
 import type { Message } from "../../../data/MongoDB";
 
 describe("captureHumanFeedback", () => {
@@ -66,8 +67,8 @@ describe("captureHumanFeedback", () => {
       humanSentiment: true,
     });
     mockVerifyThreadOwnership.mockResolvedValue(true);
-    mockInvalidInput.mockImplementation((msg: string) => new Error(msg));
-    mockServerError.mockImplementation((msg: string) => new Error(msg));
+    mockInvalidInput.mockImplementation((msg: string) => new GraphQLError(msg));
+    mockServerError.mockImplementation((msg: string) => new GraphQLError(msg));
   });
 
   afterEach(() => {
@@ -143,7 +144,7 @@ describe("captureHumanFeedback", () => {
   });
 
   test("Unit -> captureHumanFeedback throws error when user does not own thread", async () => {
-    const authError = new Error(
+    const authError = new GraphQLError(
       "You are not authorized to view this resource."
     );
     mockVerifyThreadOwnership.mockRejectedValue(authError);

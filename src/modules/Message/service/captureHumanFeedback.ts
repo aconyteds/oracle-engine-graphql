@@ -1,4 +1,5 @@
 import { ApolloServerErrorCode } from "@apollo/server/errors";
+import { GraphQLError } from "graphql";
 import type { Message } from "../../../data/MongoDB";
 import {
   getMessageById,
@@ -42,17 +43,12 @@ export const captureHumanFeedback = async ({
 
     return "Thank you for providing feedback!";
   } catch (error) {
-    // Re-throw InvalidInput errors (already submitted feedback)
-    if (error instanceof Error && error.message.includes("already submitted")) {
+    // Re-throw GraphQL errors (InvalidInput, UnauthorizedError, etc.)
+    if (error instanceof GraphQLError) {
       throw error;
     }
 
-    // Re-throw authorization errors
-    if (error instanceof Error && error.message.includes("not authorized")) {
-      throw error;
-    }
-
-    // Log and throw server error for database errors
+    // Log and throw server error for unexpected errors
     console.error("Error capturing human feedback:", error);
     throw ServerError(
       "Failed to capture feedback",
