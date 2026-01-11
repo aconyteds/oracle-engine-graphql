@@ -1,5 +1,7 @@
 extend type Mutation {
   createMessage(input: CreateMessageInput!): CreateMessagePayload
+  # Mutation that allows a user to provide feedback about the response the AI took to resolve their question
+  captureHumanFeedback(input: CaptureHumanFeedbackInput!): CaptureHumanFeedbackPayload
 }
 
 enum Role {
@@ -22,6 +24,18 @@ type CreateMessagePayload {
   message: Message!
 }
 
+input CaptureHumanFeedbackInput {
+  # The ID of the AI message that the feedback is for
+  messageId: ID!
+  # The Sentiment of the user
+  humanSentiment: Boolean!
+}
+
+type CaptureHumanFeedbackPayload {
+  # Message from the server based on the result
+  message: String!
+}
+
 type MessageWorkspace {
   messageType: String!
   content: String!
@@ -37,4 +51,5 @@ type Message {
   role: Role!
   tokenCount: Int!
   workspace: [MessageWorkspace!]!
+  humanSentiment: Boolean
 }

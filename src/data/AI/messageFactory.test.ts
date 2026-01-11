@@ -14,6 +14,7 @@ describe("MessageFactory", () => {
     workspace: [],
     runId: "run-123",
     routingMetadata: null,
+    humanSentiment: null,
   };
 
   test("Unit -> MessageFactory.progress returns correct payload", () => {

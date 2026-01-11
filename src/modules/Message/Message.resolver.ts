@@ -1,7 +1,7 @@
 import { UnauthorizedError } from "../../graphql/errors";
 import { TranslateMessage } from "../utils";
 import type { MessageModule } from "./generated";
-import { createMessage } from "./service";
+import { captureHumanFeedback, createMessage } from "./service";
 
 const MessageResolvers: MessageModule.Resolvers = {
   Mutation: {
@@ -35,6 +35,30 @@ const MessageResolvers: MessageModule.Resolvers = {
       return {
         threadId,
         message: translatedMessage,
+      };
+    },
+    captureHumanFeedback: async (
+      _,
+      { input },
+      { user, selectedCampaignId }
+    ): Promise<MessageModule.CaptureHumanFeedbackPayload> => {
+      if (!user) {
+        throw UnauthorizedError();
+      }
+      if (!selectedCampaignId) {
+        throw new Error(
+          "Campaign selection required. Please provide x-selected-campaign-id header."
+        );
+      }
+      const message = await captureHumanFeedback({
+        messageId: input.messageId,
+        humanSentiment: input.humanSentiment,
+        userId: user.id,
+        campaignId: selectedCampaignId,
+      });
+
+      return {
+        message,
       };
     },
   },

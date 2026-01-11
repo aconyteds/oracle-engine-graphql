@@ -19,6 +19,7 @@ describe("saveMessage", () => {
     routingMetadata: null,
     createdAt: new Date(),
     updatedAt: new Date(),
+    humanSentiment: null,
   };
 
   beforeEach(async () => {
@@ -112,6 +113,7 @@ describe("saveMessage", () => {
       routingMetadata: null,
       createdAt: new Date(),
       updatedAt: new Date(),
+      humanSentiment: null,
     };
 
     mockCalculateTokenCount.mockReturnValue(75);
@@ -152,6 +154,7 @@ describe("saveMessage", () => {
       routingMetadata: null,
       createdAt: new Date(),
       updatedAt: new Date(),
+      humanSentiment: null,
     };
 
     mockCalculateTokenCount.mockReturnValue(25);
