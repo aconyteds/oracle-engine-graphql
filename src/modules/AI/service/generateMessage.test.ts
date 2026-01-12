@@ -88,6 +88,8 @@ describe("Unit -> generateMessage", () => {
     createdAt: new Date(),
     updatedAt: new Date(),
     routingMetadata: null,
+    humanSentiment: null,
+    feedbackComments: null,
   };
 
   // Default rate limit status

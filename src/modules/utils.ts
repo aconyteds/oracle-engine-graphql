@@ -37,6 +37,7 @@ export const TranslateMessage = (message: Message): GraphQLMessage => {
       timestamp: entry.timestamp.toISOString(),
       elapsedTime: entry.elapsedTime ?? null,
     })),
+    humanSentiment: message.humanSentiment ?? null,
   };
 };
 

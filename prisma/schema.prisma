@@ -98,6 +98,8 @@ model Message {
   updatedAt       DateTime           @updatedAt
   runId           String? // UUID to trace the LLM call in LangSmith
   routingMetadata Json? // Store routing decision and performance data per message
+  humanSentiment  Boolean? // User feedback on AI message quality
+  feedbackComments String? // Additional comments from the user about the AI response
 }
 
 // RPG data

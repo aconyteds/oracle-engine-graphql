@@ -53,6 +53,8 @@ describe("addMessageWorkspaceEntry", () => {
       routingMetadata: null,
       createdAt: new Date(),
       updatedAt: new Date(),
+      humanSentiment: null,
+      feedbackComments: null,
     };
 
     const newWorkspaceEntry: MessageWorkspace = {
@@ -100,6 +102,8 @@ describe("addMessageWorkspaceEntry", () => {
       routingMetadata: null,
       createdAt: new Date(),
       updatedAt: new Date(),
+      humanSentiment: null,
+      feedbackComments: null,
     };
 
     const newWorkspaceEntry: MessageWorkspace = {
