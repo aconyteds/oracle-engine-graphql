@@ -55,6 +55,7 @@ const MessageResolvers: MessageModule.Resolvers = {
         humanSentiment: input.humanSentiment,
         userId: user.id,
         campaignId: selectedCampaignId,
+        comments: input.comments || undefined,
       });
 
       return {
