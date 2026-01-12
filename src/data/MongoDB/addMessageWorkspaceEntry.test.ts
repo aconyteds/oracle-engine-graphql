@@ -54,6 +54,7 @@ describe("addMessageWorkspaceEntry", () => {
       createdAt: new Date(),
       updatedAt: new Date(),
       humanSentiment: null,
+      feedbackComments: null,
     };
 
     const newWorkspaceEntry: MessageWorkspace = {
@@ -102,6 +103,7 @@ describe("addMessageWorkspaceEntry", () => {
       createdAt: new Date(),
       updatedAt: new Date(),
       humanSentiment: null,
+      feedbackComments: null,
     };
 
     const newWorkspaceEntry: MessageWorkspace = {

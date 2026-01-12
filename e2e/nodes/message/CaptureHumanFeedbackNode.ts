@@ -4,90 +4,83 @@ import { BaseNode } from "../BaseNode";
 import type { NodeResult } from "../NodeResult";
 
 /**
- * Input for GetThreadNode
+ * Input for CaptureHumanFeedbackNode
  */
-export type GetThreadInput = {
-  threadId: string;
+export type CaptureHumanFeedbackInput = {
+  messageId: string;
+  humanSentiment: boolean;
+  comments?: string;
   campaignId: string; // For x-selected-campaign-id header
 };
 
 /**
- * Output from GetThreadNode
+ * Output from CaptureHumanFeedbackNode
  */
-export type GetThreadOutput = {
-  getThread: {
-    thread: {
-      id: string;
-      title: string;
-      lastUsed: string;
-      campaignId: string;
-      messages: Array<{
-        id: string;
-        threadId: string;
-        content: string;
-        createdAt: string;
-        role: string;
-        tokenCount: number;
-        humanSentiment: boolean | null;
-        feedbackComments: string | null;
-      }>;
-    } | null;
+export type CaptureHumanFeedbackOutput = {
+  captureHumanFeedback: {
+    message: string;
   } | null;
 };
 
 /**
- * Node for getting a thread by ID.
+ * Node for capturing human feedback on AI-generated messages.
  * Requires authentication and campaign selection.
  */
-export class GetThreadNode extends BaseNode<GetThreadInput, GetThreadOutput> {
-  readonly nodeId = "GetThreadNode";
+export class CaptureHumanFeedbackNode extends BaseNode<
+  CaptureHumanFeedbackInput,
+  CaptureHumanFeedbackOutput
+> {
+  readonly nodeId = "CaptureHumanFeedbackNode";
 
   constructor(server: Server, authToken?: string) {
     super(server, authToken);
   }
 
-  async execute(input: GetThreadInput): Promise<NodeResult<GetThreadOutput>> {
-    const { threadId, campaignId } = input;
+  async execute(
+    input: CaptureHumanFeedbackInput
+  ): Promise<NodeResult<CaptureHumanFeedbackOutput>> {
+    const { messageId, humanSentiment, comments, campaignId } = input;
 
     const query = `
-      query GetThread($input: GetThreadInput!) {
-        getThread(input: $input) {
-          thread {
-            id
-            title
-            lastUsed
-            campaignId
-            messages {
-              id
-              threadId
-              content
-              createdAt
-              role
-              tokenCount
-              humanSentiment
-            }
-          }
+      mutation CaptureHumanFeedback($input: CaptureHumanFeedbackInput!) {
+        captureHumanFeedback(input: $input) {
+          message
         }
       }
     `;
 
+    // Build the mutation input
+    const mutationInput: {
+      messageId: string;
+      humanSentiment: boolean;
+      comments?: string;
+    } = {
+      messageId,
+      humanSentiment,
+    };
+
+    // Only include comments if provided
+    if (comments !== undefined) {
+      mutationInput.comments = comments;
+    }
+
     // Execute GraphQL with campaign header
-    const result = await this.executeGraphQLWithCampaign<GetThreadOutput>(
-      query,
-      { input: { threadId } },
-      campaignId
-    );
+    const result =
+      await this.executeGraphQLWithCampaign<CaptureHumanFeedbackOutput>(
+        query,
+        { input: mutationInput },
+        campaignId
+      );
 
     // Perform built-in assertions
     if (result.success) {
       this.expectSuccess(result);
-      this.expectField(result, "getThread");
+      this.expectField(result, "captureHumanFeedback");
 
-      // Verify thread was retrieved
-      const threadData = result.data?.getThread?.thread;
-      expect(threadData).toBeDefined();
-      expect(threadData?.id).toBe(threadId);
-      expect(threadData?.campaignId).toBe(campaignId);
+      // Verify feedback was captured
+      const feedbackData = result.data?.captureHumanFeedback;
+      expect(feedbackData).toBeDefined();
+      expect(feedbackData?.message).toBe("Thank you for providing feedback!");
     }
 
     return result;

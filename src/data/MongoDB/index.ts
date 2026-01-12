@@ -3,7 +3,6 @@ export * from "./campaignAsset";
 export * from "./client";
 export * from "./createThread";
 export * from "./getCampaignThreads";
-export * from "./getMessageById";
 export * from "./lookupUser";
 export * from "./saveMessage";
 export * from "./saveRoutingMetrics";

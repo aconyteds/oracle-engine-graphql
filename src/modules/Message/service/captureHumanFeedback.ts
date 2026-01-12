@@ -3,7 +3,7 @@ import { GraphQLError } from "graphql";
 import { sendLangSmithFeedback } from "../../../data/LangSmith";
 import type { Message } from "../../../data/MongoDB";
 import {
-  getMessageById,
+  DBClient,
   updateMessageFeedback,
   verifyThreadOwnership,
 } from "../../../data/MongoDB";
@@ -26,7 +26,11 @@ export const captureHumanFeedback = async ({
 }: CaptureHumanFeedbackInput): Promise<string> => {
   try {
     // Get the message to verify it exists and get its thread
-    const message: Message = await getMessageById(messageId);
+    const message: Message = await await DBClient.message.findUniqueOrThrow({
+      where: {
+        id: messageId,
+      },
+    });
 
     // Verify the user owns the thread that the message belongs to
     await verifyThreadOwnership(message.threadId, userId, campaignId);

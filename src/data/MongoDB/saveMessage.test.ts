@@ -20,6 +20,7 @@ describe("saveMessage", () => {
     createdAt: new Date(),
     updatedAt: new Date(),
     humanSentiment: null,
+    feedbackComments: null,
   };
 
   beforeEach(async () => {
@@ -114,6 +115,7 @@ describe("saveMessage", () => {
       createdAt: new Date(),
       updatedAt: new Date(),
       humanSentiment: null,
+      feedbackComments: null,
     };
 
     mockCalculateTokenCount.mockReturnValue(75);
@@ -155,6 +157,7 @@ describe("saveMessage", () => {
       createdAt: new Date(),
       updatedAt: new Date(),
       humanSentiment: null,
+      feedbackComments: null,
     };
 
     mockCalculateTokenCount.mockReturnValue(25);

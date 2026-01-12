@@ -4,7 +4,12 @@ import type { Message } from "../../../data/MongoDB";
 
 describe("captureHumanFeedback", () => {
   // Declare mock variables
-  let mockGetMessageById: ReturnType<typeof mock>;
+  let mockFindUniqueOrThrow: ReturnType<typeof mock>;
+  let mockDBClient: {
+    message: {
+      findUniqueOrThrow: ReturnType<typeof mock>;
+    };
+  };
   let mockUpdateMessageFeedback: ReturnType<typeof mock>;
   let mockVerifyThreadOwnership: ReturnType<typeof mock>;
   let mockInvalidInput: ReturnType<typeof mock>;
@@ -40,7 +45,12 @@ describe("captureHumanFeedback", () => {
     mock.restore();
 
     // Create fresh mock instances
-    mockGetMessageById = mock();
+    mockFindUniqueOrThrow = mock();
+    mockDBClient = {
+      message: {
+        findUniqueOrThrow: mockFindUniqueOrThrow,
+      },
+    };
     mockUpdateMessageFeedback = mock();
     mockVerifyThreadOwnership = mock();
     mockInvalidInput = mock();
@@ -49,7 +59,7 @@ describe("captureHumanFeedback", () => {
 
     // Set up module mocks INSIDE beforeEach
     mock.module("../../../data/MongoDB", () => ({
-      getMessageById: mockGetMessageById,
+      DBClient: mockDBClient,
       updateMessageFeedback: mockUpdateMessageFeedback,
       verifyThreadOwnership: mockVerifyThreadOwnership,
     }));
@@ -68,7 +78,7 @@ describe("captureHumanFeedback", () => {
     captureHumanFeedback = module.captureHumanFeedback;
 
     // Configure default mock behavior AFTER import
-    mockGetMessageById.mockResolvedValue(defaultMessage);
+    mockFindUniqueOrThrow.mockResolvedValue(defaultMessage);
     mockUpdateMessageFeedback.mockResolvedValue({
       ...defaultMessage,
       humanSentiment: true,
@@ -86,7 +96,9 @@ describe("captureHumanFeedback", () => {
   test("Unit -> captureHumanFeedback returns success message when feedback is submitted", async () => {
     const result = await captureHumanFeedback(defaultInput);
 
-    expect(mockGetMessageById).toHaveBeenCalledWith("message-1");
+    expect(mockFindUniqueOrThrow).toHaveBeenCalledWith({
+      where: { id: "message-1" },
+    });
     expect(mockVerifyThreadOwnership).toHaveBeenCalledWith(
       "thread-1",
       "user-1",
@@ -113,7 +125,7 @@ describe("captureHumanFeedback", () => {
 
   test("Unit -> captureHumanFeedback throws error when feedback already submitted", async () => {
     const messageWithFeedback = { ...defaultMessage, humanSentiment: true };
-    mockGetMessageById.mockResolvedValue(messageWithFeedback);
+    mockFindUniqueOrThrow.mockResolvedValue(messageWithFeedback);
 
     await expect(captureHumanFeedback(defaultInput)).rejects.toThrow(
       "You have already submitted feedback for this message."
@@ -127,7 +139,7 @@ describe("captureHumanFeedback", () => {
 
   test("Unit -> captureHumanFeedback throws error when feedback is false (already submitted)", async () => {
     const messageWithFeedback = { ...defaultMessage, humanSentiment: false };
-    mockGetMessageById.mockResolvedValue(messageWithFeedback);
+    mockFindUniqueOrThrow.mockResolvedValue(messageWithFeedback);
 
     await expect(captureHumanFeedback(defaultInput)).rejects.toThrow(
       "You have already submitted feedback for this message."
@@ -195,7 +207,7 @@ describe("captureHumanFeedback", () => {
     console.error = mockConsoleError;
 
     const notFoundError = new Error("Message not found");
-    mockGetMessageById.mockRejectedValue(notFoundError);
+    mockFindUniqueOrThrow.mockRejectedValue(notFoundError);
 
     try {
       await expect(captureHumanFeedback(defaultInput)).rejects.toThrow(
@@ -213,7 +225,7 @@ describe("captureHumanFeedback", () => {
 
   test("Unit -> captureHumanFeedback uses message threadId for ownership verification", async () => {
     const customMessage = { ...defaultMessage, threadId: "thread-custom" };
-    mockGetMessageById.mockResolvedValue(customMessage);
+    mockFindUniqueOrThrow.mockResolvedValue(customMessage);
 
     await captureHumanFeedback(defaultInput);
 
@@ -229,7 +241,7 @@ describe("captureHumanFeedback", () => {
       ...defaultMessage,
       humanSentiment: null,
     };
-    mockGetMessageById.mockResolvedValue(messageWithNull);
+    mockFindUniqueOrThrow.mockResolvedValue(messageWithNull);
 
     const result = await captureHumanFeedback(defaultInput);
 
@@ -239,7 +251,7 @@ describe("captureHumanFeedback", () => {
 
   test("Unit -> captureHumanFeedback sends feedback to LangSmith when runId exists", async () => {
     const messageWithRunId = { ...defaultMessage, runId: "run-123" };
-    mockGetMessageById.mockResolvedValue(messageWithRunId);
+    mockFindUniqueOrThrow.mockResolvedValue(messageWithRunId);
 
     await captureHumanFeedback(defaultInput);
 
@@ -252,7 +264,7 @@ describe("captureHumanFeedback", () => {
 
   test("Unit -> captureHumanFeedback does not send feedback to LangSmith when runId is null", async () => {
     const messageWithoutRunId = { ...defaultMessage, runId: null };
-    mockGetMessageById.mockResolvedValue(messageWithoutRunId);
+    mockFindUniqueOrThrow.mockResolvedValue(messageWithoutRunId);
 
     await captureHumanFeedback(defaultInput);
 
@@ -261,7 +273,7 @@ describe("captureHumanFeedback", () => {
 
   test("Unit -> captureHumanFeedback passes comments to LangSmith feedback", async () => {
     const messageWithRunId = { ...defaultMessage, runId: "run-123" };
-    mockGetMessageById.mockResolvedValue(messageWithRunId);
+    mockFindUniqueOrThrow.mockResolvedValue(messageWithRunId);
     const inputWithComments = { ...defaultInput, comments: "Very helpful!" };
 
     await captureHumanFeedback(inputWithComments);
@@ -275,7 +287,7 @@ describe("captureHumanFeedback", () => {
 
   test("Unit -> captureHumanFeedback sends negative sentiment to LangSmith", async () => {
     const messageWithRunId = { ...defaultMessage, runId: "run-123" };
-    mockGetMessageById.mockResolvedValue(messageWithRunId);
+    mockFindUniqueOrThrow.mockResolvedValue(messageWithRunId);
     const inputWithNegative = { ...defaultInput, humanSentiment: false };
 
     await captureHumanFeedback(inputWithNegative);
@@ -289,7 +301,7 @@ describe("captureHumanFeedback", () => {
 
   test("Unit -> captureHumanFeedback sends LangSmith feedback after MongoDB update", async () => {
     const messageWithRunId = { ...defaultMessage, runId: "run-123" };
-    mockGetMessageById.mockResolvedValue(messageWithRunId);
+    mockFindUniqueOrThrow.mockResolvedValue(messageWithRunId);
 
     await captureHumanFeedback(defaultInput);
 
@@ -304,7 +316,7 @@ describe("captureHumanFeedback", () => {
       runId: "run-123",
       humanSentiment: true,
     };
-    mockGetMessageById.mockResolvedValue(messageWithFeedback);
+    mockFindUniqueOrThrow.mockResolvedValue(messageWithFeedback);
 
     await expect(captureHumanFeedback(defaultInput)).rejects.toThrow();
 
