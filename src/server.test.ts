@@ -263,15 +263,13 @@ describe("sanitizeGraphQLError", () => {
         ApolloServerErrorCode.PERSISTED_QUERY_NOT_SUPPORTED,
         ApolloServerErrorCode.OPERATION_RESOLUTION_FAILURE,
         "INACTIVE_USER",
+        "UNAUTHENTICATED",
       ];
 
       for (const code of expectedCodes) {
         expect(ALLOWED_ERROR_CODES.has(code)).toBe(true);
       }
-    });
-
-    test("Unit -> ALLOWED_ERROR_CODES has correct size", () => {
-      expect(ALLOWED_ERROR_CODES.size).toBe(9);
+      expect(ALLOWED_ERROR_CODES.size).toBe(expectedCodes.length);
     });
   });
 });

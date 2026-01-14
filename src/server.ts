@@ -29,6 +29,7 @@ export const ALLOWED_ERROR_CODES = new Set([
   ApolloServerErrorCode.PERSISTED_QUERY_NOT_SUPPORTED,
   ApolloServerErrorCode.OPERATION_RESOLUTION_FAILURE,
   "INACTIVE_USER", // Custom error code from our application
+  "UNAUTHENTICATED", // Custom error code for unauthenticated access
 ]);
 
 /**

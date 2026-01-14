@@ -70,3 +70,14 @@ export class UnauthorizedAccessError extends GraphQLError {
     console.warn("Unauthorized access attempt:", message);
   }
 }
+
+export const UnauthenticatedError = () => {
+  return new GraphQLError(
+    "Authentication required. Please provide a valid token.",
+    {
+      extensions: {
+        code: "UNAUTHENTICATED",
+      },
+    }
+  );
+};
