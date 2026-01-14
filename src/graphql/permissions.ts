@@ -2,11 +2,15 @@ import { allow, rule, shield } from "graphql-shield";
 
 import { verifyCampaignOwnership } from "../data/MongoDB";
 import type { ServerContext } from "../serverContext";
+import { UnauthenticatedError } from "./errors";
 
 // Rule to check if user is authenticated
 const isAuthenticated = rule({ cache: "contextual" })(
   (_parent, _args, context: ServerContext) => {
-    return !!context.user;
+    if (!context.user) {
+      return UnauthenticatedError();
+    }
+    return true;
   }
 );
 
@@ -69,5 +73,7 @@ export const permissions = shield(
     fallbackRule: isAuthenticated,
     // Allow external errors (e.g., from resolvers) to pass through
     allowExternalErrors: true,
+    // Custom fallback error for better error messaging
+    fallbackError: UnauthenticatedError(),
   }
 );
