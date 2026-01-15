@@ -24,18 +24,16 @@ declare module "bun" {
 }
 
 import * as Sentry from "@sentry/bun";
+import { ENV } from "./config/environment";
 import GraphQLServer from "./server";
 
 // Initialize Sentry
-// Use Bun.env for proper environment variable access in Bun runtime
-const sentryDsn = Bun.env.SENTRY_DSN || process.env.SENTRY_DSN;
-const nodeEnv = Bun.env.NODE_ENV || process.env.NODE_ENV || "development";
-console.log(`Starting server in ${nodeEnv} mode.`);
-if (sentryDsn) {
+console.log(`Starting server in ${ENV.NODE_ENV} mode.`);
+if (ENV.SENTRY_DSN) {
   Sentry.init({
-    dsn: sentryDsn,
+    dsn: ENV.SENTRY_DSN,
     serverName: "oracle-engine-graphql",
-    environment: nodeEnv,
+    environment: ENV.NODE_ENV,
     integrations: [
       Sentry.consoleLoggingIntegration({ levels: ["error", "warn", "log"] }),
     ],
@@ -45,12 +43,12 @@ if (sentryDsn) {
   // This needs to be here to verify Sentry is working in Bun
   Sentry.logger.info("Sentry initialized for oracle-engine-graphql", {
     action: "test_log",
-    environment: nodeEnv,
+    environment: ENV.NODE_ENV,
   });
 }
 
 const startServer = async () => {
-  const port = parseInt(process.env.PORT || "4000", 10);
+  const port = ENV.PORT;
   const path = "/graphql";
   const { httpServer } = await GraphQLServer(path);
 

@@ -760,83 +760,78 @@ describe("searchCampaignAssets", () => {
   });
 
   test("Unit -> searchCampaignAssets uses MongoDB $rankFusion when HYBRID_SEARCH_METHOD is mongo", async () => {
-    // Set environment variable to use MongoDB's native $rankFusion
-    const originalEnv = Bun.env.HYBRID_SEARCH_METHOD;
-    Bun.env.HYBRID_SEARCH_METHOD = "mongo";
+    // Mock environment with mongo hybrid search method
+    mock.restore();
 
-    try {
-      // Re-import to pick up new env value
-      mock.restore();
+    const mockAggregateRaw = mock();
+    mockDBClient = {
+      campaignAsset: {
+        aggregateRaw: mockAggregateRaw,
+      },
+    };
+    mockCreateEmbeddings = mock();
 
-      const mockAggregateRaw = mock();
-      mockDBClient = {
-        campaignAsset: {
-          aggregateRaw: mockAggregateRaw,
-        },
-      };
-      mockCreateEmbeddings = mock();
+    const mockEmbeddingCache = {
+      get: mock(),
+      set: mock(),
+    };
 
-      mock.module("../client", () => ({
-        DBClient: mockDBClient,
-        RecordType: RecordType,
-      }));
+    // Mock environment configuration with mongo hybrid search
+    mock.module("../../../config/environment", () => ({
+      ENV: {
+        HYBRID_SEARCH_METHOD: "mongo",
+      },
+    }));
 
-      mock.module("../../AI/createEmbeddings", () => ({
-        createEmbeddings: mockCreateEmbeddings,
-      }));
+    mock.module("../client", () => ({
+      DBClient: mockDBClient,
+      RecordType: RecordType,
+    }));
 
-      const mockEmbeddingCache = {
-        get: mock(),
-        set: mock(),
-      };
-      mock.module("./embeddingCache", () => ({
-        embeddingCache: mockEmbeddingCache,
-      }));
+    mock.module("../../AI/createEmbeddings", () => ({
+      createEmbeddings: mockCreateEmbeddings,
+    }));
 
-      const module = await import("./assetSearch");
-      const searchFn = module.searchCampaignAssets;
+    mock.module("./embeddingCache", () => ({
+      embeddingCache: mockEmbeddingCache,
+    }));
 
-      mockDBClient.campaignAsset.aggregateRaw.mockResolvedValue(
-        defaultRawResults
-      );
-      mockCreateEmbeddings.mockResolvedValue(defaultQueryEmbedding);
-      mockEmbeddingCache.get.mockReturnValue(undefined);
+    const module = await import("./assetSearch");
+    const searchFn = module.searchCampaignAssets;
 
-      await searchFn(
-        {
-          query: defaultQuery,
-          keywords: "test keywords",
-          campaignId: defaultCampaignId,
-        },
-        false
-      );
+    mockDBClient.campaignAsset.aggregateRaw.mockResolvedValue(
+      defaultRawResults
+    );
+    mockCreateEmbeddings.mockResolvedValue(defaultQueryEmbedding);
+    mockEmbeddingCache.get.mockReturnValue(undefined);
 
-      expect(mockCreateEmbeddings).toHaveBeenCalledWith(defaultQuery);
+    await searchFn(
+      {
+        query: defaultQuery,
+        keywords: "test keywords",
+        campaignId: defaultCampaignId,
+      },
+      false
+    );
 
-      // MongoDB native $rankFusion makes a single call with $rankFusion pipeline
-      expect(mockDBClient.campaignAsset.aggregateRaw).toHaveBeenCalledTimes(1);
+    expect(mockCreateEmbeddings).toHaveBeenCalledWith(defaultQuery);
 
-      const callArgs = mockDBClient.campaignAsset.aggregateRaw.mock.calls[0][0];
-      const pipeline = callArgs.pipeline;
+    // MongoDB native $rankFusion makes a single call with $rankFusion pipeline
+    expect(mockDBClient.campaignAsset.aggregateRaw).toHaveBeenCalledTimes(1);
 
-      // Should have $rankFusion stage with both vector and text search pipelines
-      const rankFusionStage = pipeline.find(
-        (stage: Document) => stage.$rankFusion
-      );
-      expect(rankFusionStage).toBeDefined();
-      expect(
-        rankFusionStage?.$rankFusion?.input?.pipelines?.vectorSearch
-      ).toBeDefined();
-      expect(
-        rankFusionStage?.$rankFusion?.input?.pipelines?.textSearch
-      ).toBeDefined();
-    } finally {
-      // Restore original env
-      if (originalEnv === undefined) {
-        delete Bun.env.HYBRID_SEARCH_METHOD;
-      } else {
-        Bun.env.HYBRID_SEARCH_METHOD = originalEnv;
-      }
-    }
+    const callArgs = mockDBClient.campaignAsset.aggregateRaw.mock.calls[0][0];
+    const pipeline = callArgs.pipeline;
+
+    // Should have $rankFusion stage with both vector and text search pipelines
+    const rankFusionStage = pipeline.find(
+      (stage: Document) => stage.$rankFusion
+    );
+    expect(rankFusionStage).toBeDefined();
+    expect(
+      rankFusionStage?.$rankFusion?.input?.pipelines?.vectorSearch
+    ).toBeDefined();
+    expect(
+      rankFusionStage?.$rankFusion?.input?.pipelines?.textSearch
+    ).toBeDefined();
   });
 });

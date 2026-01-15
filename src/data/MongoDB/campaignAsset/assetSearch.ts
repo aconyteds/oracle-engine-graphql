@@ -2,6 +2,7 @@ import type { CampaignAsset, RecordType } from "@prisma/client";
 import * as Sentry from "@sentry/bun";
 import type { Document } from "mongodb";
 import { z } from "zod";
+import { ENV } from "../../../config/environment";
 import { createEmbeddings } from "../../AI";
 import { DBClient } from "../client";
 import { SearchTimings } from "../saveSearchMetrics";
@@ -71,7 +72,7 @@ function determineSearchMode(
   if (!hasQuery) return "text_only";
   if (!hasKeywords) return "vector_only";
   // Must opt in to use MongoDB's native hybrid search (not supported on M0 tier)
-  if (Bun.env.HYBRID_SEARCH_METHOD === "mongo") return "hybrid";
+  if (ENV.HYBRID_SEARCH_METHOD === "mongo") return "hybrid";
   return "manual_hybrid";
 }
 

@@ -3,6 +3,8 @@
  * Caches search query embeddings to reduce OpenAI API calls
  */
 
+import { ENV } from "../../../config/environment";
+
 interface EmbeddingCacheEntry {
   embedding: number[];
   timestamp: number; // Date.now() when generated
@@ -120,13 +122,8 @@ class EmbeddingCache {
   }
 }
 
-// Get max size from environment or use default
-const maxSize = Bun.env.EMBEDDING_CACHE_MAX_SIZE
-  ? parseInt(Bun.env.EMBEDDING_CACHE_MAX_SIZE, 10)
-  : 1000;
-
-// Export singleton instance
-export const embeddingCache = new EmbeddingCache(maxSize);
+// Export singleton instance with size from centralized config
+export const embeddingCache = new EmbeddingCache(ENV.EMBEDDING_CACHE_MAX_SIZE);
 
 // Export metrics getter
 export const getCacheMetrics = (): CacheMetrics => embeddingCache.getMetrics();
