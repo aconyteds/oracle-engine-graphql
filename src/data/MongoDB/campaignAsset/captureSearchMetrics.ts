@@ -1,4 +1,4 @@
-import { SEARCH_METRICS_CONFIG } from "../../../config/metrics";
+import { ENV } from "../../../config/environment";
 import { DBClient } from "../client";
 import { SearchTimings, saveSearchMetrics } from "../saveSearchMetrics";
 import type {
@@ -58,7 +58,7 @@ export async function captureSearchMetrics(
 ): Promise<void> {
   try {
     // Determine if this request should be sampled
-    const shouldSample = Math.random() < SEARCH_METRICS_CONFIG.sampleRate;
+    const shouldSample = Math.random() < ENV.SEARCH_METRICS_SAMPLE_RATE;
 
     // Defensive check for undefined results
     if (!input.results || !Array.isArray(input.results)) {

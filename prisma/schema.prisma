@@ -96,7 +96,8 @@ model Message {
   threadId        String             @db.ObjectId
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
-  runId           String? // UUID to trace the LLM call in LangSmith
+  runId           String? // UUID to trace the LLM call in LangSmith (stored in metadata in LangSmith)
+  langSmithTraceId String? // LangSmith trace ID for the entire message generation process
   routingMetadata Json? // Store routing decision and performance data per message
   humanSentiment  Boolean? // User feedback on AI message quality
   feedbackComments String? // Additional comments from the user about the AI response

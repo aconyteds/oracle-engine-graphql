@@ -141,6 +141,9 @@ export async function generateMessageWithAgent({
       {
         configurable: {
           thread_id: compositeThreadId,
+          // Note: LangSmith will auto-generate its own trace ID. Our runId is stored in the database
+          // for correlation but LangSmith uses its own internal ID for the trace.
+          runId: runId,
         },
         context: enrichedContext,
         // streamMode: "updates", // Get state updates after each step

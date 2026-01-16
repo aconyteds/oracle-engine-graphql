@@ -49,7 +49,7 @@ export const captureHumanFeedback = async ({
     // Only send if the message has a runId (some messages may not be traced)
     if (message.runId) {
       sendLangSmithFeedback({
-        runId: message.runId,
+        messageId: message.id,
         humanSentiment,
         comments,
       });

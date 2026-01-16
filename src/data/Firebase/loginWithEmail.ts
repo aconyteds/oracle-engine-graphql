@@ -1,8 +1,9 @@
 import { ApolloServerErrorCode } from "@apollo/server/errors";
 import { GraphQLError } from "graphql";
+import { ENV } from "../../config/environment";
 import type { FirebaseAuthResponse } from "./models";
 
-const FIREBASE_WEB_API_KEY = process.env.FIREBASE_WEB_API_KEY;
+const FIREBASE_WEB_API_KEY = ENV.FIREBASE_WEB_API_KEY;
 
 export const loginWithEmailAndPassword = async (
   email: string,

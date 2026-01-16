@@ -28,6 +28,7 @@ describe("captureHumanFeedback", () => {
     createdAt: new Date("2025-01-01"),
     updatedAt: new Date("2025-01-01"),
     runId: "run-1",
+    langSmithTraceId: null,
     routingMetadata: null,
     humanSentiment: null,
     feedbackComments: null,
@@ -256,7 +257,7 @@ describe("captureHumanFeedback", () => {
     await captureHumanFeedback(defaultInput);
 
     expect(mockSendLangSmithFeedback).toHaveBeenCalledWith({
-      runId: "run-123",
+      messageId: "message-1",
       humanSentiment: true,
       comments: undefined,
     });
@@ -279,7 +280,7 @@ describe("captureHumanFeedback", () => {
     await captureHumanFeedback(inputWithComments);
 
     expect(mockSendLangSmithFeedback).toHaveBeenCalledWith({
-      runId: "run-123",
+      messageId: "message-1",
       humanSentiment: true,
       comments: "Very helpful!",
     });
@@ -293,7 +294,7 @@ describe("captureHumanFeedback", () => {
     await captureHumanFeedback(inputWithNegative);
 
     expect(mockSendLangSmithFeedback).toHaveBeenCalledWith({
-      runId: "run-123",
+      messageId: "message-1",
       humanSentiment: false,
       comments: undefined,
     });

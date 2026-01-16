@@ -10,6 +10,7 @@ import { applyMiddleware } from "graphql-middleware";
 import { useServer } from "graphql-ws/lib/use/ws";
 import http from "http";
 import { WebSocketServer } from "ws";
+import { ENV } from "./config/environment";
 import { permissions } from "./graphql/permissions";
 import GraphQLApplication from "./modules";
 import type { ServerContext } from "./serverContext";
@@ -85,9 +86,9 @@ export function sanitizeGraphQLError(
 }
 
 const graphqlServer = async (path: string = "/graphql") => {
-  const isProd = process.env.NODE_ENV === "production";
+  const isProd = ENV.NODE_ENV === "production";
   const app = express();
-  if (process.env.SENTRY_DSN && isProd) {
+  if (ENV.SENTRY_DSN && isProd) {
     setupExpressErrorHandler(app);
   }
   app.use(cors());
