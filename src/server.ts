@@ -160,7 +160,8 @@ const graphqlServer = async (path: string = "/graphql") => {
       const sanitizedError = sanitizeGraphQLError(formattedError, isProd);
       return sanitizedError;
     },
-    introspection: !isProd,
+    // Would like to enable this, but we don't have a test environment set up for generating the schema by the client yet.
+    // introspection: !isProd,
   });
 
   await apolloServer.start();
