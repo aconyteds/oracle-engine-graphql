@@ -167,4 +167,16 @@ export const ENV = {
   HYBRID_SEARCH_METHOD: (getEnv("HYBRID_SEARCH_METHOD") || "manual") as
     | "manual"
     | "mongo",
+
+  /**
+   * Feature Flags
+   */
+
+  /**
+   * Public allowed flag - acts as a proctor toggle for isActive validation
+   * When set to "true", all users are treated as active regardless of database state
+   * When not set or set to any other value, uses database active field
+   * Default: undefined (uses database value)
+   */
+  PUBLIC_ALLOWED: getEnv("PUBLIC_ALLOWED"),
 } as const;

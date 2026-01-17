@@ -1,5 +1,6 @@
 import { verifyCampaignOwnership } from "../../data/MongoDB";
 import { InvalidUserCredentials } from "../../graphql/errors";
+import { translateUserToGraphQLUser } from "../User/utils";
 import { TranslateCampaign } from "../utils";
 import type { CampaignModule } from "./generated";
 import {
@@ -106,13 +107,7 @@ const CampaignResolvers: CampaignModule.Resolvers = {
       const campaign = await getCampaign(campaignId);
       return {
         campaign: campaign ? TranslateCampaign(campaign) : null,
-        user: {
-          id: updatedUser.id,
-          email: updatedUser.email,
-          name: updatedUser.name,
-          isActive: updatedUser.active,
-          subscriptionTier: updatedUser.subscriptionTier,
-        },
+        user: translateUserToGraphQLUser(updatedUser),
       };
     },
     deleteCampaign: async (

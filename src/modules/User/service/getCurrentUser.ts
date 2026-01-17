@@ -3,6 +3,7 @@ import { GraphQLError } from "graphql";
 
 import { DBClient } from "../../../data/MongoDB";
 import type { UserModule } from "../generated";
+import { translateUserToGraphQLUser } from "../utils";
 
 export const getCurrentUser = async (
   /**
@@ -27,11 +28,5 @@ export const getCurrentUser = async (
     return null;
   }
 
-  return {
-    id: user.id,
-    email: user.email,
-    name: user.name,
-    isActive: user.active,
-    subscriptionTier: user.subscriptionTier,
-  };
+  return translateUserToGraphQLUser(user);
 };

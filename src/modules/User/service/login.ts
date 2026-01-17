@@ -3,6 +3,7 @@ import { GraphQLError } from "graphql";
 import { loginWithEmailAndPassword } from "../../../data/Firebase";
 import { lookupUser } from "../../../data/MongoDB";
 import type { UserModule } from "../generated";
+import { translateUserToGraphQLUser } from "../utils";
 
 export const login = async (
   input: UserModule.LoginInput
@@ -23,13 +24,7 @@ export const login = async (
 
     return {
       token: loginToken.idToken,
-      user: {
-        id: userCredential.id,
-        email: userCredential.email,
-        name: userCredential.name,
-        isActive: userCredential.active,
-        subscriptionTier: userCredential.subscriptionTier,
-      },
+      user: translateUserToGraphQLUser(userCredential),
     };
   } catch (error) {
     console.error("Login error:", error);
