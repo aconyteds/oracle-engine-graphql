@@ -20,6 +20,9 @@ declare module "bun" {
     // Maximum number of entries to keep in the in-memory embedding cache
     // Optional; when unset, the default cache size configured in embeddingCache is used
     EMBEDDING_CACHE_MAX_SIZE?: string;
+    // Feature flag: Public allowed - acts as proctor toggle for isActive validation
+    // When set to "true", all users are treated as active
+    PUBLIC_ALLOWED?: string;
   }
 }
 
